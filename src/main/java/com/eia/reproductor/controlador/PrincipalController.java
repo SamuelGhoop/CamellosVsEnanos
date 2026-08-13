@@ -10,11 +10,15 @@ import com.eia.reproductor.modos.ModoAlfabetico;
 import com.eia.reproductor.modos.ModoAleatorio;
 import com.eia.reproductor.modos.ModoOrdenLlegada;
 import com.eia.reproductor.modos.ModoReproduccion;
+import com.eia.reproductor.servicios.AudioLocalService;
+import com.eia.reproductor.servicios.AudioRuteado;
+import com.eia.reproductor.servicios.AudioSimuladoService;
 import com.eia.reproductor.servicios.BibliotecaService;
 import com.eia.reproductor.servicios.MetadataApiService;
 import com.eia.reproductor.servicios.ObservadorBiblioteca;
 import com.eia.reproductor.servicios.PersistenciaService;
 import com.eia.reproductor.servicios.PortadaService;
+import com.eia.reproductor.servicios.ReproductorAudio;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -26,6 +30,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -97,7 +102,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
     private static final double PASO_MARQUESINA = 2;
     private static final Duration INTERVALO_MARQUESINA = Duration.millis(35);
-    private static final Duration TIC_REPRODUCCION = Duration.seconds(1);
 
     // ------------------------------------------------------------------
     // Nodos de la vista
@@ -180,11 +184,21 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private Image iconoPlay;
     private Image iconoPausa;
 
-    private Timeline relojReproduccion;
+    /**
+     * Fuente de audio. El controlador solo conoce la interfaz: no sabe si suena un MP3 local, el
+     * reloj simulado o (en la fase 7b) Spotify. Agregar una fuente no obliga a tocar este archivo.
+     */
+    private final ReproductorAudio audio =
+            new AudioRuteado(new AudioLocalService(), new AudioSimuladoService());
+
     private Timeline animacionMarquesina;
     private Image portadaPorDefecto;
-    private int segundosTranscurridos;
-    private boolean reproduciendo;
+    /** Verdadero mientras el usuario tiene el raton pulsado sobre la barra de progreso. */
+    private boolean arrastrandoProgreso;
+
+    /** Fraccion de la pista bajo el cursor durante el arrastre, entre 0 y 1. */
+    private double avanceArrastrado;
+
     private double desplazamientoArrastreX;
     private double desplazamientoArrastreY;
 
@@ -197,6 +211,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         configurarTabla();
         configurarListaSiguientes();
         construirBarraDeProgreso();
+        conectarAudio();
         cargarPortadaPorDefecto();
 
         boolean primerArranque = !persistencia.existeArchivo();
@@ -215,6 +230,28 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         prepararBarraTitulo();
         prepararAdornosSpidey();
         refrescarTabla();
+    }
+
+    /**
+     * Ata la interfaz al servicio de audio.
+     *
+     * <p>Es todo el contrato entre ambos: tres propiedades que se observan y un aviso de fin de
+     * pista. El controlador no consulta al audio en un bucle ni el audio conoce ningun control; la
+     * interfaz reacciona porque las propiedades cambian.</p>
+     *
+     * <p>Cuando una pista termina, quien decide cual sigue es el modo activo — o sea, la estructura
+     * de datos. La fuente de audio solo avisa que se acabo.</p>
+     */
+    private void conectarAudio() {
+        audio.posicionMsProperty().addListener((observable, anterior, actual) -> refrescarProgreso());
+        audio.duracionMsProperty().addListener((observable, anterior, actual) -> refrescarProgreso());
+        audio.reproduciendoProperty().addListener(
+                (observable, anterior, actual) -> actualizarBotonesDeTransporte());
+        audio.setAlTerminarPista(() -> Platform.runLater(this::siguiente));
+
+        // Un MP3 roto no revienta al abrirlo sino al decodificarlo, en otro hilo: por eso el fallo
+        // llega como aviso y se muestra en la misma franja que el resto de las advertencias.
+        audio.setAlFallar(mensaje -> Platform.runLater(() -> mostrarAviso(mensaje)));
     }
 
     /**
@@ -514,7 +551,15 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /** Crea los rectangulos de la barra de progreso, que se encienden segun el avance. */
+    /**
+     * Crea los rectangulos de la barra de progreso y le da el comportamiento de arrastre.
+     *
+     * <p>La barra es un {@code HBox} de bloques, no un {@code Slider}: el pixel art no admite el
+     * pulgar redondeado del control estandar. Eso obliga a resolver a mano las tres partes del
+     * arrastre: presionar coloca el pulgar, mover lo sigue sin tocar el audio todavia, y soltar es
+     * lo unico que llama a {@code buscarPosicion}. Buscar en cada pixel del recorrido saturaria al
+     * reproductor con peticiones que va a descartar.</p>
+     */
     private void construirBarraDeProgreso() {
         for (int i = 0; i < BLOQUES_PROGRESO; i++) {
             Rectangle bloque = new Rectangle(ANCHO_BLOQUE, ALTO_BLOQUE);
@@ -522,6 +567,46 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
             bloquesProgreso.add(bloque);
             barraProgreso.getChildren().add(bloque);
         }
+
+        barraProgreso.setCursor(Cursor.HAND);
+        barraProgreso.setOnMousePressed(evento -> {
+            if (modoActivo == null || modoActivo.actual() == null) {
+                return;
+            }
+            arrastrandoProgreso = true;
+            avanceArrastrado = fraccionEn(evento.getX());
+            refrescarProgreso();
+        });
+        barraProgreso.setOnMouseDragged(evento -> {
+            if (!arrastrandoProgreso) {
+                return;
+            }
+            avanceArrastrado = fraccionEn(evento.getX());
+            refrescarProgreso();
+        });
+        barraProgreso.setOnMouseReleased(evento -> {
+            if (!arrastrandoProgreso) {
+                return;
+            }
+            avanceArrastrado = fraccionEn(evento.getX());
+            arrastrandoProgreso = false;
+            audio.buscarPosicion(Math.round(avanceArrastrado * duracionDeLaPista() * 1000));
+            refrescarProgreso();
+        });
+    }
+
+    /**
+     * Traduce una coordenada horizontal dentro de la barra a una fraccion de la pista.
+     *
+     * @param x posicion del raton relativa a la barra
+     * @return valor entre 0 y 1
+     */
+    private double fraccionEn(double x) {
+        double ancho = barraProgreso.getWidth();
+        if (ancho <= 0) {
+            return 0;
+        }
+        return Math.max(0, Math.min(1, x / ancho));
     }
 
     private void cargarPortadaPorDefecto() {
@@ -583,11 +668,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
      * ningun {@code if} ni {@code switch} sobre el tipo concreto del modo.</p>
      */
     private void activarModo(ModoReproduccion modo) {
-        detenerReloj();
+        audio.detener();
         modoActivo = modo;
         modoActivo.cargar(biblioteca.todas());
-        segundosTranscurridos = 0;
-        reproduciendo = false;
         actualizarPestanias();
         refrescarReproductor();
     }
@@ -620,12 +703,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
             modoAleatorio.volverAMezclar();
         } else if (modoActivo == modoOrdenLlegada) {
             modoOrdenLlegada.cargar(biblioteca.todas());
-            segundosTranscurridos = 0;
-            detenerReloj();
+            audio.detener();
         } else {
             modoActivo.reiniciar();
-            segundosTranscurridos = 0;
-            detenerReloj();
+            audio.detener();
         }
         refrescarReproductor();
     }
@@ -642,9 +723,8 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
      */
     @FXML
     private void alternarReproduccion() {
-        if (reproduciendo) {
-            reproduciendo = false;
-            detenerReloj();
+        if (estaSonando()) {
+            audio.pausar();
             refrescarReproductor();
             return;
         }
@@ -656,9 +736,13 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
             siguiente();
             return;
         }
-        reproduciendo = true;
-        arrancarReloj();
+        audio.reanudar();
         refrescarReproductor();
+    }
+
+    /** @return si hay audio sonando, segun la fuente activa */
+    private boolean estaSonando() {
+        return audio.reproduciendoProperty().get();
     }
 
     @FXML
@@ -666,8 +750,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         if (!modoActivo.hayMas()) {
             mostrarAviso("La cola está vacía. Usá \"RECARGAR COLA\" para volver a llenarla "
                     + "desde la biblioteca.");
-            reproduciendo = false;
-            detenerReloj();
+            audio.detener();
             refrescarReproductor();
             return;
         }
@@ -684,44 +767,27 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         iniciarPista();
     }
 
-    /** Deja lista la cancion recien seleccionada por el modo y arranca el reloj. */
+    /**
+     * Manda a sonar la cancion que el modo acaba de seleccionar.
+     *
+     * <p>El controlador no elige la fuente: le pasa la cancion al enrutador y este decide si va por
+     * el archivo local, por Spotify o por el reloj simulado. Aqui esta el limite entre "quien manda
+     * el orden" (las estructuras de datos) y "quien hace ruido" (la fuente de audio).</p>
+     */
     private void iniciarPista() {
-        segundosTranscurridos = 0;
-        reproduciendo = true;
         limpiarAviso();
-        arrancarReloj();
+        audio.reproducir(modoActivo.actual());
         refrescarReproductor();
     }
 
-    /**
-     * Reloj de reproduccion simulada.
-     *
-     * <p>Provisional: en la Fase 7 se reemplaza por {@code AudioService}, que reproducira el MP3
-     * de verdad cuando la cancion tenga archivo y mantendra este mismo comportamiento cuando no lo
-     * tenga. La interfaz no notara la diferencia.</p>
-     */
-    private void arrancarReloj() {
-        detenerReloj();
-        relojReproduccion = new Timeline(new KeyFrame(TIC_REPRODUCCION, evento -> {
-            segundosTranscurridos++;
-            if (segundosTranscurridos >= duracionDeLaPista()) {
-                siguiente();
-            } else {
-                refrescarProgreso();
-            }
-        }));
-        relojReproduccion.setCycleCount(Animation.INDEFINITE);
-        relojReproduccion.play();
-    }
-
-    private void detenerReloj() {
-        if (relojReproduccion != null) {
-            relojReproduccion.stop();
-            relojReproduccion = null;
-        }
-    }
-
+    /** @return duracion de la pista en segundos segun la fuente de audio */
     private int duracionDeLaPista() {
+        long desdeLaFuente = audio.duracionMsProperty().get();
+        if (desdeLaFuente > 0) {
+            return (int) (desdeLaFuente / 1000);
+        }
+        // Un MP3 no publica su duracion hasta que carga la cabecera: mientras tanto se usa la
+        // duracion declarada en la metadata para que la barra no aparezca vacia.
         Cancion actual = modoActivo == null ? null : modoActivo.actual();
         if (actual == null || actual.getDuracionSegundos() <= 0) {
             return DURACION_SIMULADA_POR_DEFECTO;
@@ -973,12 +1039,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
             etiquetaArtista.setText("-");
             etiquetaDetalle.setText("MODO " + modoActivo.nombre().toUpperCase()
                     + "\n" + modoActivo.estructuraUsada().toUpperCase());
-            etiquetaTiempoTotal.setText("0:00");
         } else {
             etiquetaTitulo.setText(actual.getTitulo().toUpperCase());
             etiquetaArtista.setText(actual.getArtista().toUpperCase());
             etiquetaDetalle.setText(detalleDe(actual));
-            etiquetaTiempoTotal.setText(formatearSegundos(duracionDeLaPista()));
         }
 
         imagenPortada.setImage(portadaDe(actual));
@@ -989,12 +1053,26 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarProgreso();
     }
 
+    /**
+     * Pinta la barra segmentada segun el avance real de la reproduccion.
+     *
+     * <p>Mientras se arrastra el pulgar la barra deja de mirar la posicion de la fuente y sigue al
+     * dedo: si no, cada aviso del audio empujaria el pulgar de vuelta y el arrastre pelearia contra
+     * la reproduccion.</p>
+     *
+     * <p>Los dos rotulos de tiempo se escriben aqui y no al cambiar de cancion, porque un MP3 no
+     * publica su duracion hasta que carga la cabecera: si el total se escribiera una sola vez, se
+     * quedaria con la duracion de la metadata aunque el archivo dure otra cosa.</p>
+     */
     private void refrescarProgreso() {
         int total = duracionDeLaPista();
         boolean hayPista = modoActivo != null && modoActivo.actual() != null;
+        int segundos = arrastrandoProgreso
+                ? (int) Math.round(avanceArrastrado * total)
+                : (int) (audio.posicionMsProperty().get() / 1000);
         double avance = (!hayPista || total <= 0)
                 ? 0
-                : Math.min(1.0, (double) segundosTranscurridos / total);
+                : Math.min(1.0, (double) segundos / total);
         int encendidos = (int) Math.round(avance * BLOQUES_PROGRESO);
 
         for (int i = 0; i < bloquesProgreso.size(); i++) {
@@ -1004,19 +1082,22 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 bloque.getStyleClass().add("bloque-progreso-encendido");
             }
         }
-        etiquetaTiempoActual.setText(hayPista ? formatearSegundos(segundosTranscurridos) : "0:00");
+        etiquetaTiempoActual.setText(hayPista ? formatearSegundos(segundos) : "0:00");
+        etiquetaTiempoTotal.setText(hayPista ? formatearSegundos(total) : "0:00");
     }
 
     private void actualizarBotonesDeTransporte() {
+        boolean sonando = estaSonando();
+
         // El boton "Anterior" se habilita preguntandole al modo, nunca mirando de que clase es.
         botonAnterior.setDisable(!modoActivo.permiteAnterior());
         botonSiguiente.setDisable(!modoActivo.hayMas());
         botonReproducir.setDisable(
-                !reproduciendo && !modoActivo.hayMas() && modoActivo.actual() == null);
+                !sonando && !modoActivo.hayMas() && modoActivo.actual() == null);
 
         // El icono anuncia la accion disponible, no el estado actual.
-        iconoReproducir.setImage(reproduciendo ? iconoPausa : iconoPlay);
-        barrasSonido.sincronizar(reproduciendo);
+        iconoReproducir.setImage(sonando ? iconoPausa : iconoPlay);
+        barrasSonido.sincronizar(sonando);
     }
 
     private void actualizarBotonAccionModo() {
@@ -1084,7 +1165,14 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return portadaPorDefecto;
     }
 
-    private static String detalleDe(Cancion cancion) {
+    /**
+     * Arma el texto de detalle de la cancion en curso.
+     *
+     * <p>Incluye la fuente de audio activa. No es adorno: es la prueba visible de que el mismo
+     * boton de play acaba en implementaciones distintas segun la cancion, y sirve para explicarlo
+     * en la sustentacion sin abrir el codigo.</p>
+     */
+    private String detalleDe(Cancion cancion) {
         StringBuilder detalle = new StringBuilder(cancion.getAlbum().toUpperCase());
         if (cancion.getAnio() > 0) {
             detalle.append("  •  ").append(cancion.getAnio());
@@ -1094,6 +1182,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         if (cancion.isFavorita()) {
             detalle.append("  •  FAVORITA");
         }
+        detalle.append("\nAUDIO: ").append(audio.nombreFuente().toUpperCase());
         return detalle.toString();
     }
 
@@ -1144,7 +1233,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
      * <p>Lo llama {@code App} desde el evento de cierre de la ventana.</p>
      */
     public void alCerrar() {
-        detenerReloj();
+        // Detener el audio es obligatorio, no cortesia: un MediaPlayer vivo retiene un hilo nativo
+        // que puede dejar el proceso colgado despues de cerrar la ventana.
+        audio.detener();
         if (animacionMarquesina != null) {
             animacionMarquesina.stop();
         }
