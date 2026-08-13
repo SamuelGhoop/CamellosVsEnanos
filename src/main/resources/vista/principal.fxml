@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Vista principal del reproductor.
+
+  Estructura:
+    top     - banner + selector de modo (tres pestanias que muestran su estructura de datos)
+    center  - izquierda: biblioteca (tabla + busqueda + CRUD)
+              derecha:   reproductor (portada, info, progreso, transporte, cola siguiente)
+    bottom  - marquesina con la cancion en curso
+
+  El controlador no crea logica: consulta a BibliotecaService y habla con el modo activo a
+  traves de la interfaz ModoReproduccion.
+-->
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- La raiz es un StackPane para poder superponer la capa de animaciones sobre toda la
+     interfaz. Esa capa es transparente al raton, asi que no roba ni un clic. -->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.eia.reproductor.controlador.PrincipalController">
+
+<!-- Marco de 9 piezas. Las esquinas van a tamanio fijo y los lados se repiten (no se estiran):
+     como el dibujo de cada lado es uniforme a lo largo de su eje, repetirlo no deja costuras y
+     evita el remuestreo que emborronaria el pixel art. Piezas reducidas a la mitad: 40 px de
+     grosor arriba y a los lados, 21 abajo. -->
+<GridPane styleClass="marco-exterior">
+    <columnConstraints>
+        <ColumnConstraints minWidth="40" prefWidth="40" maxWidth="40" />
+        <ColumnConstraints hgrow="ALWAYS" />
+        <ColumnConstraints minWidth="40" prefWidth="40" maxWidth="40" />
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints minHeight="40" prefHeight="40" maxHeight="40" />
+        <RowConstraints vgrow="ALWAYS" />
+        <RowConstraints minHeight="21" prefHeight="21" maxHeight="21" />
+    </rowConstraints>
+
+    <Region styleClass="marco-si"  GridPane.rowIndex="0" GridPane.columnIndex="0" />
+    <Region styleClass="marco-s"   GridPane.rowIndex="0" GridPane.columnIndex="1" />
+    <Region styleClass="marco-sd"  GridPane.rowIndex="0" GridPane.columnIndex="2" />
+    <Region styleClass="marco-i"   GridPane.rowIndex="1" GridPane.columnIndex="0" />
+    <Region styleClass="marco-d"   GridPane.rowIndex="1" GridPane.columnIndex="2" />
+    <Region styleClass="marco-ii"  GridPane.rowIndex="2" GridPane.columnIndex="0" />
+    <Region styleClass="marco-inf" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+    <Region styleClass="marco-id"  GridPane.rowIndex="2" GridPane.columnIndex="2" />
+
+<BorderPane styleClass="raiz" GridPane.rowIndex="1" GridPane.columnIndex="1">
+
+    <!-- ==================== CABECERA ==================== -->
+    <top>
+        <VBox fx:id="cabecera">
+            <!-- Barra de titulo propia. La ventana va sin decoracion del sistema, asi que el
+                 arrastre y los tres botones los pone la aplicacion. -->
+            <HBox fx:id="barraTitulo" styleClass="barra-titulo">
+                <Label styleClass="barra-titulo-texto"
+                       text="CAMELLOS VS ENANOS • REPRODUCTOR" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button styleClass="boton-ventana" text="—" onAction="#minimizarVentana" />
+                <Button styleClass="boton-ventana" text="□" onAction="#alternarMaximizar" />
+                <Button styleClass="boton-ventana, boton-cerrar" text="X"
+                        onAction="#cerrarVentana" />
+            </HBox>
+
+            <HBox styleClass="banner">
+                <!-- Insignia animada de la izquierda, dentro de su marco octogonal -->
+                <StackPane fx:id="insigniaIzquierda" styleClass="insignia" />
+                <Region HBox.hgrow="ALWAYS" />
+                <!-- El logo no vive aqui: esta en la capa superior para poder montarse sobre el
+                     borde del marco. Esta franja solo le reserva el alto que ocupa, de modo que
+                     el subtitulo y las pestanias queden por debajo y no lo pisen. -->
+                <VBox styleClass="banner-centro">
+                    <Region styleClass="hueco-titulo" />
+                </VBox>
+                <Region HBox.hgrow="ALWAYS" />
+                <VBox styleClass="bloque-derecho-cabecera">
+                    <Button fx:id="botonTema" styleClass="boton-tema" text="TEMA OSCURO"
+                            onAction="#alternarTema" />
+                    <ImageView fx:id="insigniaDerecha" styleClass="insignia-imagen"
+                               fitWidth="85" fitHeight="70" preserveRatio="true" smooth="false" />
+                </VBox>
+            </HBox>
+
+            <!-- Selector de modo: cada pestania anuncia que estructura de datos usa -->
+            <HBox styleClass="selector-modos">
+                <Button fx:id="botonModoAleatorio" styleClass="pestania-modo"
+                        onAction="#activarModoAleatorio" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                    <graphic>
+                        <VBox styleClass="pestania-contenido">
+                            <Label styleClass="pestania-nombre" text="MODO 1 • ALEATORIO" />
+                            <Label styleClass="pestania-estructura" text="LISTA CIRCULAR DOBLE" />
+                        </VBox>
+                    </graphic>
+                </Button>
+                <Button fx:id="botonModoLlegada" styleClass="pestania-modo"
+                        onAction="#activarModoOrdenLlegada" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                    <graphic>
+                        <VBox styleClass="pestania-contenido">
+                            <Label styleClass="pestania-nombre" text="MODO 2 • ORDEN DE LLEGADA" />
+                            <Label styleClass="pestania-estructura" text="COLA SIMPLE (FIFO)" />
+                        </VBox>
+                    </graphic>
+                </Button>
+                <Button fx:id="botonModoAlfabetico" styleClass="pestania-modo"
+                        onAction="#activarModoAlfabetico" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                    <graphic>
+                        <VBox styleClass="pestania-contenido">
+                            <Label styleClass="pestania-nombre" text="MODO 3 • ALFABETICO" />
+                            <Label styleClass="pestania-estructura" text="ARBOL BINARIO DE BUSQUEDA" />
+                        </VBox>
+                    </graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ==================== CUERPO ==================== -->
+    <center>
+        <!-- minHeight en 0: sin esto, la altura minima de los paneles empuja la marquesina
+             fuera de la ventana cuando la pantalla es pequenia. -->
+        <HBox styleClass="cuerpo" minHeight="0">
+
+            <!-- Columna izquierda: biblioteca y, debajo, la franja de la marquesina. La franja ya
+                 no cruza toda la ventana; asi el panel de la derecha llega hasta abajo y la lista
+                 de proximas canciones recupera la altura que le robaba. -->
+            <VBox styleClass="columna-izquierda" HBox.hgrow="ALWAYS">
+
+            <!-- ===== Biblioteca ===== -->
+            <VBox styleClass="panel, panel-biblioteca" VBox.vgrow="ALWAYS">
+                <HBox styleClass="fila-titulo">
+                    <Label styleClass="panel-encabezado" text="• BIBLIOTECA" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="etiquetaContador" styleClass="texto-tenue" text="0 CANCIONES" />
+                </HBox>
+
+                <HBox styleClass="fila-busqueda">
+                    <TextField fx:id="campoBusqueda" promptText="BUSCAR TITULO, ARTISTA O ALBUM"
+                               HBox.hgrow="ALWAYS" />
+                    <Button fx:id="botonBuscar" text="BUSCAR" onAction="#buscar" />
+                    <Button fx:id="botonLimpiarBusqueda" text="X" onAction="#limpiarBusqueda" />
+                </HBox>
+
+                <TableView fx:id="tablaBiblioteca" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="columnaPortada" text="" prefWidth="44" minWidth="44"
+                                     maxWidth="44" resizable="false" sortable="false" />
+                        <!-- Las columnas cortas llevan minWidth: al repartirse el ancho, sin el se
+                             encogen hasta mostrar solo puntos suspensivos. -->
+                        <TableColumn fx:id="columnaTitulo" text="TITULO" prefWidth="200" minWidth="140" />
+                        <TableColumn fx:id="columnaArtista" text="ARTISTA" prefWidth="140" minWidth="100" />
+                        <TableColumn fx:id="columnaAlbum" text="ALBUM" prefWidth="140" minWidth="100" />
+                        <TableColumn fx:id="columnaGenero" text="GENERO" prefWidth="100" minWidth="70" />
+                        <TableColumn fx:id="columnaAnio" text="ANIO" prefWidth="64" minWidth="64" />
+                        <TableColumn fx:id="columnaDuracion" text="DUR." prefWidth="64" minWidth="64" />
+                        <TableColumn fx:id="columnaCalificacion" text="CAL." prefWidth="58" minWidth="58" />
+                    </columns>
+                </TableView>
+
+                <HBox styleClass="fila-crud">
+                    <Button fx:id="botonAgregar" text="AGREGAR" onAction="#agregarCancion" />
+                    <Button fx:id="botonEditar" text="EDITAR" onAction="#editarCancion" />
+                    <Button fx:id="botonEliminar" text="ELIMINAR" onAction="#eliminarCancion" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="etiquetaEstructuraActiva" styleClass="texto-tenue" />
+                </HBox>
+
+                <Label fx:id="etiquetaAviso" styleClass="texto-aviso" wrapText="true" managed="false"
+                       visible="false" />
+            </VBox>
+
+                <HBox styleClass="barra-inferior">
+                    <Region styleClass="franja-centinela" />
+                    <HBox fx:id="contenedorMarquesina" styleClass="marquesina" HBox.hgrow="ALWAYS">
+                        <Label fx:id="etiquetaMarquesina" styleClass="marquesina-texto" />
+                    </HBox>
+                    <!-- Raya de cierre: marca donde termina el recorrido del texto, para que no
+                         parezca que se corta contra el borde del panel. -->
+                    <Region styleClass="tope-marquesina" />
+                </HBox>
+            </VBox>
+
+            <!-- ===== Reproductor ===== -->
+            <VBox styleClass="panel, panel-reproductor">
+                <!-- Sin encabezado propio: la carátula y el título ya dicen que es esto, y esos
+                     24 px hacen falta abajo para que la lista de próximas se vea. -->
+
+                <!-- El HBox centra el marco; el StackPane con max en -Infinity (USE_PREF_SIZE) se
+                     encoge hasta la imagen, de modo que el marco queda cuadrado en vez de
+                     estirarse a todo el ancho del panel con la caratula perdida en el medio.
+                     192 = 16 x 12, asi la portada de reemplazo se dibuja pixel a pixel. -->
+                <HBox styleClass="fila-portada">
+                    <StackPane styleClass="marco-portada"
+                               maxWidth="-Infinity" maxHeight="-Infinity">
+                        <ImageView fx:id="imagenPortada" styleClass="portada"
+                                   fitWidth="96" fitHeight="96" preserveRatio="true"
+                                   smooth="false" />
+                    </StackPane>
+                </HBox>
+
+                <!-- minHeight en -Infinity (USE_PREF_SIZE): sin esto, cuando el panel va justo de
+                     alto las etiquetas se encogen a un renglon y el texto sale con puntos
+                     suspensivos en vez de partirse en varias lineas. -->
+                <VBox styleClass="bloque-info">
+                    <Label fx:id="etiquetaTitulo" styleClass="info-titulo" text="SIN REPRODUCCION"
+                           wrapText="true" minHeight="-Infinity" />
+                    <Label fx:id="etiquetaArtista" styleClass="info-artista" text="-"
+                           wrapText="true" minHeight="-Infinity" />
+                    <Label fx:id="etiquetaDetalle" styleClass="info-detalle" text="-"
+                           wrapText="true" minHeight="-Infinity" />
+                </VBox>
+
+                <!-- Barra de progreso segmentada: los bloques los crea el controlador -->
+                <VBox styleClass="bloque-progreso-contenedor">
+                    <HBox fx:id="barraProgreso" styleClass="barra-progreso" />
+                    <HBox styleClass="fila-tiempos">
+                        <Label fx:id="etiquetaTiempoActual" styleClass="texto-tenue" text="0:00" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <!-- Ecualizador: se mueve solo mientras suena la musica -->
+                        <HBox fx:id="ranuraBarras" styleClass="ranura-barras" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="etiquetaTiempoTotal" styleClass="texto-tenue" text="0:00" />
+                    </HBox>
+                </VBox>
+
+                <!-- Un unico boton alterna entre reproducir y pausar: muestra el triangulo verde
+                     cuando la accion es arrancar y las dos barras rojas cuando es pausar. -->
+                <HBox styleClass="fila-transporte">
+                    <Button fx:id="botonAnterior" text="&lt;&lt;" onAction="#anterior" />
+                    <Button fx:id="botonReproducir" styleClass="boton-transporte"
+                            onAction="#alternarReproduccion">
+                        <graphic>
+                            <ImageView fx:id="iconoReproducir" fitWidth="48" fitHeight="48"
+                                       preserveRatio="true" smooth="false" />
+                        </graphic>
+                    </Button>
+                    <Button fx:id="botonSiguiente" text="&gt;&gt;" onAction="#siguiente" />
+                </HBox>
+
+                <Button fx:id="botonAccionModo" text="VOLVER A MEZCLAR" maxWidth="Infinity"
+                        onAction="#ejecutarAccionDelModo" />
+
+                <Label styleClass="panel-encabezado-menor" text="• A CONTINUACION" />
+                <!-- Se le baja el minimo para hacerle sitio a la caratula grande sin empujar la
+                     marquesina fuera de la ventana en pantallas bajas. -->
+                <!-- minHeight en 0: la lista es lo ultimo del panel, asi que si el alto no alcanza
+                     tiene que encogerse ella. Con un minimo mayor, el panel entero se desbordaba
+                     por debajo del borde de la ventana. -->
+                <ListView fx:id="listaSiguientes" VBox.vgrow="ALWAYS"
+                          minHeight="0" prefHeight="260" />
+            </VBox>
+        </HBox>
+    </center>
+
+</BorderPane>
+
+</GridPane>
+
+    <!-- Logo montado sobre el borde superior del marco, como en la referencia: se cuelga del
+         techo de la ventana y pisa la moldura. Va en la capa de encima y no dentro de la
+         cabecera porque desde ahi no podria salirse del panel. Transparente al raton para no
+         robarle el arrastre a la barra de titulo que tiene debajo. -->
+    <!-- Arania tenue de fondo, como en la referencia. Va encima de los paneles pero con muy poca
+         opacidad, y transparente al raton para no interferir con nada. -->
+    <ImageView fx:id="fondoArania" styleClass="fondo-arania" mouseTransparent="true"
+               fitHeight="420" preserveRatio="true" smooth="false" />
+
+    <VBox styleClass="titulo-colgado" StackPane.alignment="TOP_CENTER" mouseTransparent="true"
+          maxWidth="-Infinity" maxHeight="-Infinity">
+        <ImageView fx:id="imagenTitulo" styleClass="titulo-sprite"
+                   fitWidth="800" fitHeight="133" preserveRatio="true" smooth="false" />
+        <!-- Moldura inferior del logo: tapas fijas y el trozo central repitiendose. -->
+        <HBox styleClass="subrayado">
+            <Region styleClass="subrayado-izq" />
+            <Region styleClass="subrayado-medio" HBox.hgrow="ALWAYS" />
+            <Region styleClass="subrayado-der" />
+        </HBox>
+        <!-- El subtitulo viaja con el logo, no dentro de la cabecera: alli quedaba centrado
+             respecto a las insignias (que son de anchos distintos a cada lado) y no respecto al
+             logo, que es lo que se nota a simple vista. -->
+        <Label styleClass="banner-subtitulo" text="CAMELLOS VS ENANOS • UNIVERSIDAD EIA" />
+    </VBox>
+
+    <!-- Capa de adornos animados. Va la ultima para quedar por encima de todo. -->
+    <Pane fx:id="capaAnimaciones" mouseTransparent="true" pickOnBounds="false" />
+
+</StackPane>

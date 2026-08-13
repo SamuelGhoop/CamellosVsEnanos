@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.eia</groupId>
+    <artifactId>reproductor-camellos</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Reproductor Camellos vs Enanos</name>
+    <description>
+        Reproductor musical de escritorio para el curso de Lenguajes y Compiladores (Universidad EIA).
+        Cada modo de reproduccion usa una estructura de datos distinta implementada desde cero.
+    </description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Versiones centralizadas: cambiar aqui y no en cada dependencia -->
+        <javafx.version>21.0.12</javafx.version>
+        <gson.version>2.11.0</gson.version>
+        <jaudiotagger.version>3.0.1</jaudiotagger.version>
+        <junit.version>5.11.4</junit.version>
+
+        <!-- Se arranca por Lanzador y no por App: una clase principal que extiende
+             javafx.application.Application obliga a tener JavaFX en el module path.
+             Ver la documentacion de Lanzador.java. -->
+        <clase.principal>com.eia.reproductor.Lanzador</clase.principal>
+    </properties>
+
+    <dependencies>
+        <!-- ============ JavaFX ============ -->
+        <!-- Controles base de la interfaz (Button, TableView, Slider...) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- Carga de las vistas declarativas .fxml (separacion logica / presentacion) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- MediaPlayer: reproduccion real de MP3/WAV (bonificacion del enunciado) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- ============ Persistencia y metadata ============ -->
+        <!-- Gson: serializacion de la biblioteca a data/biblioteca.json y parseo de la API de iTunes -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
+
+        <!-- jaudiotagger: lectura de tags ID3 de los archivos MP3/WAV locales -->
+        <dependency>
+            <groupId>net.jthink</groupId>
+            <artifactId>jaudiotagger</artifactId>
+            <version>${jaudiotagger.version}</version>
+        </dependency>
+
+        <!-- ============ Pruebas ============ -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+
+            <!-- Permite ejecutar la aplicacion con: mvn javafx:run -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>${clase.principal}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

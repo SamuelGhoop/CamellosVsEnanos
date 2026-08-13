@@ -1,0 +1,957 @@
+/* =========================================================================
+   REPRODUCTOR CAMELLOS VS ENANOS - Hoja de estilos
+   Estetica: HUD de consola retro. Todo son rectangulos duros.
+
+   Reglas que sostienen el look pixel y que NO se deben romper:
+     1. Cero bordes redondeados  -> -fx-background-radius / -fx-border-radius siempre en 0.
+     2. Cero gradientes suaves   -> solo colores planos.
+     3. Cero sombras difusas     -> la profundidad se logra con biseles de dos tonos.
+     4. Tamanos de fuente en multiplos de 2: 8, 10, 12, 16, 24 px.
+     5. Los ImageView de pixel-art van con -fx-smooth: false y escalados en enteros.
+   ========================================================================= */
+
+/* ---------------------------- Paleta ----------------------------
+   Los colores salen medidos de los sprites del marco, no elegidos a ojo: si la interfaz usara
+   un azul distinto al del arte, el marco se veria pegado encima en vez de formar parte de ella.
+     #3997BB / #2976A0 / #154F80  -> los tres azules del marco
+     #1E1E14                      -> el contorno negro-verdoso de todos los sprites
+     #ABE5FF                      -> el celeste de las piezas del subrayado
+     #52B375                      -> el verde de insignia-verde, reutilizado para "reproducir"
+     #96E0F7                      -> el celeste de las barras de sonido                        */
+.root {
+    -fondo-profundo:  #0B0B07;
+    -fondo-panel:     #14140D;
+    -marco-azul:      #3997BB;
+    -marco-azul-med:  #2976A0;
+    -marco-azul-osc:  #154F80;
+    -borde-claro:     #ABE5FF;
+    -verde-accion:    #52B375;
+    -celeste-barras:  #96E0F7;
+    -rojo-acento:     #d3323f;
+    -blanco-hueso:    #f0f0f0;
+    -gris-apagado:    #6b7280;
+
+    /* Si la tipografia de pixeles no logra registrarse, JavaFX cae a la monoespaciada. */
+    -fx-font-family: "Press Start 2P", "Consolas", monospace;
+    -fx-font-smoothing-type: gray;
+    -fx-background-color: -fondo-profundo;
+}
+
+/* ------------------------- Tema claro -------------------------
+   Es la paleta original del proyecto: azul rey sobre gris oscuro. Se activa agregandole la clase
+   "tema-claro" a la raiz. Solo redefine las variables de color; ni una regla de las de abajo
+   necesita duplicarse, porque todas resuelven el color a traves de estos nombres.
+   El tema oscuro (el de arriba) es el que combina con los sprites.                          */
+.root.tema-claro {
+    -fondo-profundo:  #16171c;
+    -fondo-panel:     #22242c;
+    -marco-azul:      #2f6fb5;
+    -marco-azul-med:  #2a5f9e;
+    -marco-azul-osc:  #1c4478;
+    -borde-claro:     #a8d0f0;
+    -verde-accion:    #3f9d55;
+    -celeste-barras:  #7ec8e3;
+    -rojo-acento:     #d3323f;
+    -blanco-hueso:    #f0f0f0;
+    -gris-apagado:    #6b7280;
+}
+
+/* ------------------- Marco exterior de 9 piezas -------------------
+   Las esquinas no se repiten. Los lados si: el dibujo de cada uno es uniforme a lo largo de su
+   eje, asi que repetirlo no deja costura y ademas evita el remuestreo, que es lo que
+   emborronaria el pixel art si se estirase. */
+.marco-exterior {
+    -fx-background-color: -fondo-profundo;
+}
+
+.marco-si, .marco-s, .marco-sd, .marco-i, .marco-d, .marco-ii, .marco-inf, .marco-id {
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.marco-si  { -fx-background-image: url("../imagenes/spidey/marco-sup-izq.png"); }
+.marco-sd  { -fx-background-image: url("../imagenes/spidey/marco-sup-der.png"); }
+.marco-ii  { -fx-background-image: url("../imagenes/spidey/marco-inf-izq.png"); }
+.marco-id  { -fx-background-image: url("../imagenes/spidey/marco-inf-der.png"); }
+
+.marco-s   { -fx-background-image: url("../imagenes/spidey/marco-sup.png");
+             -fx-background-repeat: repeat-x; -fx-background-position: left center; }
+.marco-inf { -fx-background-image: url("../imagenes/spidey/marco-inf.png");
+             -fx-background-repeat: repeat-x; -fx-background-position: left center; }
+.marco-i   { -fx-background-image: url("../imagenes/spidey/marco-izq.png");
+             -fx-background-repeat: repeat-y; -fx-background-position: center top; }
+.marco-d   { -fx-background-image: url("../imagenes/spidey/marco-der.png");
+             -fx-background-repeat: repeat-y; -fx-background-position: center top; }
+
+.raiz {
+    -fx-background-color: -fondo-profundo;
+    /* Marco exterior de la consola: bisel claro arriba/izquierda, oscuro abajo/derecha. */
+    -fx-border-width: 4;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+}
+
+/* ------------------- Barra de titulo propia ------------------- */
+.barra-titulo {
+    -fx-background-color: -marco-azul-osc;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-color: -marco-azul;
+    -fx-padding: 4 6 4 14;
+    -fx-alignment: center-left;
+    -fx-spacing: 4;
+    -fx-min-height: 30;
+}
+
+.barra-titulo-texto {
+    -fx-font-size: 8px;
+    -fx-text-fill: -borde-claro;
+}
+
+.button.boton-ventana {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -borde-claro;
+    -fx-font-size: 10px;
+    -fx-padding: 2 10 2 10;
+}
+
+.button.boton-ventana:hover {
+    -fx-background-color: -marco-azul;
+    -fx-border-color: transparent;
+}
+
+.button.boton-ventana.boton-cerrar:hover {
+    -fx-background-color: -rojo-acento;
+}
+
+.button.boton-ventana:pressed {
+    -fx-translate-x: 0;
+    -fx-translate-y: 0;
+}
+
+/* ---------------------------- Cabecera ---------------------------- */
+.banner {
+    -fx-background-color: -marco-azul;
+    -fx-border-width: 0 0 4 0;
+    -fx-border-color: -marco-azul-osc;
+    -fx-padding: 6 20 6 20;
+    -fx-spacing: 10;
+    -fx-alignment: center;
+}
+
+/* Sin espaciado: el subrayado tiene que quedar pegado al banner, como un borde suyo y no como
+   una barra suelta debajo. La separacion del subtitulo se da con su propio padding. */
+.banner-centro {
+    -fx-alignment: center;
+    -fx-spacing: 0;
+}
+
+/* El titulo es un sprite, no texto: sin suavizado y a escala entera. */
+.titulo-sprite {
+    -fx-smooth: false;
+}
+
+.insignia {
+    -fx-alignment: center;
+    -fx-min-width: 90;
+}
+
+.insignia-imagen {
+    -fx-smooth: false;
+}
+
+.banner-titulo {
+    -fx-font-size: 24px;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.banner-subtitulo {
+    -fx-font-size: 8px;
+    -fx-text-fill: -borde-claro;
+    -fx-text-fill: #0B2545; /* Azul oscuro (puedes ajustar el código hex o usar 'darkblue') */
+        -fx-translate-y: -28px;
+}
+
+/* ------------------- Selector de modo (pestanias) ------------------- */
+.selector-modos {
+    -fx-background-color: -fondo-profundo;
+    -fx-padding: 6 12 4 12;
+    -fx-spacing: 8;
+}
+
+/* Las pestanias son Button, asi que hay que ganarle en especificidad a la regla .button:
+   con una sola clase empatarian y ganaria la que aparece despues en el archivo. */
+.button.pestania-modo {
+    -fx-background-color: -fondo-panel;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul-osc;
+    -fx-padding: 10 8 10 8;
+}
+
+.button.pestania-modo:hover {
+    -fx-background-color: derive(-fondo-panel, 25%);
+}
+
+/* La pestania activa se enciende en azul con el nombre de su estructura en rojo. */
+.button.pestania-modo.activa {
+    -fx-background-color: -marco-azul;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+}
+
+.pestania-contenido {
+    -fx-spacing: 6;
+    -fx-alignment: center;
+}
+
+.pestania-nombre {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+}
+
+.button.pestania-modo.activa .pestania-nombre {
+    -fx-text-fill: -blanco-hueso;
+}
+
+.pestania-estructura {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+}
+
+.button.pestania-modo.activa .pestania-estructura {
+    -fx-text-fill: -rojo-acento;
+}
+
+/* ---------------------------- Cuerpo ---------------------------- */
+.cuerpo {
+    -fx-background-color: -fondo-profundo;
+    -fx-padding: 8 12 12 12;
+    -fx-spacing: 12;
+}
+
+.panel-biblioteca {
+    -fx-min-width: 520;
+}
+
+/* La columna izquierda apila biblioteca y marquesina; la derecha queda libre de tope a fondo. */
+.columna-izquierda {
+    -fx-spacing: 12;
+    -fx-min-width: 520;
+}
+
+/* ---- Borde decorativo bajo el titulo ---- */
+/* El logo arranca 8 px por debajo del techo: lo justo para montarse sobre la moldura de 40 px
+   del marco y que se vea colgado de ella, no flotando dentro del panel. */
+/* El tamanio maximo se fija en el FXML con -Infinity (USE_PREF_SIZE); en CSS ese valor no se
+   admite y el contenedor se estiraba a toda la ventana, dejando el logo perdido en el centro. */
+/* Cuelga de la barra de titulo, no del techo de la ventana: 62 px lo dejan justo montado sobre
+   el borde inferior de esa barra (que ocupa de 40 a 70 contando la moldura del marco). */
+.titulo-colgado {
+    -fx-alignment: center;
+    -fx-spacing: 0;
+    -fx-translate-y: 54;
+}
+
+/* Hueco que el logo deja en la cabecera. Tiene que llegar hasta donde termina el subrayado
+   (62 + 133 del logo + 25 del subrayado), descontando donde arranca el contenido del banner. */
+.hueco-titulo {
+    -fx-min-height: 136;
+    -fx-pref-height: 136;
+}
+
+.subrayado {
+    -fx-alignment: center;
+    -fx-min-width: 800;
+    -fx-pref-width: 800;
+    -fx-max-width: 800;
+    -fx-min-height: 25;
+    -fx-pref-height: 25;
+}
+
+.banner-subtitulo {
+    -fx-padding: 8 0 0 0;
+}
+
+.subrayado-izq, .subrayado-medio, .subrayado-der {
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.subrayado-izq {
+    -fx-background-image: url("../imagenes/spidey/subrayado-izq.png");
+    -fx-min-width: 5;
+    -fx-pref-width: 5;
+    -fx-max-width: 5;
+}
+
+.subrayado-der {
+    -fx-background-image: url("../imagenes/spidey/subrayado-der.png");
+    -fx-min-width: 5;
+    -fx-pref-width: 5;
+    -fx-max-width: 5;
+}
+
+/* El trozo central se repite en vez de estirarse, por lo mismo que los lados del marco. */
+.subrayado-medio {
+    -fx-background-image: url("../imagenes/spidey/subrayado-medio.png");
+    -fx-background-repeat: repeat-x;
+    -fx-background-position: left center;
+}
+
+/* El panel del reproductor va apretado a proposito: la caratula ocupa 192 px y el espacio que
+   sobra tiene que alcanzarle a la lista de proximas canciones. */
+.panel-reproductor {
+    -fx-min-width: 410;
+    -fx-pref-width: 410;
+    -fx-max-width: 410;
+    -fx-spacing: 8;
+    -fx-padding: 16 22 16 22;
+}
+
+.fila-titulo {
+    -fx-alignment: center-left;
+    -fx-spacing: 10;
+}
+
+.fila-busqueda {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.fila-crud {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.fila-transporte {
+    -fx-spacing: 10;
+    -fx-alignment: center;
+}
+
+/* El boton central lleva el mismo recuadro azul que sus vecinos: sin el, el icono quedaba
+   flotando y rompia la fila de transporte. Solo se le ajusta el relleno al tamanio del icono. */
+.button.boton-transporte {
+    -fx-padding: 4 12 4 12;
+}
+
+/* Ancho fijo: el texto alterna entre "TEMA CLARO" y "TEMA OSCURO", y con ancho automatico el
+   boton cambiaba de tamanio al pulsarlo y arrastraba a toda la cabecera con el. */
+.boton-tema {
+    -fx-font-size: 8px;
+    -fx-padding: 6 10 6 10;
+    -fx-min-width: 190;
+    -fx-pref-width: 190;
+    -fx-max-width: 190;
+}
+
+.bloque-derecho-cabecera {
+    -fx-spacing: 8;
+    -fx-alignment: center-right;
+}
+
+.ranura-barras {
+    -fx-alignment: bottom-center;
+    -fx-padding: 0 8 0 8;
+}
+
+.fila-tiempos {
+    -fx-padding: 6 0 0 0;
+}
+
+/* Centra el marco cuadrado de la caratula dentro del panel del reproductor. */
+.fila-portada {
+    -fx-alignment: center;
+}
+
+.texto-tenue {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+}
+
+.texto-aviso {
+    -fx-font-size: 8px;
+    -fx-text-fill: -rojo-acento;
+    -fx-padding: 6 0 0 0;
+}
+
+.panel-encabezado-menor {
+    -fx-font-size: 8px;
+    -fx-text-fill: -borde-claro;
+    -fx-padding: 4 0 0 0;
+}
+
+/* ---------------------- Informacion de la cancion ---------------------- */
+.bloque-info {
+    -fx-spacing: 6;
+    -fx-alignment: center;
+    -fx-padding: 2 0 2 0;
+}
+
+.info-titulo {
+    -fx-font-size: 12px;
+    -fx-text-fill: -blanco-hueso;
+    -fx-text-alignment: center;
+    -fx-line-spacing: 4;
+}
+
+.info-artista {
+    -fx-font-size: 10px;
+    -fx-text-fill: -rojo-acento;
+    -fx-text-alignment: center;
+}
+
+.info-detalle {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+    -fx-text-alignment: center;
+    -fx-line-spacing: 4;
+}
+
+.bloque-progreso-contenedor {
+    -fx-padding: 2 0 2 0;
+}
+
+.barra-progreso {
+    -fx-spacing: 2;
+    -fx-alignment: center-left;
+}
+
+/* ---------------------------- Area central ---------------------------- */
+.area-central {
+    -fx-background-color: -fondo-profundo;
+    -fx-padding: 28;
+}
+
+/* Panel generico: la caja base de toda la interfaz. */
+.panel {
+    -fx-background-color: -fondo-panel;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul;
+    -fx-padding: 22;
+    -fx-spacing: 18;
+}
+
+/* El panel se ajusta a su contenido (maxWidth/maxHeight = -Infinity en el FXML)
+   en lugar de estirarse y dejar un hueco vacio debajo de las fichas. */
+.panel-bienvenida {
+    -fx-alignment: top-center;
+}
+
+.panel-encabezado {
+    -fx-font-size: 12px;
+    -fx-text-fill: -rojo-acento;
+}
+
+.texto-cuerpo {
+    -fx-font-size: 10px;
+    -fx-text-fill: -blanco-hueso;
+    -fx-line-spacing: 8;
+    -fx-text-alignment: center;
+}
+
+/* ------------------- Fichas de los tres modos ------------------- */
+.fila-estructuras {
+    -fx-spacing: 14;
+    -fx-alignment: center;
+    -fx-padding: 10 0 0 0;
+}
+
+.ficha-estructura {
+    -fx-background-color: -fondo-profundo;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul-osc;
+    -fx-padding: 14;
+    -fx-spacing: 8;
+    -fx-alignment: center;
+    /* 250 px alcanzan para que "ARBOL BINARIO DE BUSQUEDA" quepa en un solo renglon
+       a 8 px y las tres fichas queden identicas. */
+    -fx-min-width: 250;
+    -fx-pref-width: 250;
+}
+
+.ficha-titulo {
+    -fx-font-size: 10px;
+    -fx-text-fill: -rojo-acento;
+}
+
+.ficha-detalle {
+    -fx-font-size: 8px;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.ficha-estructura-nombre {
+    -fx-font-size: 8px;
+    -fx-text-fill: -borde-claro;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+    -fx-line-spacing: 5;
+}
+
+/* ---------------------------- Barra inferior ---------------------------- */
+/* La franja negra de abajo: a la izquierda la mascota colgando y a la derecha la marquesina. */
+.barra-inferior {
+    -fx-background-color: #000000;
+    -fx-border-width: 4 0 0 0;
+    -fx-border-color: -marco-azul;
+    -fx-alignment: center-left;
+    /* Alta a proposito: es la repisa donde se para el centinela (115 px) sin pisar los botones
+       del panel de reproduccion que tiene encima. */
+    /* Mas baja que el centinela (115 px) a proposito: la insignia asoma por encima del borde de
+       la barra, que es como aparece en la referencia. Lo que asoma queda sobre el margen del
+       panel, sin llegar a los botones. */
+    -fx-min-height: 96;
+    -fx-pref-height: 96;
+}
+
+/* El texto va centrado en el alto real de la franja; con el padding fijo de antes quedaba
+   descolgado hacia arriba y el recuadro se veia vacio por debajo. */
+.marquesina {
+    -fx-background-color: transparent;
+    -fx-padding: 0 20 0 20;
+    -fx-alignment: center-left;
+    -fx-fill-height: true;
+}
+
+/* Franja vacia que le reserva sitio al centinela. No alcanzaba con darle padding a la
+   marquesina: su texto se desplaza con translateX y el recorte abarca todo el contenedor, asi
+   que el texto igual habria cruzado por detras del personaje. Al ser un hermano y no un
+   relleno, el recorte de la marquesina empieza despues y el texto desaparece antes de llegar.
+   Coincide con CENTINELA_ESPACIO_RESERVADO. */
+.franja-centinela {
+    -fx-min-width: 150;
+    -fx-pref-width: 150;
+    -fx-max-width: 150;
+}
+
+/* Raya vertical que cierra el recorrido del texto de la marquesina. */
+.tope-marquesina {
+    -fx-min-width: 4;
+    -fx-pref-width: 4;
+    -fx-max-width: 4;
+    -fx-background-color: -marco-azul;
+}
+
+/* La arania de fondo: blanca, muy tenue y centrada. */
+/* Desplazada hacia abajo y con el alto acotado en el FXML (420 px) para que quede dentro de la
+   zona oscura de los paneles y no se derrame sobre la cabecera azul ni sobre la barra inferior. */
+.fondo-arania {
+    -fx-opacity: 0.30;
+    -fx-translate-y: 145;
+    -fx-scale-x: 1.5; /* Multiplica el ancho (1.5 = 150% del tamaño) */
+    -fx-scale-y: 1.5; /* Multiplica el alto (1.5 = 150% del tamaño) */
+}
+
+.marquesina-texto {
+    -fx-font-size: 10px;
+    -fx-text-fill: -rojo-acento;
+}
+
+/* =========================================================================
+   Controles reutilizables. Se declaran desde ya para que la Fase 5 solo
+   tenga que aplicar las clases, no reinventar la estetica.
+   ========================================================================= */
+
+/* ------------------------ Botones tipo sprite ------------------------ */
+.button {
+    -fx-background-color: -marco-azul;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+    -fx-border-width: 3;
+    /* Bisel en relieve: luz arriba/izquierda, sombra abajo/derecha. */
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 10px;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: derive(-marco-azul, 18%);
+}
+
+.button:pressed {
+    /* El boton se hunde: se invierte el bisel y se desplaza 2 px abajo y a la derecha. */
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+    -fx-background-color: -marco-azul-osc;
+    -fx-translate-x: 2;
+    -fx-translate-y: 2;
+}
+
+.button:disabled {
+    -fx-background-color: -fondo-panel;
+    -fx-border-color: -gris-apagado;
+    -fx-text-fill: -gris-apagado;
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.button.boton-acento {
+    -fx-background-color: -rojo-acento;
+    -fx-border-color: derive(-rojo-acento, 40%) derive(-rojo-acento, -40%)
+                      derive(-rojo-acento, -40%) derive(-rojo-acento, 40%);
+}
+
+/* ------------------------ Campos de texto ------------------------ */
+.text-field, .text-area {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    /* Bisel hundido: al reves que el de los botones. */
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+    -fx-text-fill: -blanco-hueso;
+    -fx-prompt-text-fill: -gris-apagado;
+    -fx-font-size: 10px;
+    -fx-padding: 8;
+}
+
+.text-field:focused, .text-area:focused {
+    -fx-border-color: -rojo-acento;
+}
+
+/* ------------------------ Tabla de la biblioteca ------------------------ */
+.table-view {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+    -fx-font-size: 8px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -marco-azul;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent -marco-azul-osc transparent transparent;
+    -fx-size: 30;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 8px;
+    -fx-alignment: center-left;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: -fondo-profundo;
+    -fx-border-color: transparent transparent #000000 transparent;
+    -fx-cell-size: 28;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: #1b1d24;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: -marco-azul;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: -blanco-hueso;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+}
+
+.table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: -blanco-hueso;
+}
+
+/* Sin filas vacias rayadas cuando la tabla tiene pocos elementos. */
+.table-view .table-row-cell:empty {
+    -fx-background-color: -fondo-profundo;
+    -fx-border-color: transparent;
+}
+
+/* ------------------------ Barras de desplazamiento ------------------------ */
+.scroll-bar {
+    -fx-background-color: -fondo-profundo;
+    -fx-background-radius: 0;
+    -fx-padding: 0;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -marco-azul;
+    -fx-background-radius: 0;
+    -fx-background-insets: 2;
+}
+
+.scroll-bar .track {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: -marco-azul-osc;
+    -fx-background-radius: 0;
+    -fx-padding: 4;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: -borde-claro;
+    -fx-shape: "M 0 0 L 8 0 L 4 6 Z";
+}
+
+/* ------------------------ Slider (calificacion 0-100) ------------------------ */
+.slider .track {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-width: 2;
+    -fx-border-color: -marco-azul-osc;
+    -fx-pref-height: 12;
+}
+
+.slider .thumb {
+    -fx-background-color: -rojo-acento;
+    -fx-background-radius: 0;
+    -fx-border-width: 2;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-pref-width: 14;
+    -fx-pref-height: 20;
+}
+
+/* ------------------------ Barra de progreso segmentada ------------------------ */
+/* La barra NO es un ProgressBar continuo: es un HBox de bloques que se encienden.
+   Estas dos clases las aplica el controlador bloque por bloque en la Fase 7. */
+.bloque-progreso {
+    -fx-fill: #000000;
+    -fx-stroke: -marco-azul-osc;
+    -fx-stroke-width: 1;
+}
+
+.bloque-progreso-encendido {
+    -fx-fill: -rojo-acento;
+    -fx-stroke: -borde-claro;
+    -fx-stroke-width: 1;
+}
+
+/* ------------------------ Lista "A continuacion" ------------------------ */
+.list-view {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.list-view .list-cell {
+    -fx-background-color: -fondo-profundo;
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 8px;
+    -fx-padding: 6 8 6 8;
+    -fx-border-color: transparent transparent #000000 transparent;
+}
+
+.list-view .list-cell:odd {
+    -fx-background-color: #1b1d24;
+}
+
+.list-view .list-cell:selected {
+    -fx-background-color: -marco-azul;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.list-view .list-cell:empty {
+    -fx-background-color: -fondo-profundo;
+    -fx-border-color: transparent;
+}
+
+/* La cancion que esta sonando dentro de la lista de proximas. */
+.list-view .list-cell.celda-en-curso {
+    -fx-text-fill: -rojo-acento;
+}
+
+/* ---- Filas de la lista de proximas: caratula + titulo + artista ---- */
+.list-view .list-cell {
+    -fx-padding: 0;
+}
+
+/* Filas compactas: la lista de proximas es donde se ve como ordena cada estructura, asi que
+   importa mas que quepan varias que no que cada una sea grande. */
+.cola-celda {
+    -fx-spacing: 8;
+    -fx-padding: 2 6 2 6;
+}
+
+.cola-textos {
+    -fx-spacing: 1;
+}
+
+/* Sin la placa verde de msg_center_base: estirada a la forma de la lista se deformaba, el verde
+   chocaba con la paleta azul y encima tapaba las canciones. Lo que importa aqui es que se lean
+   varias a la vez, que es donde se aprecia como ordena cada estructura de datos. */
+
+.cola-titulo {
+    -fx-font-size: 8px;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.cola-artista {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+}
+
+.list-cell.celda-en-curso .cola-titulo,
+.list-cell.celda-en-curso .cola-artista {
+    -fx-text-fill: -rojo-acento;
+}
+
+/* ------------------------ Caratula del album ------------------------ */
+/* -fx-smooth: false conserva los pixeles duros al escalar (nearest neighbor).
+   Si se suaviza, se rompe el efecto retro. */
+.portada {
+    -fx-smooth: false;
+}
+
+.marco-portada {
+    -fx-background-color: #000000;
+    -fx-border-width: 4;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 4;
+}
+
+/* ------------------------ Formulario de cancion ------------------------ */
+.dialogo-formulario {
+    -fx-min-width: 640;
+}
+
+.panel-formulario {
+    -fx-spacing: 10;
+}
+
+.fila-via {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.fila-datos {
+    -fx-spacing: 14;
+    -fx-alignment: top-left;
+}
+
+.columna-portada {
+    -fx-spacing: 6;
+    -fx-alignment: top-center;
+    -fx-min-width: 120;
+    -fx-max-width: 120;
+}
+
+/* ------------------ Lista de resultados de la API ------------------ */
+.lista-resultados .list-cell {
+    -fx-padding: 0;
+}
+
+.resultado-celda {
+    -fx-spacing: 10;
+    -fx-padding: 6 8 6 8;
+}
+
+.resultado-textos {
+    -fx-spacing: 4;
+}
+
+.resultado-titulo {
+    -fx-font-size: 8px;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.resultado-detalle {
+    -fx-font-size: 8px;
+    -fx-text-fill: -gris-apagado;
+}
+
+.lista-resultados .list-cell:selected .resultado-titulo,
+.lista-resultados .list-cell:selected .resultado-detalle {
+    -fx-text-fill: -blanco-hueso;
+}
+
+.rejilla-formulario {
+    -fx-hgap: 12;
+    -fx-vgap: 10;
+}
+
+.etiqueta-campo {
+    -fx-font-size: 8px;
+    -fx-text-fill: -borde-claro;
+}
+
+.bloque-calificacion {
+    -fx-spacing: 8;
+    -fx-padding: 6 0 0 0;
+}
+
+.valor-calificacion {
+    -fx-font-size: 10px;
+    -fx-text-fill: -rojo-acento;
+}
+
+.casilla {
+    -fx-font-size: 8px;
+    -fx-text-fill: -blanco-hueso;
+}
+
+.casilla .box {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 2;
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+}
+
+.casilla:selected .mark {
+    -fx-background-color: -rojo-acento;
+    -fx-shape: "M 0 0 H 8 V 8 H 0 Z";
+}
+
+.fila-favorito {
+    -fx-spacing: 12;
+    -fx-alignment: center-left;
+}
+
+.button.boton-favorito {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.button.boton-favorito:hover {
+    -fx-background-color: -fondo-panel;
+    -fx-border-color: -marco-azul-osc;
+}
+
+.fila-botones-dialogo {
+    -fx-spacing: 8;
+    -fx-padding: 6 0 0 0;
+}
+
+/* ------------------------ Ventanas de dialogo ------------------------ */
+.dialog-pane {
+    -fx-background-color: -fondo-panel;
+    -fx-border-width: 4;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: -marco-azul;
+}
+
+.dialog-pane .label,
+.dialog-pane .header-panel .label {
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 10px;
+}

@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Formulario de agregar / editar cancion, con las tres vias del enunciado en una sola pantalla:
+
+    Via A - "ELEGIR ARCHIVO": lee los tags ID3 del MP3 y con ellos consulta la API sola.
+    Via B - "BUSCAR EN LINEA": el usuario escribe y elige un resultado; el archivo es opcional.
+    Via C - manual: el formulario de abajo siempre esta disponible, tambien sin internet.
+
+  Las tres terminan en el mismo formulario, que es la unica fuente de lo que se guarda.
+-->
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.eia.reproductor.controlador.AgregarCancionController"
+      styleClass="raiz, dialogo-formulario">
+
+    <VBox styleClass="banner">
+        <Label fx:id="etiquetaTituloDialogo" styleClass="banner-subtitulo" text="AGREGAR CANCION" />
+    </VBox>
+
+    <VBox styleClass="panel, panel-formulario">
+
+        <!-- ===== Via A: archivo local ===== -->
+        <Label styleClass="panel-encabezado-menor" text="• 1. ARCHIVO DE AUDIO (OPCIONAL)" />
+        <HBox styleClass="fila-via">
+            <Button fx:id="botonElegirArchivo" text="ELEGIR MP3 / WAV"
+                    onAction="#elegirArchivo" />
+            <Button fx:id="botonQuitarArchivo" text="X" onAction="#quitarArchivo" />
+            <Label fx:id="etiquetaArchivo" styleClass="texto-tenue" text="SIN ARCHIVO"
+                   HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+        </HBox>
+
+        <!-- ===== Via B: busqueda en la API ===== -->
+        <Label styleClass="panel-encabezado-menor" text="• 2. BUSCAR METADATA EN LINEA" />
+        <HBox styleClass="fila-via">
+            <TextField fx:id="campoConsulta" promptText="ARTISTA Y TITULO" HBox.hgrow="ALWAYS" />
+            <Button fx:id="botonBuscarApi" styleClass="boton-acento" text="BUSCAR"
+                    onAction="#buscarEnLinea" />
+        </HBox>
+        <Label fx:id="etiquetaEstadoBusqueda" styleClass="texto-tenue" wrapText="true"
+               managed="false" visible="false" />
+        <ListView fx:id="listaResultados" styleClass="lista-resultados"
+                  prefHeight="170" managed="false" visible="false" />
+
+        <!-- ===== Via C: formulario, comun a las tres ===== -->
+        <Label styleClass="panel-encabezado-menor" text="• 3. DATOS DE LA CANCION" />
+        <HBox styleClass="fila-datos">
+            <VBox styleClass="columna-portada">
+                <StackPane styleClass="marco-portada">
+                    <ImageView fx:id="vistaPortada" styleClass="portada"
+                               fitWidth="96" fitHeight="96" preserveRatio="true" smooth="false" />
+                </StackPane>
+                <Label fx:id="etiquetaFuente" styleClass="texto-tenue" text="SIN PORTADA"
+                       wrapText="true" minHeight="-Infinity" />
+            </VBox>
+
+            <GridPane styleClass="rejilla-formulario" HBox.hgrow="ALWAYS">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="95" prefWidth="95" />
+                    <ColumnConstraints minWidth="220" prefWidth="220" hgrow="ALWAYS" />
+                </columnConstraints>
+
+                <Label styleClass="etiqueta-campo" text="TITULO *"
+                       GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                <TextField fx:id="campoTitulo" promptText="NOMBRE DE LA CANCION"
+                           GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                <Label styleClass="etiqueta-campo" text="ARTISTA"
+                       GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <TextField fx:id="campoArtista" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+                <Label styleClass="etiqueta-campo" text="ALBUM"
+                       GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                <TextField fx:id="campoAlbum" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+                <Label styleClass="etiqueta-campo" text="GENERO"
+                       GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <TextField fx:id="campoGenero" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+                <Label styleClass="etiqueta-campo" text="ANIO"
+                       GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                <TextField fx:id="campoAnio" promptText="1975"
+                           GridPane.rowIndex="4" GridPane.columnIndex="1" />
+
+                <Label styleClass="etiqueta-campo" text="DURACION"
+                       GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                <TextField fx:id="campoDuracion" promptText="M:SS"
+                           GridPane.rowIndex="5" GridPane.columnIndex="1" />
+            </GridPane>
+        </HBox>
+
+        <VBox styleClass="bloque-calificacion">
+            <HBox styleClass="fila-titulo">
+                <Label styleClass="etiqueta-campo" text="CALIFICACION" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Label fx:id="etiquetaCalificacion" styleClass="valor-calificacion" text="0 / 100" />
+            </HBox>
+            <Slider fx:id="deslizadorCalificacion" min="0" max="100" value="0" blockIncrement="5" />
+            <Label styleClass="texto-tenue"
+                   text="ESTE VALOR NUNCA LO DA LA API: ES TU CALIFICACION PERSONAL" />
+        </VBox>
+
+        <!-- La estrella reemplaza a la casilla: se apaga en gris y se enciende al pulsarla. -->
+        <HBox styleClass="fila-favorito">
+            <Button fx:id="botonFavorito" styleClass="boton-favorito" onAction="#alternarFavorita">
+                <graphic>
+                    <ImageView fx:id="iconoFavorito" fitWidth="42" fitHeight="43"
+                               preserveRatio="true" smooth="false" />
+                </graphic>
+            </Button>
+            <Label fx:id="etiquetaFavorito" styleClass="etiqueta-campo" text="NO ES FAVORITA" />
+        </HBox>
+
+        <Label fx:id="etiquetaError" styleClass="texto-aviso" wrapText="true"
+               managed="false" visible="false" minHeight="-Infinity" />
+
+        <HBox styleClass="fila-botones-dialogo">
+            <Region HBox.hgrow="ALWAYS" />
+            <Button fx:id="botonCancelar" text="CANCELAR" onAction="#cancelar" />
+            <Button fx:id="botonGuardar" styleClass="boton-acento" text="GUARDAR"
+                    onAction="#guardar" />
+        </HBox>
+    </VBox>
+</VBox>
