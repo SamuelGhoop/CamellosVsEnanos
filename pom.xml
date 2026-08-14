@@ -103,6 +103,15 @@
                     <mainClass>${clase.principal}</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- Permite correr herramientas de consola sueltas, como el diagnostico de Spotify:
+                 mvn exec:java -Dexec.mainClass=...DiagnosticoSpotify
+                 No sirve para la aplicacion (esa necesita javafx:run por el module path). -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+            </plugin>
         </plugins>
     </build>
 

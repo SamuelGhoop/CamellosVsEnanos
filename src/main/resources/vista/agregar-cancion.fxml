@@ -92,6 +92,14 @@
                        GridPane.rowIndex="3" GridPane.columnIndex="0" />
                 <TextField fx:id="campoGenero" GridPane.rowIndex="3" GridPane.columnIndex="1" />
 
+                <!-- Sin esto la fuente de Spotify no puede reproducir nada: es el dato con el
+                     que el enrutador decide si sabe con esta cancion. Se saca del menu
+                     Compartir de Spotify (Copiar enlace de la cancion). -->
+                <Label styleClass="etiqueta-campo" text="SPOTIFY"
+                       GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                <TextField fx:id="campoUriSpotify" GridPane.rowIndex="6" GridPane.columnIndex="1"
+                           promptText="spotify:track:... o el enlace de Compartir (opcional)" />
+
                 <Label styleClass="etiqueta-campo" text="ANIO"
                        GridPane.rowIndex="4" GridPane.columnIndex="0" />
                 <TextField fx:id="campoAnio" promptText="1975"

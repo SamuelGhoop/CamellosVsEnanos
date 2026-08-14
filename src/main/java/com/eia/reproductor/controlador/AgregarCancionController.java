@@ -4,6 +4,7 @@ import com.eia.reproductor.modelo.Cancion;
 import com.eia.reproductor.modelo.ResultadoBusquedaApi;
 import com.eia.reproductor.servicios.EtiquetasAudioService;
 import com.eia.reproductor.servicios.MetadataApiService;
+import com.eia.reproductor.servicios.spotify.BuscadorSpotify;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -85,6 +86,7 @@ public class AgregarCancionController implements Initializable {
     @FXML private TextField campoArtista;
     @FXML private TextField campoAlbum;
     @FXML private TextField campoGenero;
+    @FXML private TextField campoUriSpotify;
     @FXML private TextField campoAnio;
     @FXML private TextField campoDuracion;
 
@@ -135,15 +137,13 @@ public class AgregarCancionController implements Initializable {
             if (duenio != null) {
                 escenario.initOwner(duenio);
             }
-            escenario.setTitle(aEditar == null ? "Agregar canción" : "Editar canción");
+            String titulo = aEditar == null ? "Agregar canción" : "Editar canción";
+            escenario.setTitle(titulo);
             escenario.setResizable(false);
 
-            Scene escena = new Scene(raiz);
-            URL hoja = AgregarCancionController.class.getResource(RUTA_ESTILOS);
-            if (hoja != null) {
-                escena.getStylesheets().add(hoja.toExternalForm());
-            }
-            escenario.setScene(escena);
+            // Barra de titulo propia en vez de la blanca de Windows: junto al marco pixel, la del
+            // sistema delataba que la estetica era solo una capa por encima.
+            VentanaPixel.montar(escenario, titulo, raiz);
 
             controlador.prepararse(escenario, aEditar);
             escenario.showAndWait();
@@ -209,6 +209,7 @@ public class AgregarCancionController implements Initializable {
         campoArtista.setText(datos.artista());
         campoAlbum.setText(datos.album());
         campoGenero.setText(datos.genero());
+        campoUriSpotify.setText(nuloAVacio(datos.uriSpotify()));
         campoAnio.setText(datos.anio() > 0 ? String.valueOf(datos.anio()) : "");
         campoDuracion.setText(datos.duracionSegundos() > 0
                 ? formatearDuracion(datos.duracionSegundos()) : "");
@@ -274,6 +275,7 @@ public class AgregarCancionController implements Initializable {
         if (etiquetas.duracionSegundos() > 0) {
             campoDuracion.setText(formatearDuracion(etiquetas.duracionSegundos()));
         }
+        buscarUriSpotifyEnSegundoPlano();
     }
 
     private void mostrarArchivoElegido() {
@@ -341,6 +343,14 @@ public class AgregarCancionController implements Initializable {
                         aplicarResultado(elegido);
                     }
                 });
+
+        // Tercera via: quien escribe titulo y artista a mano, sin usar la busqueda ni un archivo.
+        // Se dispara al salir del campo, no en cada tecla, para no consultar a media palabra.
+        campoArtista.focusedProperty().addListener((observable, tenia, tiene) -> {
+            if (!tiene) {
+                buscarUriSpotifyEnSegundoPlano();
+            }
+        });
     }
 
     /** Vuelca un resultado de la API sobre el formulario. */
@@ -360,6 +370,49 @@ public class AgregarCancionController implements Initializable {
         urlPortadaElegida = elegido.urlPortadaGrande();
         previsualizarPortada(urlPortadaElegida, elegido.fuente());
         limpiarError();
+
+        buscarUriSpotifyEnSegundoPlano();
+    }
+
+    /**
+     * Busca sola la URI de Spotify a partir del titulo y el interprete del formulario.
+     *
+     * <p>Pegar la URI a mano exige ir a Spotify, buscar la cancion y usar el menu Compartir por
+     * cada una: inviable. Como iTunes ya dejo el titulo y el interprete correctos, esa misma
+     * informacion sirve para encontrarla en el catalogo de Spotify.</p>
+     *
+     * <p>No se toca el campo si el usuario ya escribio algo: lo suyo manda. Y si Spotify no esta
+     * configurado, la busqueda simplemente no encuentra nada y el formulario sigue igual — no se
+     * muestra ningun error, porque no haberlo configurado no es un fallo.</p>
+     */
+    private void buscarUriSpotifyEnSegundoPlano() {
+        if (!textoDe(campoUriSpotify).isBlank()) {
+            return;
+        }
+        String titulo = textoDe(campoTitulo);
+        String artista = textoDe(campoArtista);
+        if (titulo.isBlank()) {
+            return;
+        }
+
+        Task<String> busqueda = new Task<>() {
+            @Override
+            protected String call() {
+                return BuscadorSpotify.buscarUri(titulo, artista).orElse(null);
+            }
+        };
+        // Solo se escribe si el campo sigue vacio: entre que arranco la busqueda y termino, el
+        // usuario pudo haber pegado la suya.
+        busqueda.setOnSucceeded(evento -> {
+            String encontrada = busqueda.getValue();
+            if (encontrada != null && textoDe(campoUriSpotify).isBlank()) {
+                campoUriSpotify.setText(encontrada);
+            }
+        });
+
+        Thread hilo = new Thread(busqueda, "buscar-uri-spotify");
+        hilo.setDaemon(true);
+        hilo.start();
     }
 
     /** Celda de la lista de resultados: miniatura, titulo, artista y detalle. */
@@ -486,8 +539,39 @@ public class AgregarCancionController implements Initializable {
                 (int) Math.round(deslizadorCalificacion.getValue()),
                 favorita,
                 archivoElegido == null ? null : archivoElegido.toString(),
-                urlPortadaElegida);
+                urlPortadaElegida,
+                normalizarUriSpotify(textoDe(campoUriSpotify)));
         escenario.close();
+    }
+
+    /**
+     * Acepta tanto la URI de Spotify como el enlace que da el boton Compartir.
+     *
+     * <p>Nadie copia a mano un {@code spotify:track:...}: lo que se copia desde la aplicacion de
+     * Spotify es {@code https://open.spotify.com/track/ID?si=...}. Traducirlo aqui evita que el
+     * usuario tenga que saber que existen dos formatos.</p>
+     *
+     * @param texto lo que escribio el usuario
+     * @return la URI normalizada, o {@code null} si el campo venia vacio
+     */
+    static String normalizarUriSpotify(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return null;
+        }
+        String limpio = texto.trim();
+        if (limpio.startsWith("spotify:track:")) {
+            return limpio;
+        }
+        int inicioDelId = limpio.indexOf("/track/");
+        if (inicioDelId < 0) {
+            // No se reconoce el formato: se guarda tal cual y que Spotify lo rechace si no vale.
+            return limpio;
+        }
+        String cola = limpio.substring(inicioDelId + "/track/".length());
+        // El enlace de Compartir trae "?si=..." de propina.
+        int finDelId = cola.indexOf('?');
+        String identificador = finDelId < 0 ? cola : cola.substring(0, finDelId);
+        return identificador.isBlank() ? null : "spotify:track:" + identificador;
     }
 
     @FXML

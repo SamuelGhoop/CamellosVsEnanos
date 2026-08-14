@@ -114,4 +114,44 @@ public interface ReproductorAudio {
     default void setAlFallar(Consumer<String> callback) {
         // Sin implementacion a proposito.
     }
+
+    /**
+     * Ajusta el volumen de la fuente.
+     *
+     * <p>Es el volumen <i>de la aplicacion</i>, no el del sistema: en cero la aplicacion se calla
+     * pero el resto del equipo sigue sonando.</p>
+     *
+     * <p>Por defecto no hace nada, porque una fuente que no produce sonido —la simulada— no tiene
+     * volumen que ajustar.</p>
+     *
+     * @param porcentaje nivel de 0 a 100
+     */
+    default void setVolumen(int porcentaje) {
+        // Sin implementacion a proposito.
+    }
+
+    /**
+     * Indica si la fuente necesita conexion a internet para sonar.
+     *
+     * <p>Lo usa el enrutador para poder descartarlas en bloque cuando la red no acompana, sin
+     * tener que conocer ninguna fuente por su nombre.</p>
+     *
+     * @return {@code true} si depende de la red
+     */
+    default boolean requiereRed() {
+        return false;
+    }
+
+    /**
+     * Pide que se eviten las fuentes que dependen de la red.
+     *
+     * <p>Una fuente suelta no tiene nada que decidir y lo ignora; quien le da sentido es
+     * {@link AudioRuteado}, que lo aplica como politica al elegir. Esta en la interfaz para que el
+     * controlador pueda accionar el interruptor sin conocer la clase concreta del enrutador.</p>
+     *
+     * @param evitar {@code true} para quedarse solo con las fuentes que funcionan sin conexion
+     */
+    default void setEvitarRed(boolean evitar) {
+        // Sin implementacion a proposito.
+    }
 }

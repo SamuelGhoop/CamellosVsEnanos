@@ -1,0 +1,32 @@
+# Configuracion de Spotify — Fase 7b
+#
+# Copia este archivo como "spotify.properties" (sin .example) y rellena los campos.
+# El archivo real esta en .gitignore y NUNCA se sube al repositorio.
+#
+# Si este archivo no existe, AudioSpotifyService.disponible() devuelve false
+# y la aplicacion arranca normal con audio local y simulado.
+
+# ID de la aplicacion registrada en https://developer.spotify.com/dashboard
+# En OAuth con PKCE el client id NO es un secreto, pero igual va fuera del codigo.
+client.id=
+
+# Debe coincidir EXACTAMENTE con el Redirect URI registrado en el dashboard.
+redirect.uri=http://127.0.0.1:8888/callback
+
+# Nombre con el que librespot aparece en la lista de dispositivos de Spotify.
+device.name=Camellos vs Enanos
+
+# Volumen con el que arranca librespot, de 0 a 100. Al maximo por defecto: librespot
+# arranca al 50 % con curva logaritmica, que suena a susurro. El volumen audible lo
+# sigue mandando el del sistema operativo.
+librespot.volumen=100
+
+# Calidad del flujo: 96, 160 o 320 kbps. 320 requiere cuenta Premium.
+librespot.bitrate=160
+
+# Puerto donde librespot recibe SU propia autorizacion (distinta de la de la aplicacion).
+# Se fija a proposito: sin el, librespot intenta escuchar en el puerto 80.
+librespot.oauth.port=5588
+
+# NO se pone client secret: el flujo PKCE existe precisamente para no necesitarlo
+# en aplicaciones de escritorio, donde no hay forma de guardar un secreto.

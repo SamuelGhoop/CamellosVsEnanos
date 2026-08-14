@@ -35,12 +35,17 @@ class AudioRuteadoTest {
         private final BooleanProperty sonando = new SimpleBooleanProperty(false);
         private final List<String> llamadas = new ArrayList<>();
         private boolean operativa = true;
+        private boolean porRed;
         private Runnable alTerminar;
         private java.util.function.Consumer<String> alFallar;
 
         FuenteFalsa(String nombre, String... titulosQueAcepta) {
             this.nombre = nombre;
             this.titulosQueAcepta = List.of(titulosQueAcepta);
+        }
+
+        @Override public boolean requiereRed() {
+            return porRed;
         }
 
         @Override public void reproducir(Cancion cancion) {
@@ -202,33 +207,209 @@ class AudioRuteadoTest {
     }
 
     @Test
-    @DisplayName("Reenvia el aviso de fin de pista venga de la fuente que venga")
-    void reenviaElAvisoDeFinDePista() {
+    @DisplayName("Solo el fin de pista de la fuente activa hace avanzar la cola")
+    void soloCuentaElFinDeLaFuenteActiva() {
         FuenteFalsa deA = new FuenteFalsa("DeA", "A");
         FuenteFalsa deB = new FuenteFalsa("DeB", "B");
         AudioRuteado enrutador = new AudioRuteado(deA, deB);
         List<String> avisos = new ArrayList<>();
         enrutador.setAlTerminarPista(() -> avisos.add("fin"));
 
-        deA.terminarPista();
-        deB.terminarPista();
+        enrutador.reproducir(cancion("A"));
 
-        assertEquals(List.of("fin", "fin"), avisos);
+        // Una fuente vieja que se apaga tarde no debe saltar de cancion.
+        deB.terminarPista();
+        assertTrue(avisos.isEmpty());
+
+        deA.terminarPista();
+        assertEquals(List.of("fin"), avisos);
     }
 
     @Test
-    @DisplayName("Reenvia los fallos de cualquier fuente hacia arriba")
-    void reenviaLosFallos() {
+    @DisplayName("Reenvia hacia arriba el fallo de una fuente que no esta sonando")
+    void reenviaElFalloDeUnaFuenteInactiva() {
         FuenteFalsa deA = new FuenteFalsa("DeA", "A");
-        FuenteFalsa deB = new FuenteFalsa("DeB", "B");
-        AudioRuteado enrutador = new AudioRuteado(deA, deB);
+        AudioRuteado enrutador = new AudioRuteado(deA);
         List<String> avisos = new ArrayList<>();
         enrutador.setAlFallar(avisos::add);
 
         deA.fallar("archivo corrupto");
-        deB.fallar("sin conexión");
 
-        assertEquals(List.of("archivo corrupto", "sin conexión"), avisos);
+        assertEquals(List.of("archivo corrupto"), avisos);
+    }
+
+    // ------------------------------------------------------------------
+    // Recuperacion ante fallos
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Si la fuente activa falla, baja a la siguiente y sigue sonando")
+    void caeALaSiguienteFuenteAlFallar() {
+        FuenteFalsa primera = new FuenteFalsa("Primera", "A");
+        FuenteFalsa respaldo = new FuenteFalsa("Respaldo", "A");
+        AudioRuteado enrutador = new AudioRuteado(primera, respaldo);
+
+        enrutador.reproducir(cancion("A"));
+        primera.fallar("se cayó la red");
+
+        assertEquals("Respaldo", enrutador.nombreFuente());
+        assertTrue(respaldo.llamadas.contains("reproducir:A"), "Nunca se queda mudo");
+        assertTrue(primera.llamadas.contains("detener"));
+    }
+
+    @Test
+    @DisplayName("Al caer de fuente retoma donde iba, no desde cero")
+    void retomaLaPosicionAlCambiarDeFuente() {
+        FuenteFalsa primera = new FuenteFalsa("Primera", "A");
+        FuenteFalsa respaldo = new FuenteFalsa("Respaldo", "A");
+        AudioRuteado enrutador = new AudioRuteado(primera, respaldo);
+
+        enrutador.reproducir(cancion("A"));
+        primera.duracion.set(200_000);
+        primera.posicion.set(45_000);
+
+        // El respaldo ya sabe cuanto dura, asi que el salto es inmediato.
+        respaldo.duracion.set(200_000);
+        primera.fallar("se cayó la red");
+
+        assertTrue(respaldo.llamadas.contains("buscar:45000"),
+                "Debe retomar en el segundo 45, no en el 0. Llamadas: " + respaldo.llamadas);
+    }
+
+    @Test
+    @DisplayName("Espera a conocer la duracion antes de retomar la posicion")
+    void esperaLaDuracionParaRetomar() {
+        FuenteFalsa primera = new FuenteFalsa("Primera", "A");
+        FuenteFalsa respaldo = new FuenteFalsa("Respaldo", "A");
+        AudioRuteado enrutador = new AudioRuteado(primera, respaldo);
+
+        enrutador.reproducir(cancion("A"));
+        primera.duracion.set(200_000);
+        primera.posicion.set(30_000);
+        primera.fallar("archivo corrupto");
+
+        // Un MP3 no publica su duracion hasta cargar la cabecera: saltar antes recortaria a cero.
+        assertFalse(respaldo.llamadas.contains("buscar:30000"), "Todavía no sabe cuánto dura");
+
+        respaldo.duracion.set(180_000);
+        assertTrue(respaldo.llamadas.contains("buscar:30000"), "Al saber la duración, salta");
+    }
+
+    @Test
+    @DisplayName("Cada fuente se intenta una sola vez: no hay bucle infinito")
+    void noCiclaCuandoFallanTodas() {
+        FuenteFalsa primera = new FuenteFalsa("Primera", "A");
+        FuenteFalsa segunda = new FuenteFalsa("Segunda", "A");
+        FuenteFalsa ultima = new FuenteFalsa("Ultima", "A");
+        AudioRuteado enrutador = new AudioRuteado(primera, segunda, ultima);
+        List<String> avisos = new ArrayList<>();
+        enrutador.setAlFallar(avisos::add);
+
+        enrutador.reproducir(cancion("A"));
+        primera.fallar("falla 1");
+        segunda.fallar("falla 2");
+        ultima.fallar("falla 3");
+
+        // La cadena baja una sola vez por fuente y se detiene: si volviera a mirar desde el
+        // principio, esto no terminaria nunca.
+        assertEquals(1, contarApariciones(primera.llamadas, "reproducir:A"));
+        assertEquals(1, contarApariciones(segunda.llamadas, "reproducir:A"));
+        assertEquals(1, contarApariciones(ultima.llamadas, "reproducir:A"));
+
+        // El ultimo fallo ya no tiene a donde caer y se reporta tal cual.
+        assertTrue(avisos.get(avisos.size() - 1).contains("falla 3"));
+    }
+
+    private static int contarApariciones(List<String> lista, String valor) {
+        return (int) lista.stream().filter(valor::equals).count();
+    }
+
+    // ------------------------------------------------------------------
+    // Politica de red
+    // ------------------------------------------------------------------
+
+    @Test
+    @DisplayName("Evitar la red descarta las fuentes que dependen de internet")
+    void evitarRedDescartaLasFuentesDeRed() {
+        FuenteFalsa porRed = new FuenteFalsa("PorRed", "A");
+        porRed.porRed = true;
+        FuenteFalsa local = new FuenteFalsa("Local", "A");
+        AudioRuteado enrutador = new AudioRuteado(porRed, local);
+
+        enrutador.setEvitarRed(true);
+        enrutador.reproducir(cancion("A"));
+
+        assertTrue(enrutador.evitandoRed());
+        assertTrue(porRed.llamadas.isEmpty());
+        assertEquals("Local", enrutador.nombreFuente());
+    }
+
+    @Test
+    @DisplayName("Activar el interruptor a mitad de cancion se baja de la fuente de red en el acto")
+    void evitarRedSeAplicaEnCaliente() {
+        FuenteFalsa porRed = new FuenteFalsa("PorRed", "A");
+        porRed.porRed = true;
+        FuenteFalsa local = new FuenteFalsa("Local", "A");
+        AudioRuteado enrutador = new AudioRuteado(porRed, local);
+
+        enrutador.reproducir(cancion("A"));
+        assertEquals("PorRed", enrutador.nombreFuente());
+
+        // Es el caso del salón: la red falla y hay que cambiar sin reiniciar la aplicación.
+        enrutador.setEvitarRed(true);
+
+        assertEquals("Local", enrutador.nombreFuente());
+        assertTrue(local.llamadas.contains("reproducir:A"));
+    }
+
+    @Test
+    @DisplayName("Volver a AUTO devuelve la preferencia a la fuente de red")
+    void volverAAutoRecuperaLaFuenteDeRed() {
+        FuenteFalsa porRed = new FuenteFalsa("PorRed", "A");
+        porRed.porRed = true;
+        FuenteFalsa local = new FuenteFalsa("Local", "A");
+        AudioRuteado enrutador = new AudioRuteado(porRed, local);
+
+        enrutador.setEvitarRed(true);
+        enrutador.reproducir(cancion("A"));
+        assertEquals("Local", enrutador.nombreFuente());
+
+        enrutador.setEvitarRed(false);
+        enrutador.reproducir(cancion("A"));
+
+        assertFalse(enrutador.evitandoRed());
+        assertEquals("PorRed", enrutador.nombreFuente());
+    }
+
+    @Test
+    @DisplayName("Si no queda fuente sin red, detiene y avisa en vez de callarse")
+    void avisaCuandoNoHayFuenteSinRed() {
+        FuenteFalsa porRed = new FuenteFalsa("PorRed", "A");
+        porRed.porRed = true;
+        AudioRuteado enrutador = new AudioRuteado(porRed);
+        List<String> avisos = new ArrayList<>();
+        enrutador.setAlFallar(avisos::add);
+
+        enrutador.reproducir(cancion("A"));
+        enrutador.setEvitarRed(true);
+
+        // Lo inaceptable seria seguir sonando por la red justo despues de que pidieron evitarla.
+        assertTrue(porRed.llamadas.contains("detener"));
+        assertEquals(1, avisos.size());
+        assertTrue(avisos.get(0).contains("sin conexión"), "Aviso recibido: " + avisos);
+    }
+
+    @Test
+    @DisplayName("Sin fuentes locales, evitar la red deja al enrutador no disponible")
+    void evitarRedPuedeDejarSinFuentes() {
+        FuenteFalsa porRed = new FuenteFalsa("PorRed", "A");
+        porRed.porRed = true;
+        AudioRuteado enrutador = new AudioRuteado(porRed);
+
+        enrutador.setEvitarRed(true);
+
+        assertFalse(enrutador.disponible());
+        assertFalse(enrutador.puedeReproducir(cancion("A")));
     }
 
     @Test

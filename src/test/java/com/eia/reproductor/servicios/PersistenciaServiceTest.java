@@ -42,6 +42,7 @@ class PersistenciaServiceTest {
         cancion.setRutaArchivo("data/musica/bohemian.mp3");
         cancion.setRutaPortada("data/covers/abc.jpg");
         cancion.setUrlPortadaRemota("https://ejemplo/600x600bb.jpg");
+        cancion.setUriSpotify("spotify:track:4cOdK2wGLETKBW3PvgPWqT");
         cancion.setFavorita(true);
         cancion.setVecesReproducida(12);
         return cancion;
@@ -69,8 +70,26 @@ class PersistenciaServiceTest {
         assertEquals(original.getRutaArchivo(), copia.getRutaArchivo());
         assertEquals(original.getRutaPortada(), copia.getRutaPortada());
         assertEquals(original.getUrlPortadaRemota(), copia.getUrlPortadaRemota());
+        assertEquals(original.getUriSpotify(), copia.getUriSpotify());
+        assertTrue(copia.tieneUriSpotify());
         assertEquals(original.isFavorita(), copia.isFavorita());
         assertEquals(original.getVecesReproducida(), copia.getVecesReproducida());
+    }
+
+    @Test
+    @DisplayName("una biblioteca vieja sin uriSpotify se carga sin romperse")
+    void bibliotecaSinUriSpotify() throws IOException {
+        // Es el archivo que ya tienen guardado los compañeros: el campo no existe todavia.
+        Files.writeString(archivo(), """
+                [{"id":"abc","titulo":"Cancion vieja","artista":"Alguien"}]
+                """);
+        PersistenciaService servicio = new PersistenciaService(archivo());
+
+        List<Cancion> recuperadas = servicio.cargar();
+
+        assertEquals(1, recuperadas.size());
+        assertNull(recuperadas.get(0).getUriSpotify());
+        assertFalse(recuperadas.get(0).tieneUriSpotify());
     }
 
     @Test

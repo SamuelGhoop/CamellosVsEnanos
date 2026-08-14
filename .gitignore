@@ -8,8 +8,21 @@ data/musica/*
 !data/musica/.gitkeep
 data/covers/*
 !data/covers/.gitkeep
-data/biblioteca.json
+# El comodin cubre tambien las copias de seguridad (biblioteca.antes-de-spotify.json,
+# biblioteca.json.bak): la biblioteca es de cada quien y no se versiona.
+data/biblioteca*.json
 data/biblioteca.json.bak
+
+### Credenciales y estado de Spotify (Fase 7b) ###
+# NADA de esto se sube. Los .example marcan que campos hay que rellenar.
+config/spotify.properties
+config/token-spotify.json
+logs/
+
+# librespot deja aqui SUS PROPIAS credenciales (credentials.json) ademas del audio
+# cacheado. Es tan sensible como el token de la aplicacion: con ese archivo se puede
+# reproducir en la cuenta de su dueno.
+data/librespot-cache/
 
 ### IntelliJ IDEA ###
 .idea/

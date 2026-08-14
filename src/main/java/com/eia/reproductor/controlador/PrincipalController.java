@@ -1,19 +1,24 @@
 package com.eia.reproductor.controlador;
 
 import com.eia.reproductor.animacion.AjustesAnimacion;
+import com.eia.reproductor.animacion.BarraVolumen;
 import com.eia.reproductor.animacion.BarrasSonido;
 import com.eia.reproductor.animacion.CapaSpidey;
 import com.eia.reproductor.animacion.SpriteAnimado;
 import com.eia.reproductor.modelo.Cancion;
+import com.eia.reproductor.modelo.ColeccionDeCanciones;
+import com.eia.reproductor.modelo.Playlist;
 import com.eia.reproductor.modelo.ResultadoBusquedaApi;
 import com.eia.reproductor.modos.ModoAlfabetico;
 import com.eia.reproductor.modos.ModoAleatorio;
 import com.eia.reproductor.modos.ModoOrdenLlegada;
 import com.eia.reproductor.modos.ModoReproduccion;
-import com.eia.reproductor.servicios.AudioLocalService;
-import com.eia.reproductor.servicios.AudioRuteado;
-import com.eia.reproductor.servicios.AudioSimuladoService;
 import com.eia.reproductor.servicios.BibliotecaService;
+import com.eia.reproductor.servicios.ColeccionBiblioteca;
+import com.eia.reproductor.servicios.ColeccionFavoritas;
+import com.eia.reproductor.servicios.ColeccionPlaylist;
+import com.eia.reproductor.servicios.FabricaAudio;
+import com.eia.reproductor.servicios.PlaylistService;
 import com.eia.reproductor.servicios.MetadataApiService;
 import com.eia.reproductor.servicios.ObservadorBiblioteca;
 import com.eia.reproductor.servicios.PersistenciaService;
@@ -23,21 +28,28 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.geometry.Bounds;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Rectangle2D;
 import javafx.fxml.Initializable;
 import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -50,6 +62,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -100,6 +114,12 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private static final String CLASE_TEMA_CLARO = "tema-claro";
     private static final String CLASE_CELDA_EN_CURSO = "celda-en-curso";
 
+    /** Bloque blanco que marca la posicion exacta dentro de la cancion. */
+    private static final String CLASE_CURSOR_PROGRESO = "bloque-progreso-cursor";
+
+    /** Ancho que se le descuenta a la celda: la barra vertical mas el borde de la lista. */
+    private static final double ANCHO_BARRA_DESPLAZAMIENTO = 28;
+
     private static final double PASO_MARQUESINA = 2;
     private static final Duration INTERVALO_MARQUESINA = Duration.millis(35);
 
@@ -107,6 +127,14 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     // Nodos de la vista
     // ------------------------------------------------------------------
 
+    @FXML private HBox selectorModos;
+    @FXML private HBox ranuraVolumen;
+    @FXML private ComboBox<ColeccionDeCanciones> selectorColeccion;
+    @FXML private Button botonNuevaLista;
+    @FXML private Button botonRenombrarLista;
+    @FXML private Button botonBorrarLista;
+    @FXML private Button botonFuenteAudio;
+    @FXML private Label etiquetaFuenteAudio;
     @FXML private Button botonModoAleatorio;
     @FXML private Button botonModoLlegada;
     @FXML private Button botonModoAlfabetico;
@@ -181,6 +209,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
     private final CapaSpidey capaSpidey = new CapaSpidey();
     private final BarrasSonido barrasSonido = new BarrasSonido();
+    private final BarraVolumen barraVolumen = new BarraVolumen();
     private Image iconoPlay;
     private Image iconoPausa;
 
@@ -188,11 +217,34 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
      * Fuente de audio. El controlador solo conoce la interfaz: no sabe si suena un MP3 local, el
      * reloj simulado o (en la fase 7b) Spotify. Agregar una fuente no obliga a tocar este archivo.
      */
-    private final ReproductorAudio audio =
-            new AudioRuteado(new AudioLocalService(), new AudioSimuladoService());
+    private final ReproductorAudio audio = FabricaAudio.crear();
+
+    private final PlaylistService listas = new PlaylistService();
+
+    /**
+     * Coleccion que se esta reproduciendo y mostrando.
+     *
+     * <p>El controlador solo conoce la interfaz: no sabe si detras hay toda la biblioteca, las
+     * favoritas o una lista hecha a mano. Los tres modos reciben lo que esta devuelva.</p>
+     */
+    private ColeccionDeCanciones coleccionActiva;
 
     private Timeline animacionMarquesina;
     private Image portadaPorDefecto;
+    /**
+     * Evita que reconstruir el selector se confunda con que el usuario eligio otra coleccion.
+     *
+     * <p>Cambiar los elementos del {@code ComboBox} dispara su accion, y sin esta bandera cada
+     * refresco recargaria el modo y cortaria la reproduccion.</p>
+     */
+    private boolean reconstruyendoSelector;
+
+    /** Menu del clic derecho; se guarda para poder cerrarlo antes de abrir el siguiente. */
+    private ContextMenu menuDeCanciones;
+
+    /** Posicion y tamanio previos al agrandar; {@code null} cuando la ventana esta normal. */
+    private Rectangle2D tamanioAnterior;
+
     /** Verdadero mientras el usuario tiene el raton pulsado sobre la barra de progreso. */
     private boolean arrastrandoProgreso;
 
@@ -225,6 +277,15 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         // todavia no existe.
         biblioteca.registrarObservador(this);
 
+        // Las listas se cargan despues de la biblioteca: apuntan a sus canciones por id, asi que
+        // limpiar las huerfanas necesita que la biblioteca ya este en memoria.
+        listas.cargarDesdeDisco();
+        listas.limpiarHuerfanas(biblioteca);
+        coleccionActiva = new ColeccionBiblioteca(biblioteca);
+        configurarSelectorDeColecciones();
+        refrescarSelectorDeColecciones();
+        configurarMenuDeCanciones();
+
         activarModo(modoAleatorio);
         prepararMarquesina();
         prepararBarraTitulo();
@@ -248,6 +309,11 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         audio.reproduciendoProperty().addListener(
                 (observable, anterior, actual) -> actualizarBotonesDeTransporte());
         audio.setAlTerminarPista(() -> Platform.runLater(this::siguiente));
+
+        // La barra de volumen no conoce el audio: avisa del nivel y aqui se traduce a la orden.
+        ranuraVolumen.getChildren().add(barraVolumen.nodo());
+        barraVolumen.setAlCambiar(audio::setVolumen);
+        audio.setVolumen(barraVolumen.volumen());
 
         // Un MP3 roto no revienta al abrirlo sino al decodificarlo, en otro hilo: por eso el fallo
         // llega como aviso y se muestra en la misma franja que el resto de las advertencias.
@@ -283,8 +349,18 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         capaAnimaciones.getChildren().add(capaSpidey.nodo());
         capaSpidey.nodo().prefWidthProperty().bind(capaAnimaciones.widthProperty());
         capaSpidey.nodo().prefHeightProperty().bind(capaAnimaciones.heightProperty());
-        // La telarania nace justo debajo de la cabecera, no en el techo de la ventana.
-        capaSpidey.origenTelaranaProperty().bind(cabecera.heightProperty());
+        // La telarania nace en el borde inferior de las pestanias de modo. No basta con la altura
+        // de la cabecera: la capa de animacion cubre tambien el marco exterior, asi que esa altura
+        // no coincide con la posicion real de ese borde y la telarania salia bastante mas arriba.
+        // Convertir por coordenadas da el punto exacto y se recalcula solo al redimensionar.
+        capaSpidey.origenTelaranaProperty().bind(Bindings.createDoubleBinding(
+                () -> {
+                    Bounds enEscena = selectorModos.localToScene(selectorModos.getBoundsInLocal());
+                    return capaAnimaciones.sceneToLocal(0, enEscena.getMaxY()).getY();
+                },
+                selectorModos.boundsInParentProperty(),
+                capaAnimaciones.boundsInParentProperty(),
+                cabecera.heightProperty()));
         capaSpidey.iniciar();
     }
 
@@ -529,6 +605,15 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 contenido.getChildren().addAll(miniatura, textos);
                 contenido.getStyleClass().add("cola-celda");
                 contenido.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+                // La celda se ata al ancho visible de la lista. Sin esto, un titulo largo hacia
+                // la celda mas ancha que la lista, aparecia una barra de desplazamiento
+                // horizontal y con ella el recuadrito muerto de la esquina inferior derecha.
+                // Restar la barra vertical y el borde evita que la celda la provoque justo al
+                // llegar al limite.
+                contenido.maxWidthProperty().bind(
+                        listaSiguientes.widthProperty().subtract(ANCHO_BARRA_DESPLAZAMIENTO));
+                contenido.prefWidthProperty().bind(contenido.maxWidthProperty());
             }
 
             @Override
@@ -670,8 +755,254 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private void activarModo(ModoReproduccion modo) {
         audio.detener();
         modoActivo = modo;
-        modoActivo.cargar(biblioteca.todas());
+        // Aqui esta el enganche de las listas: el modo recibe la coleccion elegida, no la
+        // biblioteca entera. Las estructuras de datos no se enteran de que existen las listas.
+        modoActivo.cargar(coleccionActiva.canciones());
         actualizarPestanias();
+        refrescarReproductor();
+    }
+
+    // ------------------------------------------------------------------
+    // Listas de reproduccion
+    // ------------------------------------------------------------------
+
+    /**
+     * Enseña al selector a mostrar el nombre de cada coleccion y cuantas canciones tiene.
+     *
+     * <p>Sin esto el {@code ComboBox} pintaria el {@code toString()} del objeto. El contador ayuda
+     * a ver de un vistazo que una lista quedo vacia.</p>
+     */
+    private void configurarSelectorDeColecciones() {
+        selectorColeccion.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(ColeccionDeCanciones coleccion) {
+                return coleccion == null
+                        ? ""
+                        : coleccion.nombre() + "  (" + coleccion.tamanio() + ")";
+            }
+
+            @Override
+            public ColeccionDeCanciones fromString(String texto) {
+                // El selector no es editable: nunca se convierte de texto a coleccion.
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Rellena el selector con la biblioteca, las favoritas y las listas del usuario.
+     *
+     * <p>Las tres primeras entradas son fijas y siempre estan; despues van las listas hechas a
+     * mano, en el orden en que se crearon.</p>
+     */
+    private void refrescarSelectorDeColecciones() {
+        ColeccionDeCanciones elegida = coleccionActiva;
+
+        List<ColeccionDeCanciones> disponibles = new ArrayList<>();
+        disponibles.add(new ColeccionBiblioteca(biblioteca));
+        disponibles.add(new ColeccionFavoritas(biblioteca));
+        for (Playlist lista : listas.todas()) {
+            disponibles.add(new ColeccionPlaylist(lista, biblioteca));
+        }
+
+        // El selector se reconstruye entero, asi que hay que volver a marcar la que estaba puesta
+        // buscandola por nombre: los objetos son nuevos.
+        selectorColeccion.getItems().setAll(disponibles);
+        ColeccionDeCanciones aSeleccionar = disponibles.stream()
+                .filter(coleccion -> elegida != null && coleccion.nombre().equals(elegida.nombre()))
+                .findFirst()
+                .orElse(disponibles.get(0));
+
+        reconstruyendoSelector = true;
+        selectorColeccion.getSelectionModel().select(aSeleccionar);
+        reconstruyendoSelector = false;
+        coleccionActiva = aSeleccionar;
+
+        actualizarBotonesDeLista();
+    }
+
+    private void actualizarBotonesDeLista() {
+        boolean esPersonal = coleccionActiva instanceof ColeccionPlaylist;
+        botonRenombrarLista.setDisable(!esPersonal);
+        botonBorrarLista.setDisable(!esPersonal);
+    }
+
+    /** Cambia la coleccion que se muestra y se reproduce. */
+    @FXML
+    private void cambiarColeccion() {
+        if (reconstruyendoSelector) {
+            return;
+        }
+        ColeccionDeCanciones elegida = selectorColeccion.getValue();
+        if (elegida == null || elegida == coleccionActiva) {
+            return;
+        }
+        coleccionActiva = elegida;
+        actualizarBotonesDeLista();
+        // Recargar el modo es obligatorio: la estructura de datos tiene dentro las canciones de
+        // la coleccion anterior.
+        activarModo(modoActivo);
+        refrescarTabla();
+    }
+
+    /** Crea una lista nueva pidiendo el nombre. */
+    @FXML
+    private void crearPlaylist() {
+        pedirNombre("NUEVA LISTA", "¿Cómo se va a llamar?", "").ifPresent(nombre -> {
+            Optional<Playlist> creada = listas.crear(nombre);
+            if (creada.isEmpty()) {
+                mostrarAviso(listas.ultimoAviso().orElse("No se pudo crear la lista."));
+                return;
+            }
+            coleccionActiva = new ColeccionPlaylist(creada.get(), biblioteca);
+            refrescarSelectorDeColecciones();
+            activarModo(modoActivo);
+            refrescarTabla();
+            limpiarAviso();
+        });
+    }
+
+    /** Renombra la lista que este seleccionada. */
+    @FXML
+    private void renombrarPlaylist() {
+        if (!(coleccionActiva instanceof ColeccionPlaylist actual)) {
+            return;
+        }
+        pedirNombre("RENOMBRAR LISTA", "Nuevo nombre:", actual.nombre()).ifPresent(nombre -> {
+            if (!listas.renombrar(actual.playlist(), nombre)) {
+                mostrarAviso(listas.ultimoAviso().orElse("No se pudo renombrar la lista."));
+                return;
+            }
+            refrescarSelectorDeColecciones();
+            limpiarAviso();
+        });
+    }
+
+    /** Borra la lista seleccionada, previa confirmacion. */
+    @FXML
+    private void borrarPlaylist() {
+        if (!(coleccionActiva instanceof ColeccionPlaylist actual)) {
+            return;
+        }
+        Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
+                "¿Borrar la lista \"" + actual.nombre() + "\"?\n"
+                        + "Las canciones siguen en la biblioteca.",
+                ButtonType.CANCEL, ButtonType.OK);
+        confirmacion.setTitle("BORRAR LISTA");
+        confirmacion.setHeaderText(null);
+        aplicarEstilos(confirmacion);
+        confirmacion.initOwner(ventana());
+
+        if (confirmacion.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) {
+            return;
+        }
+        listas.eliminar(actual.playlist());
+        coleccionActiva = null;
+        refrescarSelectorDeColecciones();
+        activarModo(modoActivo);
+        refrescarTabla();
+    }
+
+    /**
+     * Pide un nombre al usuario.
+     *
+     * @param titulo   titulo de la ventana
+     * @param mensaje  texto de la pregunta
+     * @param inicial  valor con el que arranca el campo
+     * @return el nombre escrito, o vacio si cancelo o lo dejo en blanco
+     */
+    private Optional<String> pedirNombre(String titulo, String mensaje, String inicial) {
+        return DialogoTexto.pedir(ventana(), titulo, mensaje, inicial);
+    }
+
+    /**
+     * Arma el menu que aparece al hacer clic derecho sobre una cancion de la tabla.
+     *
+     * <p>Se reconstruye cada vez que se abre porque las listas cambian: si se construyera una sola
+     * vez, una lista creada despues no apareceria nunca.</p>
+     */
+    private void configurarMenuDeCanciones() {
+        // Se construye entero en cada clic derecho, y NO con setContextMenu + setOnShowing:
+        // JavaFX no llega a mostrar un menu que empieza vacio, asi que ese enganche no dispara
+        // nunca y el menu no aparece jamas.
+        tablaBiblioteca.setOnContextMenuRequested(evento -> {
+            if (menuDeCanciones != null) {
+                menuDeCanciones.hide();
+            }
+            // Clic derecho sobre una fila la selecciona: sin esto habria que hacer clic izquierdo
+            // antes, y el menu saldria referido a otra cancion.
+            Cancion sobreLaQueSeHizoClic = tablaBiblioteca.getSelectionModel().getSelectedItem();
+            menuDeCanciones = construirMenuPara(sobreLaQueSeHizoClic);
+            menuDeCanciones.show(tablaBiblioteca, evento.getScreenX(), evento.getScreenY());
+            evento.consume();
+        });
+    }
+
+    /**
+     * Arma el menu del clic derecho para una cancion.
+     *
+     * @param cancion cancion seleccionada, puede ser {@code null}
+     * @return el menu ya poblado
+     */
+    private ContextMenu construirMenuPara(Cancion cancion) {
+        ContextMenu menu = new ContextMenu();
+        if (cancion == null) {
+            menu.getItems().add(itemInerte("Hacé clic en una canción primero"));
+            return menu;
+        }
+
+        MenuItem favorita = new MenuItem(cancion.isFavorita()
+                ? "Quitar de ★ FAVORITAS"
+                : "Agregar a ★ FAVORITAS");
+        favorita.setOnAction(accion -> alternarFavorita(cancion));
+        menu.getItems().add(favorita);
+        menu.getItems().add(new SeparatorMenuItem());
+
+        if (listas.tamanio() == 0) {
+            menu.getItems().add(itemInerte("No hay listas: creá una con NUEVA"));
+        }
+        for (Playlist lista : listas.todas()) {
+            menu.getItems().add(itemDeLista(lista, cancion));
+        }
+        return menu;
+    }
+
+    /** Entrada del menu que mete o saca la cancion de una lista, segun donde este. */
+    private MenuItem itemDeLista(Playlist lista, Cancion cancion) {
+        boolean yaEsta = lista.contiene(cancion.getId());
+        MenuItem item = new MenuItem((yaEsta ? "Quitar de " : "Agregar a ") + lista.getNombre());
+        item.setOnAction(accion -> {
+            if (yaEsta) {
+                listas.quitarCancion(lista, cancion);
+            } else if (!listas.agregarCancion(lista, cancion)) {
+                mostrarAviso(listas.ultimoAviso().orElse("No se pudo agregar a la lista."));
+                return;
+            }
+            limpiarAviso();
+            refrescarSelectorDeColecciones();
+            // Si se esta viendo justo esa lista, la tabla y la cola tienen que reflejarlo ya.
+            if (coleccionActiva instanceof ColeccionPlaylist mostrada
+                    && mostrada.playlist().equals(lista)) {
+                activarModo(modoActivo);
+                refrescarTabla();
+            }
+        });
+        return item;
+    }
+
+    private static MenuItem itemInerte(String texto) {
+        MenuItem item = new MenuItem(texto);
+        item.setDisable(true);
+        return item;
+    }
+
+    /** Pone o quita la estrella, que es lo que gobierna la coleccion de favoritas. */
+    private void alternarFavorita(Cancion cancion) {
+        biblioteca.alternarFavorita(cancion);
+        refrescarTabla();
+        if (coleccionActiva instanceof ColeccionFavoritas) {
+            activarModo(modoActivo);
+        }
         refrescarReproductor();
     }
 
@@ -702,7 +1033,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         if (modoActivo == modoAleatorio) {
             modoAleatorio.volverAMezclar();
         } else if (modoActivo == modoOrdenLlegada) {
-            modoOrdenLlegada.cargar(biblioteca.todas());
+            modoOrdenLlegada.cargar(coleccionActiva.canciones());
             audio.detener();
         } else {
             modoActivo.reiniciar();
@@ -743,6 +1074,22 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     /** @return si hay audio sonando, segun la fuente activa */
     private boolean estaSonando() {
         return audio.reproduciendoProperty().get();
+    }
+
+    /**
+     * Alterna entre usar cualquier fuente y quedarse solo con las que funcionan sin conexion.
+     *
+     * <p>El controlador no nombra ninguna fuente: solo dice "evitá la red" y el enrutador decide a
+     * quien deja fuera. Existe para la sustentacion, donde la red del salon puede fallar y no hay
+     * tiempo de reiniciar la aplicacion.</p>
+     */
+    @FXML
+    private void alternarFuenteDeAudio() {
+        boolean soloLocal = "AUTO".equals(etiquetaFuenteAudio.getText());
+        audio.setEvitarRed(soloLocal);
+        etiquetaFuenteAudio.setText(soloLocal ? "SOLO LOCAL" : "AUTO");
+        marcarPestania(botonFuenteAudio, soloLocal);
+        refrescarReproductor();
     }
 
     @FXML
@@ -805,6 +1152,16 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         datos.ifPresent(valores -> {
             Cancion nueva = valores.crearCancion();
             biblioteca.agregar(nueva);
+
+            // Si se estaba viendo una lista, la cancion entra tambien en ella: es lo que espera
+            // quien abre "Mi lista" y pulsa AGREGAR. En la biblioteca entera no hay nada que
+            // hacer, porque ya la contiene.
+            if (coleccionActiva instanceof ColeccionPlaylist mostrada) {
+                listas.agregarCancion(mostrada.playlist(), nueva);
+                activarModo(modoActivo);
+                refrescarSelectorDeColecciones();
+            }
+
             descargarPortadaEnSegundoPlano(nueva);
             seleccionarEnTabla(nueva);
             limpiarAviso();
@@ -913,7 +1270,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
         barraTitulo.setOnMouseDragged(evento -> {
             Stage ventana = ventanaPrincipal();
-            if (ventana == null || ventana.isMaximized()) {
+            if (ventana == null || estaAgrandada()) {
                 return;
             }
             ventana.setX(evento.getScreenX() - desplazamientoArrastreX);
@@ -935,12 +1292,42 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
+    /**
+     * Agranda la ventana a la pantalla util, o la devuelve a su tamanio anterior.
+     *
+     * <p><b>Por que no se usa {@code setMaximized}.</b> En una ventana sin decoracion, Windows la
+     * estira sobre <i>toda</i> la pantalla y tapa la barra de tareas; y encima, una ventana
+     * marcada como maximizada no se deja redimensionar por los bordes. Colocandola a mano sobre
+     * {@code getVisualBounds()} —que descuenta la barra de tareas— se consigue el mismo efecto
+     * util sin ninguno de los dos problemas.</p>
+     */
     @FXML
     private void alternarMaximizar() {
         Stage ventana = ventanaPrincipal();
-        if (ventana != null) {
-            ventana.setMaximized(!ventana.isMaximized());
+        if (ventana == null) {
+            return;
         }
+        if (tamanioAnterior != null) {
+            ventana.setX(tamanioAnterior.getMinX());
+            ventana.setY(tamanioAnterior.getMinY());
+            ventana.setWidth(tamanioAnterior.getWidth());
+            ventana.setHeight(tamanioAnterior.getHeight());
+            tamanioAnterior = null;
+            return;
+        }
+        tamanioAnterior = new Rectangle2D(
+                ventana.getX(), ventana.getY(), ventana.getWidth(), ventana.getHeight());
+
+        Rectangle2D util = Screen.getPrimary().getVisualBounds();
+        ventana.setX(util.getMinX());
+        ventana.setY(util.getMinY());
+        ventana.setWidth(util.getWidth());
+        ventana.setHeight(util.getHeight());
+    }
+
+    /** @return {@code true} si la ventana esta agrandada a la pantalla util */
+    private boolean estaAgrandada() {
+        return tamanioAnterior != null;
     }
 
     @FXML
@@ -1021,14 +1408,58 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     // Refresco de la vista
     // ------------------------------------------------------------------
 
+    /**
+     * Repinta la tabla con la coleccion elegida, filtrada por lo que haya en el buscador.
+     *
+     * <p>La tabla muestra lo mismo que va a sonar. Que fuera siempre la biblioteca entera mientras
+     * suena otra cosa seria confuso: el usuario elige una lista para verla, no solo para oirla.</p>
+     */
     private void refrescarTabla() {
         Cancion seleccionada = tablaBiblioteca.getSelectionModel().getSelectedItem();
-        filasBiblioteca.setAll(biblioteca.buscar(campoBusqueda.getText()));
-        etiquetaContador.setText(biblioteca.tamanio() + " CANCIONES");
+
+        List<Cancion> visibles = coleccionActiva.canciones();
+        String filtro = campoBusqueda.getText();
+        if (filtro != null && !filtro.isBlank()) {
+            List<Cancion> coincidencias = biblioteca.buscar(filtro);
+            visibles = visibles.stream().filter(coincidencias::contains).toList();
+        }
+
+        filasBiblioteca.setAll(visibles);
+        etiquetaContador.setText(visibles.size() + " CANCIONES");
+        explicarTablaVacia();
         if (seleccionada != null && filasBiblioteca.contains(seleccionada)) {
             tablaBiblioteca.getSelectionModel().select(seleccionada);
         }
         actualizarBotonesDeSeleccion();
+    }
+
+    /**
+     * Explica que hacer cuando la tabla queda vacia.
+     *
+     * <p>Sin esto hay un callejon sin salida: al crear una lista, la tabla se queda en blanco y no
+     * hay ninguna cancion sobre la que hacer clic derecho para agregarla. El mensaje dice
+     * exactamente por donde salir, y cambia segun la coleccion que este elegida.</p>
+     */
+    private void explicarTablaVacia() {
+        String mensaje;
+        if (coleccionActiva instanceof ColeccionPlaylist) {
+            mensaje = "ESTA LISTA ESTA VACIA\n\n"
+                    + "1. Elegí TODA LA BIBLIOTECA en el selector de arriba\n"
+                    + "2. Clic derecho sobre una canción\n"
+                    + "3. \"Agregar a " + coleccionActiva.nombre() + "\"";
+        } else if (coleccionActiva instanceof ColeccionFavoritas) {
+            mensaje = "NO HAY FAVORITAS TODAVIA\n\n"
+                    + "Elegí TODA LA BIBLIOTECA y marcá canciones con\n"
+                    + "clic derecho → Agregar a ★ FAVORITAS";
+        } else {
+            mensaje = "NO HAY CANCIONES\n\nUsá el botón AGREGAR";
+        }
+
+        Label explicacion = new Label(mensaje);
+        explicacion.getStyleClass().add("texto-tenue");
+        explicacion.setWrapText(true);
+        explicacion.setTextAlignment(TextAlignment.CENTER);
+        tablaBiblioteca.setPlaceholder(explicacion);
     }
 
     private void refrescarReproductor() {
@@ -1075,12 +1506,26 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 : Math.min(1.0, (double) segundos / total);
         int encendidos = (int) Math.round(avance * BLOQUES_PROGRESO);
 
+        // El cursor es el ultimo bloque encendido. Sin el, con 28 bloques rojos todos iguales
+        // habia que contarlos para saber por donde iba la cancion.
+        int cursor = hayPista ? Math.min(encendidos, BLOQUES_PROGRESO) - 1 : -1;
+
         for (int i = 0; i < bloquesProgreso.size(); i++) {
             Rectangle bloque = bloquesProgreso.get(i);
-            bloque.getStyleClass().remove("bloque-progreso-encendido");
+            bloque.getStyleClass().removeAll("bloque-progreso-encendido", CLASE_CURSOR_PROGRESO);
             if (i < encendidos) {
                 bloque.getStyleClass().add("bloque-progreso-encendido");
             }
+            boolean esCursor = i == cursor;
+            if (esCursor) {
+                // "bloque-progreso" ya lo lleva desde que se creo; volver a anadirla en cada
+                // refresco haria crecer la lista de clases sin parar.
+                bloque.getStyleClass().add(CLASE_CURSOR_PROGRESO);
+            }
+            // Sobresale por arriba y por abajo: el color solo no basta para localizarlo de un
+            // vistazo en una fila de bloques del mismo tamanio.
+            bloque.setWidth(esCursor ? ANCHO_BLOQUE + 4 : ANCHO_BLOQUE);
+            bloque.setHeight(esCursor ? ALTO_BLOQUE + 8 : ALTO_BLOQUE);
         }
         etiquetaTiempoActual.setText(hayPista ? formatearSegundos(segundos) : "0:00");
         etiquetaTiempoTotal.setText(hayPista ? formatearSegundos(total) : "0:00");

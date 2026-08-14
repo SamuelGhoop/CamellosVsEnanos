@@ -408,7 +408,9 @@
 }
 
 .bloque-progreso-contenedor {
-    -fx-padding: 2 0 2 0;
+    /* Holgura arriba y abajo para que el bloque del cursor, que sobresale 4 px por cada lado,
+       no quede recortado contra el borde. */
+    -fx-padding: 6 0 6 0;
 }
 
 .barra-progreso {
@@ -614,6 +616,149 @@
     -fx-border-color: -rojo-acento;
 }
 
+/* Ni barra horizontal ni el recuadro muerto de la esquina en la lista de proximas: los titulos
+   largos se cortan con puntos suspensivos, que ocupa menos y se lee igual de bien. */
+#listaSiguientes .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-opacity: 0;
+}
+
+#listaSiguientes .corner {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+/* ------------------------ Altavoz del volumen ------------------------ */
+/* El sprite del altavoz es negro sobre transparente: sobre el panel negro desaparecia. Este
+   recuadro azul le da el fondo que necesita, y es el mismo recurso que ya se uso con el
+   triangulo de play cuando quedaba flotando sin marco. */
+.caja-altavoz {
+    -fx-background-color: -marco-azul;
+    -fx-background-radius: 0;
+    /* Borde de 2 y no de 3: es un recuadro pequeno y con el grosor de los botones grandes
+       quedaba mas marco que icono. */
+    -fx-border-width: 2;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-padding: 2 3 2 3;
+}
+
+.caja-altavoz:hover {
+    -fx-background-color: -marco-azul-med;
+}
+
+/* ------------------------ Ventanas secundarias ------------------------ */
+/* Marco de las ventanas sin decoracion del sistema (dialogos). Mismo doble bisel que los paneles
+   del reproductor, para que se vean de la misma familia. */
+.marco-ventana {
+    -fx-background-color: -fondo-profundo;
+    -fx-border-width: 4;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+}
+
+.cuerpo-dialogo {
+    -fx-background-color: -fondo-panel;
+    -fx-padding: 22;
+}
+
+/* ------------------------ Selector de lista ------------------------ */
+/* En rojo y a 12px, no en el azul tenue de las demas etiquetas: es la que responde a "¿que estoy
+   escuchando?", y con el estilo de las otras se perdia entre los campos. */
+.etiqueta-lista {
+    -fx-font-size: 12px;
+    -fx-text-fill: -rojo-acento;
+}
+
+/* Es el control que decide que suena, asi que va deliberadamente mas grande que el resto:
+   con el tamanio de un campo normal pasaba desapercibido y nadie lo encontraba. */
+.combo-box {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -marco-azul-osc -borde-claro -borde-claro -marco-azul-osc;
+    -fx-font-size: 12px;
+    -fx-padding: 2 6 2 6;
+    /* 32 y no 42: la fila del selector es alto que se le quita a la tabla de canciones, y a 42
+       el panel del reproductor terminaba desbordandose por debajo de la ventana. */
+    -fx-min-height: 32;
+    -fx-pref-height: 32;
+}
+
+.combo-box:hover {
+    -fx-border-color: -rojo-acento;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 12px;
+    -fx-padding: 4 8 4 8;
+}
+
+/* La flechita por defecto es un triangulo suave que desentona con el pixel art. */
+.combo-box .arrow-button {
+    -fx-background-color: -marco-azul-osc;
+    -fx-background-radius: 0;
+    -fx-padding: 4 8 4 8;
+}
+
+.combo-box .arrow {
+    -fx-background-color: -blanco-hueso;
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+/* El desplegable: mismo fondo negro y filas altas para que se lean de lejos. */
+.combo-box-popup .list-view {
+    -fx-background-color: #000000;
+    -fx-border-width: 3;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: #000000;
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 12px;
+    -fx-padding: 10 12 10 12;
+}
+
+.combo-box-popup .list-view .list-cell:hover,
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: -marco-azul-osc;
+    -fx-text-fill: -blanco-hueso;
+}
+
+/* ------------------------ Menu del clic derecho ------------------------ */
+.context-menu {
+    -fx-background-color: #000000;
+    -fx-background-radius: 0;
+    -fx-border-width: 3;
+    -fx-border-color: -borde-claro -marco-azul-osc -marco-azul-osc -borde-claro;
+    -fx-padding: 4;
+}
+
+.context-menu .menu-item {
+    -fx-padding: 8 14 8 14;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: -blanco-hueso;
+    -fx-font-size: 10px;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: -marco-azul-osc;
+}
+
+.context-menu .menu-item:disabled .label {
+    -fx-text-fill: -gris-apagado;
+}
+
+.context-menu .separator .line {
+    -fx-border-color: -marco-azul-osc;
+    -fx-border-width: 1 0 0 0;
+}
+
 /* ------------------------ Tabla de la biblioteca ------------------------ */
 .table-view {
     -fx-background-color: #000000;
@@ -734,6 +879,15 @@
     -fx-fill: -rojo-acento;
     -fx-stroke: -borde-claro;
     -fx-stroke-width: 1;
+}
+
+/* Cursor: el bloque que marca el punto exacto de la cancion. Va blanco y sobresale del resto,
+   porque con 28 bloques rojos identicos habia que contarlos para ubicarse. Se declara despues
+   de las otras dos reglas a proposito: a igual especificidad, en CSS gana la ultima. */
+.bloque-progreso-cursor {
+    -fx-fill: #ffffff;
+    -fx-stroke: -rojo-acento;
+    -fx-stroke-width: 2;
 }
 
 /* ------------------------ Lista "A continuacion" ------------------------ */

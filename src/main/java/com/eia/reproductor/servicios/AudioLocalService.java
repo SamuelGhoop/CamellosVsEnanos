@@ -40,6 +40,9 @@ public class AudioLocalService implements ReproductorAudio {
     private Runnable alTerminarPista;
     private Consumer<String> alFallar;
 
+    /** Nivel de 0 a 1. Empieza al maximo, igual que la barra de la interfaz. */
+    private double volumen = 1.0;
+
     @Override
     public void reproducir(Cancion cancion) {
         detener();
@@ -67,6 +70,7 @@ public class AudioLocalService implements ReproductorAudio {
                 reproduciendo.set(false);
             });
 
+            reproductor.setVolume(volumen);
             reproductor.play();
             reproduciendo.set(true);
         } catch (Exception excepcion) {
@@ -159,6 +163,20 @@ public class AudioLocalService implements ReproductorAudio {
     @Override
     public void setAlFallar(Consumer<String> callback) {
         this.alFallar = callback;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Se guarda el nivel aunque no haya nada sonando, porque {@code MediaPlayer} se crea de
+     * nuevo con cada cancion: sin recordarlo, la siguiente arrancaria al volumen por defecto.</p>
+     */
+    @Override
+    public void setVolumen(int porcentaje) {
+        volumen = Math.max(0, Math.min(100, porcentaje)) / 100.0;
+        if (reproductor != null) {
+            reproductor.setVolume(volumen);
+        }
     }
 
     private void avisar(String mensaje) {

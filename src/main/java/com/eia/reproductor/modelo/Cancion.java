@@ -66,6 +66,7 @@ public class Cancion implements Comparable<Cancion> {
     private int anio;
     private int calificacion;
     private String rutaArchivo;
+    private String uriSpotify;
     private String rutaPortada;
     private String urlPortadaRemota;
     private boolean favorita;
@@ -230,6 +231,29 @@ public class Cancion implements Comparable<Cancion> {
     /** @param rutaArchivo ruta relativa al MP3/WAV dentro de {@code data/musica/}, admite {@code null} */
     public void setRutaArchivo(String rutaArchivo) {
         this.rutaArchivo = rutaArchivo;
+    }
+
+    /** @return el identificador de la pista en Spotify, o {@code null} si no la tiene */
+    public String getUriSpotify() {
+        return uriSpotify;
+    }
+
+    /**
+     * Asocia la cancion a una pista de Spotify.
+     *
+     * <p>El formato esperado es {@code spotify:track:<id>}. Es el dato que consulta la fuente de
+     * audio de Spotify para decidir si sabe reproducir esta cancion; sin el, no hay forma de
+     * deducir a que pista del catalogo corresponde.</p>
+     *
+     * @param uriSpotify URI de la pista, admite {@code null}
+     */
+    public void setUriSpotify(String uriSpotify) {
+        this.uriSpotify = uriSpotify;
+    }
+
+    /** @return {@code true} si la cancion apunta a una pista de Spotify */
+    public boolean tieneUriSpotify() {
+        return uriSpotify != null && !uriSpotify.isBlank();
     }
 
     /** @return la ruta local a la caratula cacheada, o {@code null} si aun no se ha descargado */

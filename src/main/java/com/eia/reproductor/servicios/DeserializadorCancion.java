@@ -47,6 +47,7 @@ class DeserializadorCancion implements JsonDeserializer<Cancion> {
         cancion.setAlbum(texto(objeto, "album"));
         cancion.setGenero(texto(objeto, "genero"));
         cancion.setRutaArchivo(texto(objeto, "rutaArchivo"));
+        cancion.setUriSpotify(texto(objeto, "uriSpotify"));
         cancion.setRutaPortada(texto(objeto, "rutaPortada"));
         cancion.setUrlPortadaRemota(texto(objeto, "urlPortadaRemota"));
 

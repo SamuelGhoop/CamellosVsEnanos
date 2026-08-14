@@ -14,6 +14,7 @@
 -->
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TableColumn?>
@@ -98,7 +99,7 @@
             </HBox>
 
             <!-- Selector de modo: cada pestania anuncia que estructura de datos usa -->
-            <HBox styleClass="selector-modos">
+            <HBox fx:id="selectorModos" styleClass="selector-modos">
                 <Button fx:id="botonModoAleatorio" styleClass="pestania-modo"
                         onAction="#activarModoAleatorio" HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic>
@@ -123,6 +124,20 @@
                         <VBox styleClass="pestania-contenido">
                             <Label styleClass="pestania-nombre" text="MODO 3 • ALFABETICO" />
                             <Label styleClass="pestania-estructura" text="ARBOL BINARIO DE BUSQUEDA" />
+                        </VBox>
+                    </graphic>
+                </Button>
+
+                <!-- Valvula de seguridad para la sustentacion: si la red del salon falla, este
+                     boton descarta las fuentes que dependen de internet sin reiniciar la app.
+                     No crece como las pestanias: es un interruptor, no un modo. -->
+                <Button fx:id="botonFuenteAudio" styleClass="pestania-modo"
+                        onAction="#alternarFuenteDeAudio">
+                    <graphic>
+                        <VBox styleClass="pestania-contenido">
+                            <Label styleClass="pestania-nombre" text="FUENTE" />
+                            <Label fx:id="etiquetaFuenteAudio" styleClass="pestania-estructura"
+                                   text="AUTO" />
                         </VBox>
                     </graphic>
                 </Button>
@@ -154,6 +169,18 @@
                                HBox.hgrow="ALWAYS" />
                     <Button fx:id="botonBuscar" text="BUSCAR" onAction="#buscar" />
                     <Button fx:id="botonLimpiarBusqueda" text="X" onAction="#limpiarBusqueda" />
+                </HBox>
+
+                <!-- Selector de coleccion. Lo que se elija aqui es lo que muestra la tabla y lo
+                     que reciben los tres modos: cualquier lista suena con cualquier modo. -->
+                <HBox styleClass="fila-busqueda">
+                    <Label styleClass="etiqueta-lista" text="▶ SONANDO:" />
+                    <ComboBox fx:id="selectorColeccion" onAction="#cambiarColeccion"
+                              HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                    <Button fx:id="botonNuevaLista" text="+ NUEVA" onAction="#crearPlaylist" />
+                    <Button fx:id="botonRenombrarLista" text="RENOMBRAR"
+                            onAction="#renombrarPlaylist" />
+                    <Button fx:id="botonBorrarLista" text="BORRAR" onAction="#borrarPlaylist" />
                 </HBox>
 
                 <TableView fx:id="tablaBiblioteca" VBox.vgrow="ALWAYS">
@@ -250,6 +277,10 @@
                         </graphic>
                     </Button>
                     <Button fx:id="botonSiguiente" text="&gt;&gt;" onAction="#siguiente" />
+                    <!-- El volumen va en la misma fila que el transporte: asi no le roba ni un
+                         pixel de alto a la lista de proximas canciones, que es lo que hay que ver.
+                         La dibuja BarraVolumen con los sprites; aqui solo se reserva el hueco. -->
+                    <HBox fx:id="ranuraVolumen" alignment="CENTER" />
                 </HBox>
 
                 <Button fx:id="botonAccionModo" text="VOLVER A MEZCLAR" maxWidth="Infinity"

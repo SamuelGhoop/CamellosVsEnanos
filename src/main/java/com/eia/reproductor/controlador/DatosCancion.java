@@ -20,10 +20,12 @@ import com.eia.reproductor.modelo.Cancion;
  * @param favorita          si esta marcada como favorita
  * @param rutaArchivo       ruta al MP3 o WAV local, {@code null} si la cancion es solo metadata
  * @param urlPortadaRemota  URL de la caratula elegida, {@code null} si no hay
+ * @param uriSpotify        URI {@code spotify:track:...}, {@code null} si la cancion no esta en
+ *                          Spotify. Es lo que permite que la fuente de Spotify la reproduzca
  */
 public record DatosCancion(String titulo, String artista, String album, String genero,
                            int anio, int duracionSegundos, int calificacion, boolean favorita,
-                           String rutaArchivo, String urlPortadaRemota) {
+                           String rutaArchivo, String urlPortadaRemota, String uriSpotify) {
 
     /**
      * Construye una cancion nueva con estos valores.
@@ -55,6 +57,7 @@ public record DatosCancion(String titulo, String artista, String album, String g
         cancion.setFavorita(favorita);
         cancion.setRutaArchivo(rutaArchivo);
         cancion.setUrlPortadaRemota(urlPortadaRemota);
+        cancion.setUriSpotify(uriSpotify);
     }
 
     /**
@@ -74,6 +77,7 @@ public record DatosCancion(String titulo, String artista, String album, String g
                 cancion.getCalificacion(),
                 cancion.isFavorita(),
                 cancion.getRutaArchivo(),
-                cancion.getUrlPortadaRemota());
+                cancion.getUrlPortadaRemota(),
+                cancion.getUriSpotify());
     }
 }

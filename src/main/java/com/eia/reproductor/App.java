@@ -2,13 +2,18 @@ package com.eia.reproductor;
 
 import com.eia.reproductor.controlador.PrincipalController;
 import com.eia.reproductor.controlador.RedimensionadorVentana;
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.text.Font;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,12 +44,18 @@ public class App extends Application {
     /** Tipografia de pixeles licenciada bajo OFL (Google Fonts). */
     private static final String RUTA_FUENTE_PIXEL = "/fonts/PressStart2P-Regular.ttf";
 
+    /** Logo del reproductor: barra de tareas y pantalla de carga. */
+    public static final String RUTA_LOGO = "/imagenes/logo-carga.png";
+
     private static final String TITULO_VENTANA = "CAMELLOS VS ENANOS • REPRODUCTOR";
 
     private static final double ANCHO_INICIAL = 1240;
     private static final double ALTO_INICIAL = 800;
     private static final double ANCHO_MINIMO = 1020;
     private static final double ALTO_MINIMO = 700;
+
+    /** Aire alrededor de la ventana, para que se vea que no ocupa toda la pantalla. */
+    private static final double MARGEN_PANTALLA = 40;
 
     /** Tamano con el que se registra la fuente; el tamano real lo define el CSS. */
     private static final double TAMANIO_CARGA_FUENTE = 12;
@@ -53,15 +64,49 @@ public class App extends Application {
     private static boolean fuenteRegistrada;
 
     @Override
-    public void start(Stage escenarioPrincipal) throws IOException {
+    public void start(Stage escenarioPrincipal) {
         // La fuente debe registrarse ANTES de construir la escena: si el CSS pide una familia
-        // que todavia no esta cargada, JavaFX cae silenciosamente a la fuente por defecto.
+        // que todavia no esta cargada, JavaFX cae silenciosamente a la fuente por defecto. Y
+        // tambien antes de la pantalla de carga, que la usa.
         cargarFuentePixel();
+
+        PantallaDeCarga carga = new PantallaDeCarga();
+        carga.mostrar();
+
+        // El trabajo pesado ocurre en este mismo hilo, asi que si empezara ahora mismo la
+        // pantalla de carga saldria en blanco: no le habria dado tiempo a pintarse. Con una
+        // pausa minima el entorno alcanza a dibujar un fotograma antes de bloquearse.
+        PauseTransition respiro = new PauseTransition(Duration.millis(80));
+        respiro.setOnFinished(evento -> {
+            try {
+                construirVentanaPrincipal(escenarioPrincipal, carga);
+            } catch (IOException fallo) {
+                carga.cerrar();
+                throw new IllegalStateException("No se pudo construir la ventana principal.", fallo);
+            } finally {
+                carga.cerrar();
+            }
+        });
+        respiro.play();
+    }
+
+    /**
+     * Monta y muestra la ventana principal.
+     *
+     * @param escenarioPrincipal ventana que entrega JavaFX
+     * @param carga              pantalla de bienvenida, para ir informando del avance
+     * @throws IOException si no se puede leer la vista
+     */
+    private void construirVentanaPrincipal(Stage escenarioPrincipal, PantallaDeCarga carga)
+            throws IOException {
+        carga.informar("Cargando la interfaz");
 
         URL urlVista = Objects.requireNonNull(
                 App.class.getResource(RUTA_VISTA_PRINCIPAL),
                 "No se encontro la vista " + RUTA_VISTA_PRINCIPAL + " en el classpath.");
         FXMLLoader cargador = new FXMLLoader(urlVista);
+        // Aqui dentro el controlador lee la biblioteca y las listas del disco: es la parte lenta.
+        carga.informar("Leyendo la biblioteca");
         Parent raiz = cargador.load();
         PrincipalController controlador = cargador.getController();
 
@@ -83,10 +128,56 @@ public class App extends Application {
         // Sin decoracion tampoco hay bordes que arrastrar, asi que se instalan unos propios.
         RedimensionadorVentana.instalar(escenarioPrincipal, (javafx.scene.layout.Region) raiz);
 
-        // Arranca maximizada: con el marco de 40 px y el panel de reproduccion, la ventana en
-        // tamanio reducido deja la biblioteca demasiado estrecha.
-        escenarioPrincipal.setMaximized(true);
+        ponerIconoDeLaBarraDeTareas(escenarioPrincipal);
         escenarioPrincipal.show();
+        // Se coloca DESPUES de mostrarla. Al mostrarse, JavaFX ajusta la ventana al tamanio
+        // preferido de la escena —aqui 1086 px de alto— y pisaba cualquier medida puesta antes.
+        acomodarEnPantalla(escenarioPrincipal);
+    }
+
+
+    /**
+     * Deja la ventana con un tamanio comodo y centrada, sin taparlo todo.
+     *
+     * <p><b>Por que no se maximiza al arrancar.</b> Una ventana sin decoracion que se maximiza en
+     * Windows se estira sobre <i>toda</i> la pantalla, barra de tareas incluida, y ademas una
+     * ventana maximizada no se puede redimensionar arrastrando los bordes. El resultado parecia
+     * pantalla completa y sin salida.</p>
+     *
+     * <p>Se usa {@code getVisualBounds()} y no {@code getBounds()}: el primero descuenta la barra
+     * de tareas, que es justo lo que hay que respetar.</p>
+     */
+    private static void acomodarEnPantalla(Stage escenario) {
+        Rectangle2D util = Screen.getPrimary().getVisualBounds();
+
+        // Se aprovecha casi todo el alto disponible. El panel del reproductor lleva caratula,
+        // datos, progreso, transporte y la lista de proximas: con 800 px se desbordaba por abajo y
+        // tapaba la marquesina. El margen es el justo para que se vea que es una ventana y se
+        // pueda agarrar de los bordes, sin robarle sitio al contenido.
+        double ancho = Math.min(ANCHO_INICIAL, util.getWidth() - MARGEN_PANTALLA * 2);
+        double alto = Math.max(ALTO_MINIMO, util.getHeight() - MARGEN_PANTALLA);
+
+        escenario.setWidth(ancho);
+        escenario.setHeight(alto);
+        escenario.setX(util.getMinX() + (util.getWidth() - ancho) / 2);
+        escenario.setY(util.getMinY() + (util.getHeight() - alto) / 2);
+    }
+
+    /**
+     * Pone el logo en la barra de tareas y en el conmutador de ventanas.
+     *
+     * <p>Sin esto Windows muestra el icono generico de Java, que rompe la identidad visual del
+     * reproductor justo donde mas se ve.</p>
+     */
+    private static void ponerIconoDeLaBarraDeTareas(Stage escenario) {
+        try (InputStream flujo = App.class.getResourceAsStream(RUTA_LOGO)) {
+            if (flujo != null) {
+                escenario.getIcons().add(new Image(flujo));
+            }
+        } catch (IOException noSePudoLeer) {
+            // Quedarse con el icono de Java es feo, pero no impide usar la aplicacion.
+            System.err.println("No se pudo cargar el icono: " + noSePudoLeer.getMessage());
+        }
     }
 
     /**
