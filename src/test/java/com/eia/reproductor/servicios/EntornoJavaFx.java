@@ -56,23 +56,38 @@ public final class EntornoJavaFx {
     /**
      * Ejecuta una accion en el hilo de JavaFX y espera a que termine.
      *
+     * <p><b>Se captura {@code Throwable} y no {@code RuntimeException}.</b> No es exceso de celo:
+     * los {@code assert} de JUnit fallan lanzando {@code AssertionFailedError}, que hereda de
+     * {@code Error}. Capturando solo {@code RuntimeException}, cualquier comprobacion que fallara
+     * dentro del hilo de JavaFX se perdia por el camino —salia impresa como "Exception in thread
+     * JavaFX Application Thread" y nada mas— y la prueba se daba por buena. Las pruebas de vistas
+     * pasaban aunque la vista estuviera rota.</p>
+     *
      * @param accion codigo a ejecutar
      */
     public static void enElHiloFx(Runnable accion) {
-        AtomicReference<RuntimeException> fallo = new AtomicReference<>();
+        AtomicReference<Throwable> fallo = new AtomicReference<>();
         CountDownLatch terminado = new CountDownLatch(1);
         Platform.runLater(() -> {
             try {
                 accion.run();
-            } catch (RuntimeException excepcion) {
+            } catch (Throwable excepcion) {
                 fallo.set(excepcion);
             } finally {
                 terminado.countDown();
             }
         });
         esperar(terminado);
-        if (fallo.get() != null) {
-            throw fallo.get();
+        relanzar(fallo.get());
+    }
+
+    /** Relanza el fallo en el hilo de la prueba conservando su tipo, para que JUnit lo entienda. */
+    private static void relanzar(Throwable fallo) {
+        switch (fallo) {
+            case null -> { }
+            case RuntimeException excepcion -> throw excepcion;
+            case Error error -> throw error;
+            default -> throw new AssertionError("Falló dentro del hilo de JavaFX.", fallo);
         }
     }
 

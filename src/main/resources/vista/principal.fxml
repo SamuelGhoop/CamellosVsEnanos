@@ -167,12 +167,21 @@
                 <HBox styleClass="fila-titulo">
                     <Label styleClass="panel-encabezado" text="• BIBLIOTECA" />
                     <Region HBox.hgrow="ALWAYS" />
+                    <!-- Va en esta fila y no en la de abajo porque aquélla ya tiene el selector y
+                         cuatro botones: uno más la desbordaba. Aquí sólo había un hueco. -->
+                    <Button fx:id="botonEstadisticas" text="ESTADÍSTICAS"
+                            onAction="#verEstadisticas" />
                     <Label fx:id="etiquetaContador" styleClass="texto-tenue" text="0 CANCIONES" />
                 </HBox>
 
+                <!-- Filtro por campo. El buscador es un ComboBox editable y no un TextField: así
+                     se puede escribir a mano o desplegar los valores que de verdad hay en la
+                     biblioteca (los géneros, los artistas...), sin ocupar más ancho que antes. -->
                 <HBox styleClass="fila-busqueda">
-                    <TextField fx:id="campoBusqueda" promptText="BUSCAR TITULO, ARTISTA O ALBUM"
-                               HBox.hgrow="ALWAYS" />
+                    <ComboBox fx:id="selectorCampo" onAction="#cambiarCampoDeFiltro" />
+                    <ComboBox fx:id="campoBusqueda" editable="true"
+                              promptText="BUSCAR TITULO, ARTISTA O ALBUM"
+                              HBox.hgrow="ALWAYS" maxWidth="Infinity" />
                     <Button fx:id="botonBuscar" text="BUSCAR" onAction="#buscar" />
                     <Button fx:id="botonLimpiarBusqueda" text="X" onAction="#limpiarBusqueda" />
                 </HBox>
@@ -183,6 +192,10 @@
                     <Label styleClass="etiqueta-lista" text="▶ SONANDO:" />
                     <ComboBox fx:id="selectorColeccion" onAction="#cambiarColeccion"
                               HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                    <!-- Abre el panel que dibuja la estructura de datos real del modo activo.
+                         En ventana aparte para poder dejarlo al lado en la sustentación. -->
+                    <Button fx:id="botonVerEstructura" text="VER ESTRUCTURA"
+                            onAction="#verEstructura" />
                     <Button fx:id="botonNuevaLista" text="+ NUEVA" onAction="#crearPlaylist" />
                     <Button fx:id="botonRenombrarLista" text="RENOMBRAR"
                             onAction="#renombrarPlaylist" />
@@ -202,6 +215,10 @@
                         <TableColumn fx:id="columnaAnio" text="ANIO" prefWidth="64" minWidth="64" />
                         <TableColumn fx:id="columnaDuracion" text="DUR." prefWidth="64" minWidth="64" />
                         <TableColumn fx:id="columnaCalificacion" text="CAL." prefWidth="58" minWidth="58" />
+                        <!-- Veces reproducida: la misma cifra con la que se arma la ventana de
+                             estadísticas, para poder verla canción por canción. -->
+                        <TableColumn fx:id="columnaReproducciones" text="REPR." prefWidth="58"
+                                     minWidth="58" />
                     </columns>
                 </TableView>
 

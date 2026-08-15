@@ -2,6 +2,7 @@ package com.eia.reproductor.modos;
 
 import com.eia.reproductor.estructuras.ListaCircularDoble;
 import com.eia.reproductor.modelo.Cancion;
+import com.eia.reproductor.modelo.EstructuraVisual;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -170,5 +171,25 @@ public class ModoAleatorio extends ModoBase {
     @Override
     public String estructuraUsada() {
         return ESTRUCTURA;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>El anillo en el orden en que quedaron enlazados los nodos tras la mezcla, con la posicion
+     * del cursor. Es lo que hace visible que despues del ultimo viene el primero.</p>
+     */
+    @Override
+    public EstructuraVisual estructuraVisual() {
+        List<Cancion> orden = listaReproduccion();
+        List<String> etiquetas = new ArrayList<>(orden.size());
+        int indice = -1;
+        for (int i = 0; i < orden.size(); i++) {
+            etiquetas.add(orden.get(i).getTitulo());
+            if (orden.get(i).equals(actual())) {
+                indice = i;
+            }
+        }
+        return new EstructuraVisual.Anillo(ESTRUCTURA, etiquetas, indice);
     }
 }

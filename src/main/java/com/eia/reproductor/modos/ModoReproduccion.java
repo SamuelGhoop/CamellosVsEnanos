@@ -1,6 +1,7 @@
 package com.eia.reproductor.modos;
 
 import com.eia.reproductor.modelo.Cancion;
+import com.eia.reproductor.modelo.EstructuraVisual;
 
 import java.util.List;
 
@@ -128,6 +129,32 @@ public interface ModoReproduccion {
      * @return las canciones en el orden del modo; lista vacia si no hay ninguna
      */
     List<Cancion> listaReproduccion();
+
+    /**
+     * Devuelve las canciones ya reproducidas, de la mas antigua a la mas reciente.
+     *
+     * <p>Lo implementa {@code ModoBase} una sola vez para los tres modos, con una
+     * {@code ColaSimple} acotada: cuando se pasa del tope, descarta la mas antigua en O(1). Es el
+     * segundo uso de esa estructura en el proyecto, y el que mejor explica para que sirve una
+     * cola mas alla del modo de orden de llegada.</p>
+     *
+     * <p>Cada modo lleva el suyo, no hay uno global: cambiar de modo es cambiar de forma de
+     * recorrer, y mezclar los recorridos en una sola lista confundiria mas de lo que ayuda.</p>
+     *
+     * @return copia del historial en orden cronologico; lista vacia si no se ha reproducido nada
+     */
+    List<Cancion> historial();
+
+    /**
+     * Describe la estructura de datos que este modo tiene cargada, para poder dibujarla.
+     *
+     * <p>Cada modo la construye a partir de su propia estructura. Quien la dibuje no pregunta de
+     * que clase es el modo: recibe la descripcion y la pinta, que es el mismo polimorfismo que ya
+     * usa el resto de la interfaz.</p>
+     *
+     * @return la estructura tal como esta ahora mismo
+     */
+    EstructuraVisual estructuraVisual();
 
     /**
      * Devuelve la reproduccion al comienzo de lo que el modo tenga cargado.

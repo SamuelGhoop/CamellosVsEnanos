@@ -172,6 +172,7 @@ public abstract class ModoBase implements ModoReproduccion {
      *
      * @return copia del historial en orden cronologico
      */
+    @Override
     public List<Cancion> historial() {
         List<Cancion> copia = new ArrayList<>(historial.tamanio());
         for (Cancion cancion : historial) {

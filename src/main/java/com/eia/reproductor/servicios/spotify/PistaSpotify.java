@@ -1,10 +1,10 @@
 package com.eia.reproductor.servicios.spotify;
 
+import com.eia.reproductor.servicios.Texto;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.text.Collator;
-import java.text.Normalizer;
 import java.util.Locale;
 
 /**
@@ -70,26 +70,17 @@ public record PistaSpotify(String uri, String titulo, String artista, long durac
         if (deSpotify == null || deLaBiblioteca == null) {
             return false;
         }
-        String uno = normalizar(deSpotify);
-        String otro = normalizar(deLaBiblioteca);
+        // Se usa la version estricta —sin tildes ni signos— y no la de la busqueda: quitar las
+        // tildes aqui es imprescindible y no un adorno, porque la comparacion por contencion
+        // trabaja con String.contains, que si distingue acentos. Sin esto, "Ángel" no encontraria
+        // a "Angels" aunque el Collator las considere iguales: dos criterios distintos dentro del
+        // mismo metodo.
+        String uno = Texto.soloLetrasYNumeros(deSpotify);
+        String otro = Texto.soloLetrasYNumeros(deLaBiblioteca);
         if (uno.isEmpty() || otro.isEmpty()) {
             return false;
         }
         return COLLATOR.compare(uno, otro) == 0 || uno.contains(otro) || otro.contains(uno);
-    }
-
-    /**
-     * Deja el texto en minusculas, sin tildes y sin signos, para comparar solo el contenido.
-     *
-     * <p>Quitar las tildes es imprescindible y no un adorno: la comparacion por contencion trabaja
-     * con {@code String.contains}, que si distingue acentos. Sin esto, "Ángel" no encontraria a
-     * "Angels" aunque el {@link Collator} las considere iguales — dos criterios distintos dentro de
-     * la misma clase.</p>
-     */
-    private static String normalizar(String valor) {
-        String sinTildes = Normalizer.normalize(valor, Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        return sinTildes.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
     private static String primerArtista(JsonObject objeto) {

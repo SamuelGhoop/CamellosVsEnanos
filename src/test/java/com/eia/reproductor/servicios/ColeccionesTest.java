@@ -84,6 +84,51 @@ class ColeccionesTest {
     }
 
     @Test
+    @DisplayName("El historial muestra lo último reproducido primero")
+    void historialDeLoMasRecienteALoMasAntiguo() {
+        ModoOrdenLlegada modo = new ModoOrdenLlegada();
+        modo.cargar(List.of(zombie, africa, creep));
+        ColeccionDeCanciones historial = new ColeccionHistorial(() -> modo);
+        assertTrue(historial.estaVacia());
+
+        modo.siguiente();
+        modo.siguiente();
+
+        // La ColaSimple las guarda en el orden en que sonaron; la colección las da al revés,
+        // que es como uno busca lo que acaba de escuchar.
+        assertEquals(List.of("Africa", "Zombie"), titulosDe(historial));
+        assertFalse(historial.admiteEdicion());
+    }
+
+    @Test
+    @DisplayName("El historial sigue al modo activo, no se queda con el primero")
+    void historialSigueAlModoActivo() {
+        ModoOrdenLlegada llegada = new ModoOrdenLlegada();
+        llegada.cargar(List.of(zombie, africa, creep));
+        ModoAlfabetico alfabetico = new ModoAlfabetico();
+        alfabetico.cargar(List.of(zombie, africa, creep));
+
+        // El proveedor devuelve lo que haya en el arreglo: simula al usuario cambiando de pestaña.
+        ModoReproduccion[] activo = {llegada};
+        ColeccionDeCanciones historial = new ColeccionHistorial(() -> activo[0]);
+
+        llegada.siguiente();
+        assertEquals(List.of("Zombie"), titulosDe(historial));
+
+        activo[0] = alfabetico;
+        alfabetico.siguiente();
+
+        // Si guardara una referencia fija seguiría enseñando el historial del modo anterior.
+        assertEquals(List.of("Africa"), titulosDe(historial));
+    }
+
+    @Test
+    @DisplayName("Sin modo activo el historial está vacío en vez de reventar")
+    void historialSinModo() {
+        assertTrue(new ColeccionHistorial(() -> null).estaVacia());
+    }
+
+    @Test
     @DisplayName("Una lista personal respeta el orden en que se agregó")
     void listaPersonalRespetaElOrden() {
         Playlist lista = new Playlist("Mi lista");

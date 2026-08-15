@@ -2,6 +2,7 @@ package com.eia.reproductor.modos;
 
 import com.eia.reproductor.estructuras.ColaSimple;
 import com.eia.reproductor.modelo.Cancion;
+import com.eia.reproductor.modelo.EstructuraVisual;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,5 +111,21 @@ public class ModoOrdenLlegada extends ModoBase {
     @Override
     public String estructuraUsada() {
         return ESTRUCTURA;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Lo que queda en la cola, con el frente a la izquierda, y cuantas ya salieron. Ese contador
+     * es la prueba de que la cola se vacia de verdad en vez de mover un indice.</p>
+     */
+    @Override
+    public EstructuraVisual estructuraVisual() {
+        List<Cancion> pendientes = listaReproduccion();
+        List<String> etiquetas = new ArrayList<>(pendientes.size());
+        for (Cancion cancion : pendientes) {
+            etiquetas.add(cancion.getTitulo());
+        }
+        return new EstructuraVisual.Cola(ESTRUCTURA, etiquetas, historial().size());
     }
 }

@@ -5,6 +5,7 @@ import com.eia.reproductor.animacion.BarraVolumen;
 import com.eia.reproductor.animacion.BarrasSonido;
 import com.eia.reproductor.animacion.CapaSpidey;
 import com.eia.reproductor.animacion.SpriteAnimado;
+import com.eia.reproductor.animacion.VisualizadorEstructura;
 import com.eia.reproductor.modelo.Cancion;
 import com.eia.reproductor.modelo.ColeccionDeCanciones;
 import com.eia.reproductor.modelo.Playlist;
@@ -16,8 +17,11 @@ import com.eia.reproductor.modos.ModoReproduccion;
 import com.eia.reproductor.servicios.BibliotecaService;
 import com.eia.reproductor.servicios.ColeccionBiblioteca;
 import com.eia.reproductor.servicios.ColeccionFavoritas;
+import com.eia.reproductor.servicios.ColeccionHistorial;
 import com.eia.reproductor.servicios.ColeccionPlaylist;
+import com.eia.reproductor.servicios.EstadisticasBiblioteca;
 import com.eia.reproductor.servicios.FabricaAudio;
+import com.eia.reproductor.servicios.FiltroDeCampo;
 import com.eia.reproductor.servicios.PlaylistService;
 import com.eia.reproductor.servicios.MetadataApiService;
 import com.eia.reproductor.servicios.ObservadorBiblioteca;
@@ -56,6 +60,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -110,6 +115,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private static final String RUTA_INSIGNIA = "/imagenes/spidey/insignia-arania.png";
     private static final String RUTA_MARCO_INSIGNIA = "/imagenes/spidey/contenedor.png";
     private static final String RUTA_FONDO_ARANIA = "/imagenes/spidey/fondo-arania.png";
+    /** Titulo de la barra de la ventana de estadisticas, en un solo sitio porque se usa al abrirla
+     *  y al refrescarla si ya estaba abierta. */
+    private static final String TITULO_ESTADISTICAS = "ESTADÍSTICAS";
     private static final String CLASE_PESTANIA_ACTIVA = "activa";
     private static final String CLASE_TEMA_CLARO = "tema-claro";
     private static final String CLASE_CELDA_EN_CURSO = "celda-en-curso";
@@ -119,6 +127,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
     /** Ancho que se le descuenta a la celda: la barra vertical mas el borde de la lista. */
     private static final double ANCHO_BARRA_DESPLAZAMIENTO = 28;
+
+    /** Cuanto salta la reproduccion con las flechas del teclado. */
+    private static final long SALTO_TECLADO_MS = 5_000;
 
     private static final double PASO_MARQUESINA = 2;
     private static final Duration INTERVALO_MARQUESINA = Duration.millis(35);
@@ -139,7 +150,11 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     @FXML private Button botonModoLlegada;
     @FXML private Button botonModoAlfabetico;
 
-    @FXML private TextField campoBusqueda;
+    /** Buscador. Es editable: se puede escribir o desplegar los valores del campo elegido. */
+    @FXML private ComboBox<String> campoBusqueda;
+
+    /** Sobre que campo se busca: TODO, TITULO, ARTISTA, ALBUM o GENERO. */
+    @FXML private ComboBox<String> selectorCampo;
     @FXML private Label etiquetaContador;
     @FXML private Label etiquetaEstructuraActiva;
     @FXML private Label etiquetaAviso;
@@ -153,6 +168,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     @FXML private TableColumn<Cancion, String> columnaAnio;
     @FXML private TableColumn<Cancion, String> columnaDuracion;
     @FXML private TableColumn<Cancion, String> columnaCalificacion;
+    @FXML private TableColumn<Cancion, String> columnaReproducciones;
 
     @FXML private Button botonEditar;
     @FXML private Button botonEliminar;
@@ -210,6 +226,13 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private final CapaSpidey capaSpidey = new CapaSpidey();
     private final BarrasSonido barrasSonido = new BarrasSonido();
     private final BarraVolumen barraVolumen = new BarraVolumen();
+    private final VisualizadorEstructura visualizador = new VisualizadorEstructura();
+
+    /** Ventana del visualizador; {@code null} mientras esta cerrada. */
+    private Stage ventanaEstructura;
+
+    /** Ventana de estadisticas; {@code null} mientras esta cerrada. */
+    private Stage ventanaEstadisticas;
     private Image iconoPlay;
     private Image iconoPausa;
 
@@ -282,15 +305,87 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         listas.cargarDesdeDisco();
         listas.limpiarHuerfanas(biblioteca);
         coleccionActiva = new ColeccionBiblioteca(biblioteca);
+        // El selector de campo se llena aqui y no en configurarTabla porque setValue dispara su
+        // onAction, y ese handler repinta la tabla: antes de esta linea coleccionActiva es null.
+        selectorCampo.getItems().setAll(FiltroDeCampo.etiquetas());
+        selectorCampo.setValue(FiltroDeCampo.TODO.etiqueta());
         configurarSelectorDeColecciones();
         refrescarSelectorDeColecciones();
         configurarMenuDeCanciones();
 
+        instalarAtajos();
         activarModo(modoAleatorio);
         prepararMarquesina();
         prepararBarraTitulo();
         prepararAdornosSpidey();
         refrescarTabla();
+    }
+
+    /**
+     * Instala los atajos de teclado.
+     *
+     * <p>Se cuelgan de la escena, que no existe todavia cuando corre {@code initialize()}: por eso
+     * se espera a que el nodo tenga escena antes de registrarlos.</p>
+     *
+     * <p>Se usa un filtro y no un manejador normal para que las flechas lleguen aqui antes de que
+     * la tabla las consuma para mover la seleccion. Y por eso mismo hay que respetar los campos de
+     * texto: escribir un espacio en el buscador no puede pausar la musica.</p>
+     */
+    private void instalarAtajos() {
+        tablaBiblioteca.sceneProperty().addListener((observable, sinEscena, escena) -> {
+            if (escena != null) {
+                escena.addEventFilter(KeyEvent.KEY_PRESSED, this::atenderTecla);
+            }
+        });
+    }
+
+    /**
+     * Traduce una tecla a una accion del reproductor.
+     *
+     * @param evento tecla pulsada en cualquier punto de la ventana
+     */
+    private void atenderTecla(KeyEvent evento) {
+        // Mientras se escribe, el teclado es del campo de texto y de nadie mas. Los desplegables
+        // tambien quedan fuera: en ellos el espacio abre la lista y las flechas mueven la
+        // seleccion, y no tendria sentido que ademas saltaran cinco segundos de la cancion.
+        if (evento.getTarget() instanceof TextField
+                || evento.getTarget() instanceof ComboBox<?>) {
+            return;
+        }
+        boolean conControl = evento.isControlDown();
+        switch (evento.getCode()) {
+            case SPACE -> consumir(evento, this::alternarReproduccion);
+            case RIGHT -> consumir(evento, conControl
+                    ? this::siguiente
+                    : () -> audio.avanzarRelativo(SALTO_TECLADO_MS));
+            case LEFT -> consumir(evento, conControl
+                    ? this::anterior
+                    : () -> audio.avanzarRelativo(-SALTO_TECLADO_MS));
+            case N -> {
+                if (conControl) {
+                    consumir(evento, this::agregarCancion);
+                }
+            }
+            case F -> {
+                if (conControl) {
+                    // El editor, no el ComboBox: enfocar el control deja el cursor sin aparecer
+                    // y hay que hacer clic dentro para poder escribir.
+                    consumir(evento, campoBusqueda.getEditor()::requestFocus);
+                }
+            }
+            case D -> {
+                if (conControl) {
+                    consumir(evento, this::alternarTema);
+                }
+            }
+            default -> { }
+        }
+    }
+
+    /** Ejecuta la accion y marca la tecla como atendida, para que nadie mas reaccione a ella. */
+    private static void consumir(KeyEvent evento, Runnable accion) {
+        accion.run();
+        evento.consume();
     }
 
     /**
@@ -541,6 +636,12 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 f -> new SimpleStringProperty(f.getValue().duracionFormateada()));
         columnaCalificacion.setCellValueFactory(
                 f -> new SimpleStringProperty(textoCalificacion(f.getValue())));
+        // Un guion en vez de un cero: una columna llena de ceros distrae y lo que interesa ver de
+        // un vistazo es cuales si han sonado.
+        columnaReproducciones.setCellValueFactory(f -> {
+            int veces = f.getValue().getVecesReproducida();
+            return new SimpleStringProperty(veces == 0 ? "—" : String.valueOf(veces));
+        });
 
         // Las columnas se reparten el ancho disponible en vez de desbordarse con barra horizontal.
         tablaBiblioteca.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -550,8 +651,32 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 .addListener((observable, anterior, actual) -> actualizarBotonesDeSeleccion());
         tablaBiblioteca.setPlaceholder(new Label("LA BIBLIOTECA ESTA VACIA"));
 
-        campoBusqueda.textProperty().addListener((observable, anterior, actual) -> refrescarTabla());
+        // Se escucha el editor y no valueProperty: al escribir a mano el value no cambia hasta que
+        // se pulsa Enter, y la tabla debe ir filtrando letra a letra como hacia antes.
+        campoBusqueda.getEditor().textProperty()
+                .addListener((observable, anterior, actual) -> refrescarTabla());
         actualizarBotonesDeSeleccion();
+    }
+
+    /**
+     * Cambia el campo sobre el que se filtra y rellena el desplegable con sus valores reales.
+     *
+     * <p>Los valores salen de la biblioteca, no de una lista fija: si se agrega una cancion de un
+     * genero que no existia, aparece sola en el desplegable la proxima vez que se elija GÉNERO.</p>
+     */
+    @FXML
+    private void cambiarCampoDeFiltro() {
+        FiltroDeCampo campo = campoDeFiltro();
+        campoBusqueda.getItems().setAll(campo.valoresEn(biblioteca.todas()));
+        campoBusqueda.setPromptText(campo == FiltroDeCampo.TODO
+                ? "BUSCAR TITULO, ARTISTA O ALBUM"
+                : "FILTRAR POR " + campo.etiqueta());
+        refrescarTabla();
+    }
+
+    /** @return el campo elegido en el selector, o TODO si todavia no hay ninguno */
+    private FiltroDeCampo campoDeFiltro() {
+        return FiltroDeCampo.porEtiqueta(selectorCampo.getValue());
     }
 
     /**
@@ -810,6 +935,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         List<ColeccionDeCanciones> disponibles = new ArrayList<>();
         disponibles.add(new ColeccionBiblioteca(biblioteca));
         disponibles.add(new ColeccionFavoritas(biblioteca));
+        // Se le pasa un proveedor y no el modo: el modo activo cambia y una referencia fija
+        // acabaria mostrando el historial del modo anterior.
+        disponibles.add(new ColeccionHistorial(() -> modoActivo));
         for (Playlist lista : listas.todas()) {
             disponibles.add(new ColeccionPlaylist(lista, biblioteca));
         }
@@ -1086,6 +1214,67 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     }
 
     /**
+     * Abre la ventana que dibuja la estructura de datos del modo activo.
+     *
+     * <p>Va en ventana aparte y no dentro del reproductor por dos razones: el alto del panel ya
+     * esta muy justo, y en la sustentacion conviene poder dejarla abierta al lado mientras se
+     * maneja el reproductor.</p>
+     *
+     * <p>Se repinta con cada cambio de cancion o de modo mientras este abierta.</p>
+     */
+    @FXML
+    private void verEstructura() {
+        if (ventanaEstructura != null && ventanaEstructura.isShowing()) {
+            ventanaEstructura.toFront();
+            return;
+        }
+        ventanaEstructura = new Stage();
+        ventanaEstructura.initOwner(ventana());
+        ventanaEstructura.setTitle("Estructura de datos");
+        VentanaPixel.montar(ventanaEstructura, "ESTRUCTURA DE DATOS", visualizador.nodo());
+        // Al cerrarla se suelta la referencia: si no, refrescar seguiria pintando en una ventana
+        // que ya no existe.
+        ventanaEstructura.setOnHidden(evento -> ventanaEstructura = null);
+        ventanaEstructura.show();
+        refrescarVisualizador();
+    }
+
+    /**
+     * Abre la ventana con el resumen de lo mas escuchado.
+     *
+     * <p>Las cuentas se rehacen cada vez que se abre, y tambien si ya estaba abierta: asi el
+     * resumen nunca queda desfasado respecto a lo que acaba de sonar. Se calculan sobre la
+     * biblioteca entera, no sobre la coleccion seleccionada, porque lo que interesa es cuanto se ha
+     * escuchado cada cancion, no en que lista esta.</p>
+     */
+    @FXML
+    private void verEstadisticas() {
+        EstadisticasBiblioteca resumen = EstadisticasBiblioteca.de(biblioteca.todas());
+        if (ventanaEstadisticas != null && ventanaEstadisticas.isShowing()) {
+            ventanaEstadisticas.getScene().setRoot(
+                    VentanaPixel.marco(ventanaEstadisticas, TITULO_ESTADISTICAS,
+                            EstadisticasDialogo.construir(resumen)));
+            ventanaEstadisticas.sizeToScene();
+            ventanaEstadisticas.toFront();
+            return;
+        }
+        ventanaEstadisticas = new Stage();
+        ventanaEstadisticas.initOwner(ventana());
+        ventanaEstadisticas.setTitle("Estadísticas");
+        VentanaPixel.montar(ventanaEstadisticas, TITULO_ESTADISTICAS,
+                EstadisticasDialogo.construir(resumen));
+        ventanaEstadisticas.setOnHidden(evento -> ventanaEstadisticas = null);
+        ventanaEstadisticas.show();
+    }
+
+    /** Repinta la estructura, si la ventana esta abierta. */
+    private void refrescarVisualizador() {
+        if (ventanaEstructura != null && ventanaEstructura.isShowing() && modoActivo != null) {
+            visualizador.mostrar(modoActivo.estructuraVisual());
+        }
+    }
+
+    /**
      * Alterna entre usar cualquier fuente y quedarse solo con las que funcionan sin conexion.
      *
      * <p>El controlador no nombra ninguna fuente: solo dice "evitá la red" y el enrutador decide a
@@ -1132,8 +1321,36 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
      */
     private void iniciarPista() {
         limpiarAviso();
-        audio.reproducir(modoActivo.actual());
+        Cancion pista = modoActivo.actual();
+        audio.reproducir(pista);
+        contarReproduccion(pista);
         refrescarReproductor();
+
+        // El historial cambio de contenido, asi que hay que rearmar las filas; en cualquier otra
+        // coleccion las filas son las mismas y basta con repintarlas para que la columna REPR.
+        // muestre el contador recien subido, sin perder la seleccion ni el desplazamiento.
+        if (coleccionActiva instanceof ColeccionHistorial) {
+            refrescarTabla();
+        } else {
+            tablaBiblioteca.refresh();
+        }
+    }
+
+    /**
+     * Suma uno al contador de reproducciones de la cancion.
+     *
+     * <p>Pasa por {@code biblioteca.editar} y no por el setter directo para que el cambio se
+     * guarde en disco: si no, el contador se perderia al cerrar y las estadisticas arrancarian
+     * en cero cada vez.</p>
+     *
+     * @param cancion cancion que empieza a sonar; admite {@code null}
+     */
+    private void contarReproduccion(Cancion cancion) {
+        if (cancion == null) {
+            return;
+        }
+        biblioteca.editar(cancion,
+                actual -> actual.setVecesReproducida(actual.getVecesReproducida() + 1));
     }
 
     /** @return duracion de la pista en segundos segun la fuente de audio */
@@ -1360,9 +1577,20 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarTabla();
     }
 
+    /**
+     * Deja el buscador como estaba: sin texto y sin restringir a ningun campo.
+     *
+     * <p>Se limpian las dos cosas y no solo el texto: si se hubiera filtrado por GÉNERO, borrar el
+     * texto dejaria el selector marcando un campo que ya no filtra nada, y da la impresion de que
+     * el boton no funciono del todo.</p>
+     */
     @FXML
     private void limpiarBusqueda() {
-        campoBusqueda.clear();
+        // Primero el value y luego el editor: al poner el value en null, JavaFX vacia el editor por
+        // su cuenta, pero si el texto se escribio a mano el value ya era null y no se entera.
+        campoBusqueda.setValue(null);
+        campoBusqueda.getEditor().clear();
+        selectorCampo.setValue(FiltroDeCampo.TODO.etiqueta());
     }
 
     // ------------------------------------------------------------------
@@ -1429,10 +1657,12 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         Cancion seleccionada = tablaBiblioteca.getSelectionModel().getSelectedItem();
 
         List<Cancion> visibles = coleccionActiva.canciones();
-        String filtro = campoBusqueda.getText();
+        String filtro = campoBusqueda.getEditor().getText();
         if (filtro != null && !filtro.isBlank()) {
-            List<Cancion> coincidencias = biblioteca.buscar(filtro);
-            visibles = visibles.stream().filter(coincidencias::contains).toList();
+            // Se filtra sobre la coleccion visible, no sobre la biblioteca entera: si se esta
+            // viendo una lista, buscar dentro de ella no debe sacar canciones de fuera.
+            FiltroDeCampo campo = campoDeFiltro();
+            visibles = visibles.stream().filter(cancion -> campo.coincide(cancion, filtro)).toList();
         }
 
         filasBiblioteca.setAll(visibles);
@@ -1458,6 +1688,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                     + "1. Elegí TODA LA BIBLIOTECA en el selector de arriba\n"
                     + "2. Clic derecho sobre una canción\n"
                     + "3. \"Agregar a " + coleccionActiva.nombre() + "\"";
+        } else if (coleccionActiva instanceof ColeccionHistorial) {
+            mensaje = "TODAVIA NO HAS REPRODUCIDO NADA\n\n"
+                    + "Las canciones aparecen acá al reproducirlas,\n"
+                    + "de la más reciente a la más antigua.";
         } else if (coleccionActiva instanceof ColeccionFavoritas) {
             mensaje = "NO HAY FAVORITAS TODAVIA\n\n"
                     + "Elegí TODA LA BIBLIOTECA y marcá canciones con\n"
@@ -1493,6 +1727,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         actualizarBotonAccionModo();
         actualizarMarquesina(actual);
         refrescarProgreso();
+        // La estructura cambia con cada canción: el cursor se mueve, la cola se vacía, el árbol
+        // resalta otro nodo. Si la ventana está abierta, tiene que reflejarlo.
+        refrescarVisualizador();
     }
 
     /**

@@ -2,7 +2,9 @@ package com.eia.reproductor.modos;
 
 import com.eia.reproductor.estructuras.ArbolBinarioBusqueda;
 import com.eia.reproductor.modelo.Cancion;
+import com.eia.reproductor.modelo.EstructuraVisual;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -177,5 +179,21 @@ public class ModoAlfabetico extends ModoBase {
     @Override
     public String estructuraUsada() {
         return ESTRUCTURA;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>La forma real del arbol, no el recorrido aplanado: se ve como se ramifica y, si las
+     * canciones entraron ya ordenadas, se ve degenerar en una sola rama.</p>
+     */
+    @Override
+    public EstructuraVisual estructuraVisual() {
+        EstructuraVisual.Rama raiz = arbol.forma(
+                (dato, izquierdo, derecho) ->
+                        new EstructuraVisual.Rama(dato.getTitulo(), izquierdo, derecho));
+        Cancion sonando = actual();
+        return new EstructuraVisual.Arbol(
+                ESTRUCTURA, raiz, sonando == null ? null : sonando.getTitulo());
     }
 }

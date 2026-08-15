@@ -43,11 +43,7 @@ public final class VentanaPixel {
     public static Scene montar(Stage escenario, String titulo, Parent contenido) {
         escenario.initStyle(StageStyle.TRANSPARENT);
 
-        VBox marco = new VBox(barraDeTitulo(escenario, titulo), contenido);
-        marco.getStyleClass().add("marco-ventana");
-        VBox.setVgrow(contenido, Priority.ALWAYS);
-
-        Scene escena = new Scene(marco);
+        Scene escena = new Scene(marco(escenario, titulo, contenido));
         // Sin esto, las esquinas del marco salen con el gris por defecto de la escena.
         escena.setFill(Color.TRANSPARENT);
 
@@ -57,6 +53,25 @@ public final class VentanaPixel {
         }
         escenario.setScene(escena);
         return escena;
+    }
+
+    /**
+     * Arma el marco con su barra, sin tocar la escena.
+     *
+     * <p>Existe aparte de {@link #montar} para poder cambiarle el contenido a una ventana que ya
+     * esta abierta: {@code montar} le pondria una escena nueva, y a un {@code Stage} visible no se
+     * le puede cambiar el estilo ni conviene reemplazarle la escena entera.</p>
+     *
+     * @param escenario ventana a la que pertenece la barra, para cerrarla y arrastrarla
+     * @param titulo    texto de la barra
+     * @param contenido vista ya cargada
+     * @return el marco listo para ser raiz de una escena
+     */
+    public static Parent marco(Stage escenario, String titulo, Parent contenido) {
+        VBox marco = new VBox(barraDeTitulo(escenario, titulo), contenido);
+        marco.getStyleClass().add("marco-ventana");
+        VBox.setVgrow(contenido, Priority.ALWAYS);
+        return marco;
     }
 
     /**

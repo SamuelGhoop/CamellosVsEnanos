@@ -3,10 +3,8 @@ package com.eia.reproductor.servicios;
 import com.eia.reproductor.estructuras.ListaCircularDoble;
 import com.eia.reproductor.modelo.Cancion;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -214,11 +212,11 @@ public class BibliotecaService {
         if (texto == null || texto.isBlank()) {
             return todas();
         }
-        String aguja = normalizar(texto);
+        String aguja = Texto.plano(texto);
         return filtrar(cancion ->
-                normalizar(cancion.getTitulo()).contains(aguja)
-                        || normalizar(cancion.getArtista()).contains(aguja)
-                        || normalizar(cancion.getAlbum()).contains(aguja));
+                Texto.plano(cancion.getTitulo()).contains(aguja)
+                        || Texto.plano(cancion.getArtista()).contains(aguja)
+                        || Texto.plano(cancion.getAlbum()).contains(aguja));
     }
 
     /**
@@ -337,17 +335,5 @@ public class BibliotecaService {
      */
     private List<ObservadorBiblioteca> copiaDeObservadores() {
         return new ArrayList<>(observadores);
-    }
-
-    /**
-     * Quita tildes y pasa a minusculas, para que las busquedas no dependan de como se escriba.
-     */
-    private static String normalizar(String texto) {
-        if (texto == null) {
-            return "";
-        }
-        String sinTildes = Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-        return sinTildes.toLowerCase(Locale.ROOT);
     }
 }

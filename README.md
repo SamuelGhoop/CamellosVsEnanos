@@ -11,7 +11,9 @@ Cada modo de reproducción usa una **estructura de datos distinta, implementada 
 | Orden de llegada | Cola FIFO | `estructuras/ColaSimple.java` |
 | Alfabético | Árbol binario de búsqueda con punteros al padre | `estructuras/ArbolBinarioBusqueda.java` |
 
-> La tabla de complejidades y el guion de sustentación llegan en la Fase 8.
+Para la sustentación: [Arquitectura](#arquitectura) ·
+[Complejidades temporales](#complejidades-temporales) ·
+[Guion de sustentación](#guion-de-sustentación)
 
 ---
 
@@ -28,8 +30,69 @@ La aplicación arranca **sin internet y sin configuración**. Las carátulas y l
 metadatos son opcionales.
 
 ```
-mvn test     # 237 pruebas
+mvn test     # 448 pruebas
 ```
+
+---
+
+## Atajos de teclado
+
+Funcionan en cualquier punto de la ventana, salvo mientras se escribe en un campo o está abierto
+un desplegable.
+
+| Tecla | Acción |
+|---|---|
+| `Espacio` | Reproducir / pausar |
+| `←` `→` | Retroceder / adelantar 5 segundos |
+| `Ctrl` + `←` `→` | Canción anterior / siguiente |
+| `Ctrl` + `N` | Agregar canción |
+| `Ctrl` + `F` | Ir al buscador |
+| `Ctrl` + `D` | Cambiar entre modo claro y oscuro |
+
+---
+
+## Buscar y filtrar
+
+La fila de búsqueda tiene dos controles:
+
+- **El selector de campo** (`TODO`, `TÍTULO`, `ARTISTA`, `ÁLBUM`, `GÉNERO`) decide dónde se busca.
+  Con `TODO` se mira título, artista y álbum a la vez, como siempre.
+- **El buscador** es un desplegable editable: se puede escribir, o abrirlo y elegir uno de los
+  valores que **de verdad hay** en la biblioteca. Al agregar una canción de un género nuevo, ese
+  género aparece solo en la lista — no hay ninguna lista fija de géneros en el código.
+
+Las tildes y las mayúsculas dan igual: `clasica` encuentra `Música Clásica`. La lógica está en
+`servicios/FiltroDeCampo.java`, fuera de la interfaz, para poder probarla sin abrir una ventana.
+
+---
+
+## Estadísticas
+
+El botón **ESTADÍSTICAS**, en la cabecera de la biblioteca, abre el resumen de lo más escuchado:
+total de reproducciones, minutos acumulados, canciones distintas, artista y género más escuchados,
+y el podio de las cinco más repetidas. La columna **REPR.** de la tabla muestra lo mismo canción
+por canción.
+
+El contador sube al empezar cada reproducción y se guarda en `data/biblioteca.json`, así que
+sobrevive al cerrar la aplicación. Las cuentas viven en `servicios/EstadisticasBiblioteca.java`; la
+ventana solo las coloca en pantalla.
+
+---
+
+## Ver la estructura por dentro
+
+El botón **VER ESTRUCTURA** abre una ventana que dibuja la estructura de datos que el modo activo
+tiene cargada **en ese momento**: no es una ilustración fija.
+
+- En **Aleatorio**, el anillo con el cursor: se ve que el último enlaza con el primero.
+- En **Orden de llegada**, la cola vaciándose de verdad, con la cuenta de las que ya salieron.
+- En **Alfabético**, la forma real del árbol. Si las canciones entraron ya ordenadas, se ve
+  degenerar en una sola rama.
+
+Se puede dejar abierta al lado mientras suena la música. Por dentro, cada modo describe su
+estructura con `estructuraVisual()` y el dibujante hace un `switch` sobre una interfaz `sealed`
+(`modelo/EstructuraVisual.java`): si algún día se agrega un cuarto modo, el proyecto no compila
+hasta decidir cómo se dibuja.
 
 ---
 
@@ -41,7 +104,11 @@ El selector **LISTA**, encima de la tabla, elige qué se ve y qué suena:
 |---|---|
 | `TODA LA BIBLIOTECA` | Todas las canciones |
 | `★ FAVORITAS` | Las que tienen la estrella; se actualiza sola |
+| `↺ HISTORIAL` | Lo último reproducido, de lo más reciente a lo más antiguo |
 | Las tuyas | Las que crees con **NUEVA** |
+
+> El historial no es una lista aparte: **es la `ColaSimple` que cada modo lleva dentro**, sacada a
+> la interfaz. Encolar y descartar la más antigua cuesta O(1).
 
 **Cualquier lista suena con cualquiera de los tres modos.** Es el mismo botón de siempre: elegís la
 lista y después el modo, y la estructura de datos correspondiente se llena con esas canciones.
@@ -64,7 +131,7 @@ El rótulo `AUDIO:` bajo el título de la canción dice cuál está sonando.
 |---|---|---|
 | **Archivo local** | La canción tiene un `.mp3` o `.wav` que existe | Nada |
 | **Simulado** | La canción solo tiene metadatos | Nada |
-| **Spotify** | *(Fase 7b, en construcción)* | Rust + cuenta Premium |
+| **Spotify** | La canción tiene URI de Spotify | Rust + cuenta Premium |
 
 Para oír música: **AGREGAR CANCIÓN → Archivo local**.
 
@@ -266,12 +333,12 @@ arranca normal con audio local y simulado. Sin avisos ni ventanas emergentes.
 src/main/java/com/eia/reproductor/
 ├── Lanzador.java        # main(); no extiende Application (ver nota abajo)
 ├── App.java             # arranque de JavaFX
-├── modelo/              # Cancion, ResultadoBusquedaApi
+├── modelo/              # Cancion, Playlist, EstructuraVisual (sealed)
 ├── estructuras/         # las tres estructuras, genéricas <T>
 ├── modos/               # un modo por estructura, tras una interfaz común
-├── servicios/           # biblioteca, persistencia, metadatos, audio
-├── animacion/           # sprites y animaciones (aislado del resto)
-└── controlador/         # controladores de FXML
+├── servicios/           # biblioteca, persistencia, metadatos, audio, filtros, estadísticas
+├── animacion/           # sprites, animaciones y visualizador (aislado del resto)
+└── controlador/         # controladores de FXML y ventanas
 ```
 
 **Regla de capas:** ningún archivo de `estructuras/`, `modos/`, `servicios/` o `modelo/` importa
@@ -280,3 +347,197 @@ src/main/java/com/eia/reproductor/
 
 **Por qué existe `Lanzador`:** una clase `main` que extiende `Application` obliga a ejecutar con
 module path. Con una clase lanzadora aparte, `java -cp` funciona sin `module-info.java`.
+
+---
+
+## Arquitectura
+
+```mermaid
+classDiagram
+    direction LR
+
+    class Nodo~T~ {
+        <<abstract>>
+        -T dato
+    }
+    class NodoDoble~T~
+    class NodoCola~T~
+    class NodoArbol~T~
+    Nodo <|-- NodoDoble
+    Nodo <|-- NodoCola
+    Nodo <|-- NodoArbol
+
+    class ListaCircularDoble~T~ {
+        +agregar(T) void
+        +mezclar(Random) void
+        +nuevoCursor() Cursor
+    }
+    class ColaSimple~T~ {
+        +encolar(T) void
+        +desencolar() T
+    }
+    class ArbolBinarioBusqueda~T~ {
+        +insertar(T) boolean
+        +sucesorInorden(T) T
+        +predecesorInorden(T) T
+    }
+    ListaCircularDoble --> NodoDoble : usa
+    ColaSimple --> NodoCola : usa
+    ArbolBinarioBusqueda --> NodoArbol : usa
+
+    class ModoReproduccion {
+        <<interface>>
+        +cargar(Iterable) void
+        +siguiente() Cancion
+        +anterior() Cancion
+        +permiteAnterior() boolean
+    }
+    class ModoBase {
+        <<abstract>>
+        -ColaSimple historial
+        +siguiente() Cancion
+    }
+    ModoReproduccion <|.. ModoBase
+    ModoBase <|-- ModoAleatorio
+    ModoBase <|-- ModoOrdenLlegada
+    ModoBase <|-- ModoAlfabetico
+
+    ModoAleatorio --> ListaCircularDoble : Modo 1
+    ModoOrdenLlegada --> ColaSimple : Modo 2
+    ModoAlfabetico --> ArbolBinarioBusqueda : Modo 3
+
+    class ReproductorAudio {
+        <<interface>>
+        +reproducir(Cancion) void
+        +puedeReproducir(Cancion) boolean
+    }
+    class AudioRuteado {
+        -List fuentes
+    }
+    ReproductorAudio <|.. AudioRuteado
+    ReproductorAudio <|.. AudioLocalService
+    ReproductorAudio <|.. AudioSimuladoService
+    ReproductorAudio <|.. AudioSpotifyService
+    AudioRuteado o-- ReproductorAudio : contiene
+
+    class ColeccionDeCanciones {
+        <<interface>>
+        +canciones() List
+    }
+    ColeccionDeCanciones <|.. ColeccionBiblioteca
+    ColeccionDeCanciones <|.. ColeccionFavoritas
+    ColeccionDeCanciones <|.. ColeccionPlaylist
+
+    class PrincipalController
+    PrincipalController --> ModoReproduccion : solo la interfaz
+    PrincipalController --> ReproductorAudio : solo la interfaz
+    PrincipalController --> ColeccionDeCanciones : solo la interfaz
+```
+
+**Lo que hay que mirar en el diagrama:** el controlador no conoce ni una clase concreta de las tres
+familias. Habla con `ModoReproduccion`, `ReproductorAudio` y `ColeccionDeCanciones`, y en tiempo de
+ejecución detrás hay lo que haya. `AudioRuteado` es además un compuesto: implementa la interfaz y a
+la vez contiene otras implementaciones de ella.
+
+---
+
+## Complejidades temporales
+
+`n` = número de canciones. `h` = altura del árbol.
+
+### Modo 1 — Lista Ligada Circular Doble
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| Insertar al final | **O(1)** | La lista es circular: el último es `primero.getAnterior()`, no hay que recorrer |
+| Insertar en posición | O(n) | Hay que caminar hasta la posición |
+| Eliminar (dado el dato) | O(n) | O(n) en buscar el nodo, **O(1)** en desenlazarlo |
+| Buscar | O(n) | No hay orden que permita descartar mitades |
+| Siguiente / anterior | **O(1)** | Un salto de puntero. Es lo que hace barato a este modo |
+| Recorrido completo | O(n) | |
+| Mezclar (Fisher–Yates) | O(n) | Se reordenan los **nodos**, no los datos, para que los cursores no pierdan su canción |
+
+### Modo 2 — Cola Simple (FIFO)
+
+| Operación | Complejidad | Por qué |
+|---|---|---|
+| Encolar | **O(1)** | Se guarda un puntero al `fin`; sin él sería O(n) |
+| Desencolar | **O(1)** | Se mueve el `frente` y se suelta el nodo |
+| Consultar el frente | **O(1)** | |
+| Buscar | O(n) | Una cola no está pensada para buscar |
+| Recorrido | O(n) | |
+
+### Modo 3 — Árbol Binario de Búsqueda
+
+| Operación | Promedio | Peor caso | Por qué |
+|---|---|---|---|
+| Insertar | O(log n) | **O(n)** | Se desciende comparando; si el árbol degenera, es una lista |
+| Eliminar | O(log n) | O(n) | Tres casos: hoja, un hijo, y dos hijos con sucesor inorden |
+| Buscar | O(log n) | O(n) | Cada comparación descarta un subárbol |
+| Sucesor / predecesor inorden | O(h) | O(n) | Con puntero al padre; **sin aplanar el árbol a una lista** |
+| Recorrido inorden completo | O(n) | O(n) | Cada nodo se visita una vez |
+
+> [!warning] El peor caso es real, no teórico
+> Si las canciones se insertan **ya ordenadas alfabéticamente**, cada nueva es mayor que la
+> anterior, el árbol se convierte en una rama derecha de largo `n` y todas las operaciones caen a
+> O(n). La solución sería un árbol auto-balanceado (AVL o rojo-negro), que rota al insertar y
+> garantiza `h = O(log n)`.
+
+---
+
+## Guion de sustentación
+
+La rúbrica pide que **cada integrante** explique una estructura: por qué se eligió, cómo funciona
+por dentro y su complejidad. Reparto sugerido:
+
+### Integrante 1 — Lista Ligada Circular Doble (Modo Aleatorio)
+
+- **Por qué esta:** el modo pide navegar en las dos direcciones sin final. Circular resuelve el
+  "sin final" (el último apunta al primero) y doble resuelve las "dos direcciones".
+- **Por dentro:** cada `NodoDoble` guarda anterior y siguiente. **Nunca hay `null`**: con un solo
+  elemento, el nodo se apunta a sí mismo por ambos lados. Eso elimina los casos especiales.
+- **Mostrar en el visualizador:** el anillo con el cursor, y cómo al pasar del último se vuelve al
+  primero sin ningún `if`.
+- **Preguntas probables:**
+  - *¿Por qué insertar al final es O(1) si no guardás un puntero al último?* Porque en una lista
+    circular el último **es** `primero.getAnterior()`.
+  - *¿Qué mezcla, los datos o los nodos?* Los nodos. Si se movieran los datos, un cursor que apunta
+    a un nodo se encontraría de pronto con otra canción.
+
+### Integrante 2 — Cola Simple (Modo Orden de Llegada)
+
+- **Por qué esta:** el modo es FIFO puro. La cola *es* FIFO; usar otra cosa sería fingirlo.
+- **Por dentro:** punteros a `frente` y `fin`. Encolar añade al fin, desencolar saca del frente,
+  las dos en O(1). El puntero al `fin` es lo que evita recorrer en cada encolado.
+- **Mostrar:** que al reproducir, la canción **sale de verdad** de la cola — no se avanza un
+  índice. Se ve en el visualizador: la cola se vacía.
+- **Preguntas probables:**
+  - *¿Por qué no un `ArrayList` con un índice?* Porque entonces no sería una cola: los elementos
+    seguirían ahí. La rúbrica pide que la canción salga.
+  - *¿Y si quiero volver atrás?* No se puede, y es a propósito: `permiteAnterior()` devuelve
+    `false` y la interfaz deshabilita el botón. La estructura impone el comportamiento.
+
+### Integrante 3 — Árbol Binario de Búsqueda (Modo Alfabético)
+
+- **Por qué esta:** el orden alfabético sale **gratis** del recorrido inorden; no hay que ordenar
+  nada.
+- **Por dentro:** cada `NodoArbol` guarda **puntero al padre**. Esa decisión es la clave: permite
+  `sucesorInorden` y `predecesorInorden` caminando por el árbol vivo, en vez de aplanarlo a una
+  lista y moverse por índices — que sería hacer trampa.
+- **Mostrar:** el árbol dibujado y el camino inorden resaltado al avanzar.
+- **Preguntas probables:**
+  - *¿Cuál es el peor caso?* Insertar ya ordenado: degenera en lista y todo cae a O(n). Se
+    arreglaría con AVL.
+  - *¿Cómo se elimina un nodo con dos hijos?* Se reemplaza por su **sucesor inorden** (el mínimo
+    del subárbol derecho) y se transplanta, como en CLRS.
+  - *¿Qué pasa con dos canciones del mismo título?* `Cancion.compareTo` desempata por artista y
+    después por `id`. Sin ese desempate el árbol descartaría una como duplicada y **se perdería**.
+
+### Cierre — decisiones transversales
+
+- **Polimorfismo:** el controlador solo conoce interfaces. Cambiar de modo es reasignar una
+  referencia; no hay un solo `switch` sobre tipos concretos.
+- **Genéricos:** las tres estructuras son `<T>`. Se prueban con `Integer` y `String` además de con
+  `Cancion`, lo que demuestra que no dependen del dominio.
+- **Separación lógica/presentación:** `estructuras`, `modos`, `modelo` y `servicios` no importan
+  `javafx.scene.*`. La única excepción está documentada en la propia clase.

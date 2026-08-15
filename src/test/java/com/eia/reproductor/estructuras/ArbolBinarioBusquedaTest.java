@@ -500,4 +500,82 @@ class ArbolBinarioBusquedaTest {
             assertEquals("Creep", biblioteca.predecesorInorden(tercera).getTitulo());
         }
     }
+
+    @Nested
+    @DisplayName("Copia de la forma")
+    class Forma {
+
+        /** Copia minima para inspeccionar la silueta en los tests. */
+        private record Rama(int valor, Rama izquierdo, Rama derecho) { }
+
+        private Rama formaDelArbol() {
+            return arbol.forma(Rama::new);
+        }
+
+        @Test
+        @DisplayName("un arbol vacio no tiene forma")
+        void arbolVacioSinForma() {
+            assertNull(formaDelArbol());
+        }
+
+        @Test
+        @DisplayName("reproduce la silueta del arbol equilibrado")
+        void siluetaDelEquilibrado() {
+            cargarArbolEquilibrado();
+
+            Rama raiz = formaDelArbol();
+
+            assertEquals(50, raiz.valor());
+            assertEquals(30, raiz.izquierdo().valor());
+            assertEquals(70, raiz.derecho().valor());
+            assertEquals(20, raiz.izquierdo().izquierdo().valor());
+            assertEquals(40, raiz.izquierdo().derecho().valor());
+            assertEquals(60, raiz.derecho().izquierdo().valor());
+            assertEquals(80, raiz.derecho().derecho().valor());
+            assertNull(raiz.izquierdo().izquierdo().izquierdo(), "20 es hoja");
+        }
+
+        @Test
+        @DisplayName("un arbol degenerado se ve como una sola rama")
+        void siluetaDelDegenerado() {
+            // Insertar ya ordenado es el peor caso: el arbol se convierte en una lista y todo pasa
+            // a O(n). La forma tiene que ensenarlo, que es justo para lo que existe.
+            for (int valor : new int[] {10, 20, 30, 40}) {
+                arbol.insertar(valor);
+            }
+
+            Rama raiz = formaDelArbol();
+
+            assertNull(raiz.izquierdo(), "nada a la izquierda: todos son mayores");
+            assertEquals(20, raiz.derecho().valor());
+            assertEquals(30, raiz.derecho().derecho().valor());
+            assertEquals(40, raiz.derecho().derecho().derecho().valor());
+            assertNull(raiz.derecho().derecho().derecho().derecho());
+        }
+
+        @Test
+        @DisplayName("la copia no se entera de lo que pase despues en el arbol")
+        void laCopiaEsIndependiente() {
+            cargarArbolEquilibrado();
+            Rama antes = formaDelArbol();
+
+            arbol.eliminar(70);
+
+            // Es una copia, no una vista: quien la tenga puede dibujarla tranquilo aunque el
+            // arbol cambie mientras tanto.
+            assertEquals(70, antes.derecho().valor());
+            assertEquals(80, formaDelArbol().derecho().valor(), "el arbol si cambio");
+        }
+
+        @Test
+        @DisplayName("refleja el arbol despues de eliminar, no el de antes")
+        void siguePorDondeVaElArbol() {
+            cargarArbolEquilibrado();
+
+            arbol.eliminar(50);
+
+            // Al borrar la raiz, el sucesor inorden (60) ocupa su lugar.
+            assertEquals(60, formaDelArbol().valor());
+        }
+    }
 }

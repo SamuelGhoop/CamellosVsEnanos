@@ -319,6 +319,57 @@ public class ArbolBinarioBusqueda<T> implements Iterable<T> {
     }
 
     /**
+     * Devuelve la forma del arbol como una copia, para poder dibujarlo.
+     *
+     * <p><b>No rompe el encapsulamiento.</b> No se entregan los nodos —que son de visibilidad de
+     * paquete y traen punteros al padre que alguien podria manipular— sino una estructura nueva y
+     * de solo lectura con la misma silueta. Quien la reciba puede pintarla pero no puede tocar el
+     * arbol.</p>
+     *
+     * <p>Existe porque el recorrido inorden aplana el arbol y pierde justo lo que hay que ensenar
+     * en la sustentacion: como se ramifica, y por que degenera cuando se inserta en orden.</p>
+     *
+     * <p><b>Complejidad:</b> O(n), se visita cada nodo una vez.</p>
+     *
+     * @param <R>       tipo del nodo que construye el llamador
+     * @param constructor recibe dato, hijo izquierdo y derecho ya convertidos
+     * @return la raiz de la copia, o {@code null} si el arbol esta vacio
+     */
+    public <R> R forma(ConstructorDeRama<T, R> constructor) {
+        return copiarForma(raiz, constructor);
+    }
+
+    private <R> R copiarForma(NodoArbol<T> nodo, ConstructorDeRama<T, R> constructor) {
+        if (nodo == null) {
+            return null;
+        }
+        return constructor.crear(
+                nodo.getDato(),
+                copiarForma(nodo.getIzquierdo(), constructor),
+                copiarForma(nodo.getDerecho(), constructor));
+    }
+
+    /**
+     * Fabrica los nodos de la copia que devuelve {@link #forma}.
+     *
+     * @param <T> tipo de dato del arbol
+     * @param <R> tipo del nodo resultante
+     */
+    @FunctionalInterface
+    public interface ConstructorDeRama<T, R> {
+
+        /**
+         * Crea un nodo de la copia.
+         *
+         * @param dato      dato del nodo original
+         * @param izquierdo subarbol izquierdo ya convertido, o {@code null}
+         * @param derecho   subarbol derecho ya convertido, o {@code null}
+         * @return el nodo de la copia
+         */
+        R crear(T dato, R izquierdo, R derecho);
+    }
+
+    /**
      * Devuelve todos los elementos en orden ascendente.
      *
      * <p><b>Uso previsto: solo mostrar.</b> Sirve para llenar la lista de reproduccion en pantalla.
