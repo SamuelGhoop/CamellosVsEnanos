@@ -32,6 +32,15 @@ public class AudioLocalService implements ReproductorAudio {
 
     private static final String[] EXTENSIONES = {".mp3", ".wav"};
 
+    /** Cada cuanto entrega MediaPlayer un analisis nuevo. 20 veces por segundo va fluido. */
+    private static final double INTERVALO_ESPECTRO_SEGUNDOS = 0.05;
+
+    /** Por debajo de este nivel se considera silencio. Es el suelo de la escala. */
+    private static final int UMBRAL_ESPECTRO_DB = -60;
+
+    /** Curva que realza los niveles bajos. Menor que 1 levanta las barras; 1 las deja lineales. */
+    private static final double EXPONENTE_REALCE = 0.6;
+
     private final ReadOnlyLongWrapper posicionMs = new ReadOnlyLongWrapper(0);
     private final ReadOnlyLongWrapper duracionMs = new ReadOnlyLongWrapper(0);
     private final BooleanProperty reproduciendo = new SimpleBooleanProperty(false);
@@ -42,6 +51,9 @@ public class AudioLocalService implements ReproductorAudio {
 
     /** Nivel de 0 a 1. Empieza al maximo, igual que la barra de la interfaz. */
     private double volumen = 1.0;
+
+    private Consumer<double[]> oyenteDelEspectro;
+    private int bandasDelEspectro = 9;
 
     @Override
     public void reproducir(Cancion cancion) {
@@ -70,6 +82,8 @@ public class AudioLocalService implements ReproductorAudio {
                 reproduciendo.set(false);
             });
 
+            // El analisis se engancha al reproductor nuevo: se crea uno por cancion.
+            conectarEspectro(reproductor);
             reproductor.setVolume(volumen);
             reproductor.play();
             reproduciendo.set(true);
@@ -163,6 +177,52 @@ public class AudioLocalService implements ReproductorAudio {
     @Override
     public void setAlFallar(Consumer<String> callback) {
         this.alFallar = callback;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Aqui si se puede: {@code MediaPlayer} hace el analisis de frecuencias por su cuenta y
+     * entrega las magnitudes ya calculadas. Llegan en decibelios, desde el umbral configurado
+     * hasta cero, y se convierten a una fraccion de 0 a 1 para que quien pinte las barras no
+     * tenga que saber nada de decibelios.</p>
+     */
+    @Override
+    public void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
+        this.oyenteDelEspectro = oyente;
+        this.bandasDelEspectro = Math.max(1, bandas);
+        if (reproductor != null) {
+            conectarEspectro(reproductor);
+        }
+    }
+
+    /** {@inheritDoc} <p>El audio se decodifica aqui dentro, asi que hay muestras que mirar.</p> */
+    @Override
+    public boolean analizaEspectro() {
+        return true;
+    }
+
+    /** Engancha el analisis de frecuencias a un reproductor recien creado. */
+    private void conectarEspectro(MediaPlayer nuevo) {
+        if (oyenteDelEspectro == null) {
+            return;
+        }
+        nuevo.setAudioSpectrumNumBands(bandasDelEspectro);
+        nuevo.setAudioSpectrumInterval(INTERVALO_ESPECTRO_SEGUNDOS);
+        nuevo.setAudioSpectrumThreshold(UMBRAL_ESPECTRO_DB);
+        nuevo.setAudioSpectrumListener((tiempo, duracion, magnitudes, fases) -> {
+            double[] niveles = new double[magnitudes.length];
+            for (int i = 0; i < magnitudes.length; i++) {
+                // De decibelios a fraccion: el umbral es el silencio y 0 dB el maximo.
+                double fraccion = (magnitudes[i] - UMBRAL_ESPECTRO_DB) / -UMBRAL_ESPECTRO_DB;
+                fraccion = Math.max(0, Math.min(1, fraccion));
+                // La escala de decibelios deja casi toda la musica apretada en la parte baja y
+                // las barras apenas se despegaban del suelo. La curva reparte mejor ese tramo,
+                // que es donde de verdad pasan las cosas.
+                niveles[i] = Math.pow(fraccion, EXPONENTE_REALCE);
+            }
+            oyenteDelEspectro.accept(niveles);
+        });
     }
 
     /**

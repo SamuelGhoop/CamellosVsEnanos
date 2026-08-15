@@ -34,6 +34,15 @@ public final class AjustesAnimacion {
     // ==================================================================
 
     public static final String RUTA_CENTINELA = "/imagenes/spidey/hoja-centinela.png";
+
+    /**
+     * El mismo centinela con el traje negro, para el tema oscuro.
+     *
+     * <p>La hoja mide exactamente lo mismo que la clara, asi que todas las constantes de cuadros
+     * valen para las dos y basta con cambiar la imagen.</p>
+     */
+    public static final String RUTA_CENTINELA_NEGRO = "/imagenes/spidey/hoja-centinela-negro.png";
+
     public static final int CENTINELA_CUADROS = 76;
     public static final int CENTINELA_ANCHO_CUADRO = 74;
     public static final int CENTINELA_ALTO_CUADRO = 119;
@@ -80,6 +89,10 @@ public final class AjustesAnimacion {
     // ==================================================================
 
     public static final String RUTA_COLGANTE = "/imagenes/spidey/hoja-colgante.png";
+
+    /** El colgante con el traje negro; misma hoja, mismos cuadros, otro color. */
+    public static final String RUTA_COLGANTE_NEGRO = "/imagenes/spidey/hoja-colgante-negro.png";
+
     public static final int COLGANTE_CUADROS = 77;
     public static final int COLGANTE_ANCHO_CUADRO = 82;
     public static final int COLGANTE_ALTO_CUADRO = 124;

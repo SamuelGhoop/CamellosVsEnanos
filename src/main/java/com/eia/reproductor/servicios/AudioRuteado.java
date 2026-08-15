@@ -53,6 +53,8 @@ public class AudioRuteado implements ReproductorAudio {
 
     private Runnable alTerminarPista;
     private Consumer<String> alFallar;
+    private Consumer<double[]> oyenteDelEspectro;
+    private int bandasDelEspectro = 9;
 
     /**
      * Crea el enrutador con sus fuentes, en orden de preferencia.
@@ -80,6 +82,9 @@ public class AudioRuteado implements ReproductorAudio {
         fuente.setAlFallar(mensaje -> alFallarFuente(fuente, mensaje));
         // Una fuente que se suma tarde —Spotify— tiene que nacer con el volumen ya elegido.
         fuente.setVolumen(volumen);
+        if (oyenteDelEspectro != null) {
+            fuente.setAlAnalizarEspectro(oyenteDelEspectro, bandasDelEspectro);
+        }
         fuentes.add(fuente);
     }
 
@@ -201,6 +206,25 @@ public class AudioRuteado implements ReproductorAudio {
     /** @return el volumen actual, de 0 a 100 */
     public int volumen() {
         return volumen;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Se registra en todas las fuentes; solo entregara datos la que sepa hacerlo y este
+     * sonando.</p>
+     */
+    @Override
+    public void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
+        this.oyenteDelEspectro = oyente;
+        this.bandasDelEspectro = bandas;
+        fuentes.forEach(fuente -> fuente.setAlAnalizarEspectro(oyente, bandas));
+    }
+
+    /** {@inheritDoc} <p>Depende de la fuente que este sonando en este momento.</p> */
+    @Override
+    public boolean analizaEspectro() {
+        return fuenteActiva() != null && fuenteActiva().analizaEspectro();
     }
 
     /**

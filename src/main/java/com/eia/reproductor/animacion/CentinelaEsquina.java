@@ -121,4 +121,15 @@ public class CentinelaEsquina {
             throw new IllegalStateException("No se pudo cargar la imagen " + ruta, excepcion);
         }
     }
+    /**
+     * Cambia entre el traje rojo y el negro.
+     *
+     * @param oscuro {@code true} para el traje negro del tema oscuro
+     */
+    public void usarTrajeNegro(boolean oscuro) {
+        sprite.cambiarHoja(oscuro
+                ? AjustesAnimacion.RUTA_CENTINELA_NEGRO
+                : AjustesAnimacion.RUTA_CENTINELA);
+    }
+
 }

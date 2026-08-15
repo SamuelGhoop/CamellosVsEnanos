@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -52,6 +53,9 @@ public class AudioSpotifyService implements ReproductorAudio {
 
     /** Margen para dar un salto por aterrizado; el sondeo nunca cae en el milisegundo exacto. */
     private static final long TOLERANCIA_SALTO_MS = 3_000;
+
+    /** Respuesta de Spotify cuando el dispositivo se durmio y ya no acepta ordenes. */
+    private static final int HTTP_SIN_DISPOSITIVO = 404;
 
     /** Donde librespot guarda sus credenciales; sin esto pediria autorizar en el navegador. */
     private static final Path CREDENCIALES_LIBRESPOT =
@@ -221,7 +225,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         }
         String uri = cancion.getUriSpotify();
         enSegundoPlano(() -> {
-            if (!api.reproducir(idDispositivo(), uri, 0)) {
+            if (!ordenarDespertando(() -> api.reproducir(idDispositivo(), uri, 0))) {
                 avisar(api.ultimoAviso().orElse("Spotify no pudo reproducir la canción."));
                 return;
             }
@@ -248,7 +252,14 @@ public class AudioSpotifyService implements ReproductorAudio {
     public void pausar() {
         enInterfaz(() -> reproduciendo.set(false));
         ignorarEstadoHasta = System.currentTimeMillis() + VENTANA_TRAS_ORDEN_MS;
-        enSegundoPlano(() -> api.pausar(idDispositivo()));
+        enSegundoPlano(() -> {
+            if (!ordenarDespertando(() -> api.pausar(idDispositivo()))) {
+                // Si de verdad no se pudo pausar, el boton no puede seguir diciendo que si:
+                // quedaria la musica sonando y la interfaz afirmando lo contrario.
+                enInterfaz(() -> reproduciendo.set(true));
+                avisar("No se pudo pausar: " + api.ultimoAviso().orElse("Spotify no respondió."));
+            }
+        });
     }
 
     @Override
@@ -256,8 +267,9 @@ public class AudioSpotifyService implements ReproductorAudio {
         enInterfaz(() -> reproduciendo.set(true));
         ignorarEstadoHasta = System.currentTimeMillis() + VENTANA_TRAS_ORDEN_MS;
         enSegundoPlano(() -> {
-            if (!api.reanudar(idDispositivo())) {
+            if (!ordenarDespertando(() -> api.reanudar(idDispositivo()))) {
                 enInterfaz(() -> reproduciendo.set(false));
+                avisar("No se pudo reanudar: " + api.ultimoAviso().orElse("Spotify no respondió."));
             }
         });
     }
@@ -289,7 +301,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         objetivoDelSalto = limitada;
         esperarSaltoHasta = System.currentTimeMillis() + VENTANA_TRAS_SALTO_MS;
         enInterfaz(() -> posicionMs.set(limitada));
-        enSegundoPlano(() -> api.buscarPosicion(idDispositivo(), limitada));
+        enSegundoPlano(() -> ordenarDespertando(() -> api.buscarPosicion(idDispositivo(), limitada)));
     }
 
     /**
@@ -500,6 +512,32 @@ public class AudioSpotifyService implements ReproductorAudio {
     /** Lanza una tarea de red fuera del hilo de la interfaz, que no debe bloquearse jamas. */
     private void enSegundoPlano(Runnable tarea) {
         ordenes.execute(tarea);
+    }
+
+    /**
+     * Ejecuta una orden del reproductor, despertando el dispositivo si se habia dormido.
+     *
+     * <p><b>El problema que resuelve.</b> Spotify desactiva el dispositivo tras un rato sin
+     * reproducir —en el registro de librespot aparece como {@code device became inactive}— y a
+     * partir de ahi toda orden responde {@code 404}. Eso se notaba de dos formas: un aviso de que
+     * no hay ningun dispositivo, y una pausa que no pausaba nada mientras el boton ya decia lo
+     * contrario. Ante un 404 se le devuelve el foco al dispositivo y se reintenta una vez.</p>
+     *
+     * @param orden peticion a la Web API, que devuelve si funciono
+     * @return {@code true} si la orden acabo surtiendo efecto
+     */
+    private boolean ordenarDespertando(BooleanSupplier orden) {
+        if (orden.getAsBoolean()) {
+            return true;
+        }
+        if (api.ultimoEstado() != HTTP_SIN_DISPOSITIVO) {
+            return false;
+        }
+        String id = idDispositivo();
+        if (id == null || !api.transferirA(id)) {
+            return false;
+        }
+        return orden.getAsBoolean();
     }
 
     /**

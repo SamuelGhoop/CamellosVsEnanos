@@ -71,4 +71,17 @@ public class CapaSpidey {
         centinela.recolocar(ancho, alto);
         colgante.redimensionar(ancho, alto);
     }
+    /**
+     * Cambia el traje de los dos personajes segun el tema.
+     *
+     * <p>Lo llama el controlador al alternar entre claro y oscuro. Las hojas negras tienen la
+     * misma rejilla que las rojas, asi que el cambio es instantaneo y sin cortar la animacion.</p>
+     *
+     * @param oscuro {@code true} para el traje negro
+     */
+    public void usarTrajeNegro(boolean oscuro) {
+        centinela.usarTrajeNegro(oscuro);
+        colgante.usarTrajeNegro(oscuro);
+    }
+
 }

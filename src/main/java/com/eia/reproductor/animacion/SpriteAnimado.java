@@ -114,6 +114,21 @@ public class SpriteAnimado {
                 (double) indice * anchoCuadro, 0, anchoCuadro, altoCuadro));
     }
 
+    /**
+     * Cambia la hoja de sprites sin interrumpir la animacion.
+     *
+     * <p>Lo usa el cambio de tema para pasar al traje negro. Solo vale para hojas del mismo
+     * tamanio de cuadro; como el cuadro actual y el recorte no se tocan, el personaje sigue en la
+     * misma pose y no se nota un salto al cambiar.</p>
+     *
+     * @param ruta hoja nueva, con la misma rejilla de cuadros
+     */
+    public void cambiarHoja(String ruta) {
+        vista.setImage(cargar(ruta));
+        // El viewport apunta al cuadro que ya estaba: se conserva la pose exacta.
+        mostrarCuadro(cuadroActual);
+    }
+
     private static Image cargar(String ruta) {
         try (InputStream flujo = SpriteAnimado.class.getResourceAsStream(ruta)) {
             return new Image(Objects.requireNonNull(flujo, "No se encontró el sprite " + ruta));

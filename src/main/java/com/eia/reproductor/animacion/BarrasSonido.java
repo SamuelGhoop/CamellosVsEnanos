@@ -34,10 +34,23 @@ import java.util.List;
  */
 public class BarrasSonido {
 
+    /** Cuantas bandas de frecuencia se piden: una por barra. */
+    public static final int BANDAS = AjustesAnimacion.BARRAS_ALTURAS.length;
+
+    /** Cuanto se espera sin recibir espectro antes de volver a la animacion decorativa. */
+    private static final long ESPERA_SIN_DATOS_MS = 400;
+
+    /** Fraccion que baja la barra en cada cuadro. Mas bajo, caida mas lenta. */
+    private static final double SUAVIZADO_BAJADA = 0.35;
+
     private final HBox contenedor = new HBox();
     private final List<Timeline> animaciones = new ArrayList<>();
     private final List<Scale> pivotes = new ArrayList<>();
     private boolean sonando;
+
+    /** Verdadero mientras esten llegando niveles reales del audio. */
+    private boolean conDatosReales;
+    private long ultimoDato;
 
     /** Construye el ecualizador detenido. */
     public BarrasSonido() {
@@ -83,9 +96,65 @@ public class BarrasSonido {
         }
         sonando = hayMusica;
         if (hayMusica) {
-            animaciones.forEach(Timeline::play);
+            // Si ya se esta bailando con el espectro real, la animacion inventada estorba.
+            if (!conDatosReales) {
+                animaciones.forEach(Timeline::play);
+            }
         } else {
             animaciones.forEach(Timeline::stop);
+            conDatosReales = false;
+            pivotes.forEach(pivote -> pivote.setY(1));
+        }
+    }
+
+    /**
+     * Mueve las barras con el espectro real de la musica.
+     *
+     * <p>Mientras lleguen niveles, la animacion decorativa se aparta: no tiene sentido inventar un
+     * movimiento cuando se conoce el de verdad. Si dejan de llegar —porque la fuente cambio a una
+     * que no puede analizar— la animacion vuelve sola pasado {@link #ESPERA_SIN_DATOS_MS}.</p>
+     *
+     * <p>Se aplica un descenso suave: el espectro salta mucho de un cuadro a otro y sin suavizar
+     * las barras parpadean en vez de bailar.</p>
+     *
+     * @param niveles un valor de 0 a 1 por banda
+     */
+    public void mostrarNiveles(double[] niveles) {
+        if (niveles == null || niveles.length == 0) {
+            return;
+        }
+        if (!conDatosReales) {
+            conDatosReales = true;
+            animaciones.forEach(Timeline::stop);
+        }
+        ultimoDato = System.currentTimeMillis();
+
+        for (int i = 0; i < pivotes.size(); i++) {
+            double objetivo = Math.max(AjustesAnimacion.BARRAS_ESCALA_MINIMA,
+                    niveles[Math.min(i, niveles.length - 1)]);
+            Scale pivote = pivotes.get(i);
+            // Sube de golpe y baja despacio, como un vumetro: es lo que se lee como "ritmo".
+            double suavizado = objetivo > pivote.getY()
+                    ? objetivo
+                    : pivote.getY() + (objetivo - pivote.getY()) * SUAVIZADO_BAJADA;
+            pivote.setY(suavizado);
+        }
+    }
+
+    /**
+     * Devuelve las barras a la animacion decorativa si hace rato que no llegan datos.
+     *
+     * <p>Lo llama el controlador en cada refresco. Hace falta porque la fuente puede cambiar a una
+     * que no analiza —Spotify— y entonces las barras se quedarian congeladas en su ultimo valor.</p>
+     */
+    public void revisarSiSiguenLlegandoDatos() {
+        if (!conDatosReales || System.currentTimeMillis() - ultimoDato < ESPERA_SIN_DATOS_MS) {
+            return;
+        }
+        conDatosReales = false;
+        if (sonando) {
+            animaciones.forEach(Timeline::play);
+        } else {
             pivotes.forEach(pivote -> pivote.setY(1));
         }
     }
@@ -94,6 +163,7 @@ public class BarrasSonido {
     public void detener() {
         animaciones.forEach(Timeline::stop);
         sonando = false;
+        conDatosReales = false;
     }
 
     private static Timeline crearAnimacion(Scale pivote, double retardoSegundos) {

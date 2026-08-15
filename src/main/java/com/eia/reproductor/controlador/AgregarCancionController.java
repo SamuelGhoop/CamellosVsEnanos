@@ -69,7 +69,6 @@ public class AgregarCancionController implements Initializable {
     private static final int ANIO_MAXIMO_RAZONABLE = 2200;
     private static final double LADO_MINIATURA = 40;
 
-    @FXML private Label etiquetaTituloDialogo;
 
     @FXML private Button botonElegirArchivo;
     @FXML private Button botonQuitarArchivo;
@@ -199,11 +198,10 @@ public class AgregarCancionController implements Initializable {
     private void prepararse(Stage escenario, Cancion aEditar) {
         this.escenario = escenario;
         if (aEditar == null) {
-            etiquetaTituloDialogo.setText("AGREGAR CANCION");
+            // Nada que precargar: el titulo de la ventana ya lo puso quien abrio el dialogo.
             return;
         }
 
-        etiquetaTituloDialogo.setText("EDITAR CANCION");
         DatosCancion datos = DatosCancion.de(aEditar);
         campoTitulo.setText(datos.titulo());
         campoArtista.setText(datos.artista());

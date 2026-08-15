@@ -45,6 +45,7 @@ public class ClienteWebApiSpotify {
     private final HttpClient http;
 
     private String ultimoAviso;
+    private int ultimoEstado;
 
     /**
      * Crea el cliente.
@@ -405,15 +406,30 @@ public class ClienteWebApiSpotify {
     boolean exito(String ruta, Metodo metodo) {
         Optional<HttpResponse<String>> respuesta = enviarConReintento(ruta, metodo);
         if (respuesta.isEmpty()) {
+            ultimoEstado = 0;
             return false;
         }
         int estado = respuesta.get().statusCode();
+        ultimoEstado = estado;
         if (estado >= 200 && estado < 300) {
             ultimoAviso = null;
             return true;
         }
         ultimoAviso = mensajeDeError(estado, respuesta.get().body());
         return false;
+    }
+
+    /**
+     * Codigo de estado de la ultima peticion.
+     *
+     * <p>Se expone para poder distinguir un fallo del que se puede uno recuperar de uno que no:
+     * un {@code 404} significa que el dispositivo se durmio y basta con volver a transferirle la
+     * reproduccion, mientras que un {@code 403} no tiene arreglo desde aqui.</p>
+     *
+     * @return el codigo HTTP, o 0 si la peticion ni siquiera se pudo enviar
+     */
+    public int ultimoEstado() {
+        return ultimoEstado;
     }
 
     /**

@@ -224,4 +224,15 @@ public class VisitanteColgante {
         return grupo.isVisible() && visita != null
                 && visita.getStatus() == Animation.Status.RUNNING;
     }
+    /**
+     * Cambia entre el traje rojo y el negro.
+     *
+     * @param oscuro {@code true} para el traje negro del tema oscuro
+     */
+    public void usarTrajeNegro(boolean oscuro) {
+        sprite.cambiarHoja(oscuro
+                ? AjustesAnimacion.RUTA_COLGANTE_NEGRO
+                : AjustesAnimacion.RUTA_COLGANTE);
+    }
+
 }

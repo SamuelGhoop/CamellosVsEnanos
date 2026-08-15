@@ -315,6 +315,12 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         barraVolumen.setAlCambiar(audio::setVolumen);
         audio.setVolumen(barraVolumen.volumen());
 
+        // El ecualizador se mueve con el espectro real cuando la fuente puede darlo. El analisis
+        // llega desde el hilo del audio, asi que se pasa al de la interfaz antes de tocar nada.
+        audio.setAlAnalizarEspectro(
+                niveles -> Platform.runLater(() -> barrasSonido.mostrarNiveles(niveles)),
+                BarrasSonido.BANDAS);
+
         // Un MP3 roto no revienta al abrirlo sino al decodificarlo, en otro hilo: por eso el fallo
         // llega como aviso y se muestra en la misma franja que el resto de las advertencias.
         audio.setAlFallar(mensaje -> Platform.runLater(() -> mostrarAviso(mensaje)));
@@ -361,6 +367,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                 selectorModos.boundsInParentProperty(),
                 capaAnimaciones.boundsInParentProperty(),
                 cabecera.heightProperty()));
+        // La aplicacion arranca en modo claro, asi que el traje de salida es el rojo. El FXML ya
+        // trae puesta la clase "tema-claro" en la raiz; esto solo pone el traje que le toca.
+        capaSpidey.usarTrajeNegro(false);
         capaSpidey.iniciar();
     }
 
@@ -1249,7 +1258,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         } else {
             raiz.getStyleClass().remove(CLASE_TEMA_CLARO);
         }
-        botonTema.setText(pasandoAClaro ? "TEMA CLARO" : "TEMA OSCURO");
+        botonTema.setText(pasandoAClaro ? "MODO: CLARO" : "MODO: OSCURO");
+        // El tema no es solo paleta: el modo oscuro lleva el traje negro y el claro el rojo.
+        capaSpidey.usarTrajeNegro(!pasandoAClaro);
     }
 
     // ------------------------------------------------------------------
@@ -1543,6 +1554,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         // El icono anuncia la accion disponible, no el estado actual.
         iconoReproducir.setImage(sonando ? iconoPausa : iconoPlay);
         barrasSonido.sincronizar(sonando);
+        // Si la fuente dejo de mandar espectro —al pasar a Spotify, que no puede analizarlo—
+        // las barras volverian a la animacion decorativa en vez de quedarse congeladas.
+        barrasSonido.revisarSiSiguenLlegandoDatos();
     }
 
     private void actualizarBotonAccionModo() {

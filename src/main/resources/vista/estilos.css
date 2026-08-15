@@ -19,17 +19,26 @@
      #52B375                      -> el verde de insignia-verde, reutilizado para "reproducir"
      #96E0F7                      -> el celeste de las barras de sonido                        */
 .root {
-    -fondo-profundo:  #0B0B07;
-    -fondo-panel:     #14140D;
-    -marco-azul:      #3997BB;
-    -marco-azul-med:  #2976A0;
-    -marco-azul-osc:  #154F80;
-    -borde-claro:     #ABE5FF;
-    -verde-accion:    #52B375;
-    -celeste-barras:  #96E0F7;
-    -rojo-acento:     #d3323f;
-    -blanco-hueso:    #f0f0f0;
-    -gris-apagado:    #6b7280;
+    /* TEMA OSCURO — traje negro. Los fondos salen MEDIDOS del sprite del traje:
+         #0D0D14  el negro azulado del traje
+         #2B5E8C  el contorno
+         #E6F5F8  los ojos y la arania del pecho
+       Los azules son los del arte pasados por la misma transformacion tonal que genero las
+       piezas "-negro" del marco (brillo x0.72, tono +7 grados). Por eso el marco dibujado y el
+       marco pintado por CSS coinciden en vez de verse uno encima del otro. */
+    -fondo-profundo:  #0D0D14;
+    -fondo-panel:     #161620;
+    -marco-azul:      #296287;
+    -marco-azul-med:  #1E4B73;
+    -marco-azul-osc:  #0F305C;
+    -borde-claro:     #E6F5F8;
+    -verde-accion:    #3B815C;
+    -celeste-barras:  #6C99B2;
+    /* El traje negro no tiene rojo por ningun lado: el acento pasa a ser el cian de los ojos.
+       Es una linea; volver al rojo es cambiar este valor por #d3323f. */
+    -rojo-acento:     #4FC3E8;
+    -blanco-hueso:    #E6F5F8;
+    -gris-apagado:    #5A6472;
 
     /* Si la tipografia de pixeles no logra registrarse, JavaFX cae a la monoespaciada. */
     -fx-font-family: "Press Start 2P", "Consolas", monospace;
@@ -56,6 +65,23 @@
     -gris-apagado:    #6b7280;
 }
 
+
+/* --------- Arte del tema claro ---------
+   Por defecto la interfaz usa las piezas en version traje negro. El tema claro devuelve las
+   originales; es lo unico que hay que reponer, porque los colores ya los resuelven las
+   variables de la paleta. */
+.root.tema-claro .marco-si  { -fx-background-image: url("../imagenes/spidey/marco-sup-izq.png"); }
+.root.tema-claro .marco-sd  { -fx-background-image: url("../imagenes/spidey/marco-sup-der.png"); }
+.root.tema-claro .marco-ii  { -fx-background-image: url("../imagenes/spidey/marco-inf-izq.png"); }
+.root.tema-claro .marco-id  { -fx-background-image: url("../imagenes/spidey/marco-inf-der.png"); }
+.root.tema-claro .marco-s   { -fx-background-image: url("../imagenes/spidey/marco-sup.png"); }
+.root.tema-claro .marco-inf { -fx-background-image: url("../imagenes/spidey/marco-inf.png"); }
+.root.tema-claro .marco-i   { -fx-background-image: url("../imagenes/spidey/marco-izq.png"); }
+.root.tema-claro .marco-d   { -fx-background-image: url("../imagenes/spidey/marco-der.png"); }
+.root.tema-claro .subrayado-izq   { -fx-background-image: url("../imagenes/spidey/subrayado-izq.png"); }
+.root.tema-claro .subrayado-der   { -fx-background-image: url("../imagenes/spidey/subrayado-der.png"); }
+.root.tema-claro .subrayado-medio { -fx-background-image: url("../imagenes/spidey/subrayado-medio.png"); }
+
 /* ------------------- Marco exterior de 9 piezas -------------------
    Las esquinas no se repiten. Los lados si: el dibujo de cada uno es uniforme a lo largo de su
    eje, asi que repetirlo no deja costura y ademas evita el remuestreo, que es lo que
@@ -69,18 +95,18 @@
     -fx-background-position: center;
 }
 
-.marco-si  { -fx-background-image: url("../imagenes/spidey/marco-sup-izq.png"); }
-.marco-sd  { -fx-background-image: url("../imagenes/spidey/marco-sup-der.png"); }
-.marco-ii  { -fx-background-image: url("../imagenes/spidey/marco-inf-izq.png"); }
-.marco-id  { -fx-background-image: url("../imagenes/spidey/marco-inf-der.png"); }
+.marco-si  { -fx-background-image: url("../imagenes/spidey/marco-sup-izq-negro.png"); }
+.marco-sd  { -fx-background-image: url("../imagenes/spidey/marco-sup-der-negro.png"); }
+.marco-ii  { -fx-background-image: url("../imagenes/spidey/marco-inf-izq-negro.png"); }
+.marco-id  { -fx-background-image: url("../imagenes/spidey/marco-inf-der-negro.png"); }
 
-.marco-s   { -fx-background-image: url("../imagenes/spidey/marco-sup.png");
+.marco-s   { -fx-background-image: url("../imagenes/spidey/marco-sup-negro.png");
              -fx-background-repeat: repeat-x; -fx-background-position: left center; }
-.marco-inf { -fx-background-image: url("../imagenes/spidey/marco-inf.png");
+.marco-inf { -fx-background-image: url("../imagenes/spidey/marco-inf-negro.png");
              -fx-background-repeat: repeat-x; -fx-background-position: left center; }
-.marco-i   { -fx-background-image: url("../imagenes/spidey/marco-izq.png");
+.marco-i   { -fx-background-image: url("../imagenes/spidey/marco-izq-negro.png");
              -fx-background-repeat: repeat-y; -fx-background-position: center top; }
-.marco-d   { -fx-background-image: url("../imagenes/spidey/marco-der.png");
+.marco-d   { -fx-background-image: url("../imagenes/spidey/marco-der-negro.png");
              -fx-background-repeat: repeat-y; -fx-background-position: center top; }
 
 .raiz {
@@ -278,14 +304,14 @@
 }
 
 .subrayado-izq {
-    -fx-background-image: url("../imagenes/spidey/subrayado-izq.png");
+    -fx-background-image: url("../imagenes/spidey/subrayado-izq-negro.png");
     -fx-min-width: 5;
     -fx-pref-width: 5;
     -fx-max-width: 5;
 }
 
 .subrayado-der {
-    -fx-background-image: url("../imagenes/spidey/subrayado-der.png");
+    -fx-background-image: url("../imagenes/spidey/subrayado-der-negro.png");
     -fx-min-width: 5;
     -fx-pref-width: 5;
     -fx-max-width: 5;
@@ -293,7 +319,7 @@
 
 /* El trozo central se repite en vez de estirarse, por lo mismo que los lados del marco. */
 .subrayado-medio {
-    -fx-background-image: url("../imagenes/spidey/subrayado-medio.png");
+    -fx-background-image: url("../imagenes/spidey/subrayado-medio-negro.png");
     -fx-background-repeat: repeat-x;
     -fx-background-position: left center;
 }

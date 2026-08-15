@@ -131,6 +131,30 @@ public interface ReproductorAudio {
     }
 
     /**
+     * Pide que se avise del espectro de la musica mientras suena.
+     *
+     * <p>El oyente recibe un nivel por banda, de 0 a 1, varias veces por segundo. Sirve para que
+     * el ecualizador de la interfaz se mueva con la musica de verdad y no con una animacion
+     * inventada.</p>
+     *
+     * <p><b>No todas las fuentes pueden.</b> Solo la que decodifica el audio dentro de esta
+     * aplicacion tiene acceso a las muestras. Cuando el sonido lo produce un programa externo,
+     * como pasa con Spotify, nunca pasa por aqui y no hay nada que analizar; por eso el metodo no
+     * hace nada por defecto y {@link #analizaEspectro()} avisa de si vale la pena escuchar.</p>
+     *
+     * @param oyente recibe los niveles por banda
+     * @param bandas cuantas bandas se quieren
+     */
+    default void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
+        // Sin implementacion a proposito.
+    }
+
+    /** @return {@code true} si esta fuente puede entregar el espectro de lo que suena */
+    default boolean analizaEspectro() {
+        return false;
+    }
+
+    /**
      * Indica si la fuente necesita conexion a internet para sonar.
      *
      * <p>Lo usa el enrutador para poder descartarlas en bloque cuando la red no acompana, sin

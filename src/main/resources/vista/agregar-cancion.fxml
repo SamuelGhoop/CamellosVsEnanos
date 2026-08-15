@@ -29,10 +29,9 @@
       fx:controller="com.eia.reproductor.controlador.AgregarCancionController"
       styleClass="raiz, dialogo-formulario">
 
-    <VBox styleClass="banner">
-        <Label fx:id="etiquetaTituloDialogo" styleClass="banner-subtitulo" text="AGREGAR CANCION" />
-    </VBox>
-
+    <!-- Sin banner propio: el titulo lo pone la barra superior que monta VentanaPixel. Tenerlo
+         aqui tambien lo duplicaba, y ademas heredaba de .banner-subtitulo un desplazamiento
+         hacia arriba pensado para la ventana principal, asi que salia atravesado sobre la barra. -->
     <VBox styleClass="panel, panel-formulario">
 
         <!-- ===== Via A: archivo local ===== -->
@@ -69,10 +68,15 @@
                        wrapText="true" minHeight="-Infinity" />
             </VBox>
 
+            <!-- Dos parejas de etiqueta y campo por fila en vez de una. Con siete filas apiladas
+                 el dialogo salia mas alto que muchas pantallas; asi ocupa cuatro y crece a lo
+                 ancho, que es donde sobra sitio. -->
             <GridPane styleClass="rejilla-formulario" HBox.hgrow="ALWAYS">
                 <columnConstraints>
-                    <ColumnConstraints minWidth="95" prefWidth="95" />
-                    <ColumnConstraints minWidth="220" prefWidth="220" hgrow="ALWAYS" />
+                    <ColumnConstraints minWidth="88" prefWidth="88" />
+                    <ColumnConstraints minWidth="180" prefWidth="180" hgrow="ALWAYS" />
+                    <ColumnConstraints minWidth="88" prefWidth="88" />
+                    <ColumnConstraints minWidth="180" prefWidth="180" hgrow="ALWAYS" />
                 </columnConstraints>
 
                 <Label styleClass="etiqueta-campo" text="TITULO *"
@@ -81,57 +85,66 @@
                            GridPane.rowIndex="0" GridPane.columnIndex="1" />
 
                 <Label styleClass="etiqueta-campo" text="ARTISTA"
-                       GridPane.rowIndex="1" GridPane.columnIndex="0" />
-                <TextField fx:id="campoArtista" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                       GridPane.rowIndex="0" GridPane.columnIndex="2" />
+                <TextField fx:id="campoArtista" GridPane.rowIndex="0" GridPane.columnIndex="3" />
 
                 <Label styleClass="etiqueta-campo" text="ALBUM"
-                       GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                <TextField fx:id="campoAlbum" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                       GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                <TextField fx:id="campoAlbum" GridPane.rowIndex="1" GridPane.columnIndex="1" />
 
                 <Label styleClass="etiqueta-campo" text="GENERO"
-                       GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                <TextField fx:id="campoGenero" GridPane.rowIndex="3" GridPane.columnIndex="1" />
-
-                <!-- Sin esto la fuente de Spotify no puede reproducir nada: es el dato con el
-                     que el enrutador decide si sabe con esta cancion. Se saca del menu
-                     Compartir de Spotify (Copiar enlace de la cancion). -->
-                <Label styleClass="etiqueta-campo" text="SPOTIFY"
-                       GridPane.rowIndex="6" GridPane.columnIndex="0" />
-                <TextField fx:id="campoUriSpotify" GridPane.rowIndex="6" GridPane.columnIndex="1"
-                           promptText="spotify:track:... o el enlace de Compartir (opcional)" />
+                       GridPane.rowIndex="1" GridPane.columnIndex="2" />
+                <TextField fx:id="campoGenero" GridPane.rowIndex="1" GridPane.columnIndex="3" />
 
                 <Label styleClass="etiqueta-campo" text="ANIO"
-                       GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                       GridPane.rowIndex="2" GridPane.columnIndex="0" />
                 <TextField fx:id="campoAnio" promptText="1975"
-                           GridPane.rowIndex="4" GridPane.columnIndex="1" />
+                           GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
                 <Label styleClass="etiqueta-campo" text="DURACION"
-                       GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                       GridPane.rowIndex="2" GridPane.columnIndex="2" />
                 <TextField fx:id="campoDuracion" promptText="M:SS"
-                           GridPane.rowIndex="5" GridPane.columnIndex="1" />
+                           GridPane.rowIndex="2" GridPane.columnIndex="3" />
+
+                <!-- Sin esto la fuente de Spotify no puede reproducir nada: es el dato con el
+                     que el enrutador decide si sabe con esta cancion. Ocupa la fila entera
+                     porque el enlace de Compartir es largo. -->
+                <Label styleClass="etiqueta-campo" text="SPOTIFY"
+                       GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                <TextField fx:id="campoUriSpotify" GridPane.rowIndex="3" GridPane.columnIndex="1"
+                           GridPane.columnSpan="3"
+                           promptText="Se rellena solo, o pegá el enlace de Compartir" />
             </GridPane>
         </HBox>
 
-        <VBox styleClass="bloque-calificacion">
-            <HBox styleClass="fila-titulo">
-                <Label styleClass="etiqueta-campo" text="CALIFICACION" />
-                <Region HBox.hgrow="ALWAYS" />
-                <Label fx:id="etiquetaCalificacion" styleClass="valor-calificacion" text="0 / 100" />
-            </HBox>
-            <Slider fx:id="deslizadorCalificacion" min="0" max="100" value="0" blockIncrement="5" />
-            <Label styleClass="texto-tenue"
-                   text="ESTE VALOR NUNCA LO DA LA API: ES TU CALIFICACION PERSONAL" />
-        </VBox>
+        <!-- Calificacion y favorito comparten fila: son dos ajustes cortos y apilados sumaban
+             altura que el dialogo no tiene de sobra. -->
+        <HBox styleClass="fila-datos">
+            <VBox styleClass="bloque-calificacion" HBox.hgrow="ALWAYS">
+                <HBox styleClass="fila-titulo">
+                    <Label styleClass="etiqueta-campo" text="CALIFICACION" />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="etiquetaCalificacion" styleClass="valor-calificacion"
+                           text="0 / 100" />
+                </HBox>
+                <Slider fx:id="deslizadorCalificacion" min="0" max="100" value="0"
+                        blockIncrement="5" />
+                <Label styleClass="texto-tenue" wrapText="true"
+                       text="ESTE VALOR NUNCA LO DA LA API: ES TU CALIFICACION PERSONAL" />
+            </VBox>
 
-        <!-- La estrella reemplaza a la casilla: se apaga en gris y se enciende al pulsarla. -->
-        <HBox styleClass="fila-favorito">
-            <Button fx:id="botonFavorito" styleClass="boton-favorito" onAction="#alternarFavorita">
-                <graphic>
-                    <ImageView fx:id="iconoFavorito" fitWidth="42" fitHeight="43"
-                               preserveRatio="true" smooth="false" />
-                </graphic>
-            </Button>
-            <Label fx:id="etiquetaFavorito" styleClass="etiqueta-campo" text="NO ES FAVORITA" />
+            <!-- La estrella reemplaza a la casilla: se apaga en gris y se enciende al pulsarla. -->
+            <HBox styleClass="fila-favorito">
+                <Button fx:id="botonFavorito" styleClass="boton-favorito"
+                        onAction="#alternarFavorita">
+                    <graphic>
+                        <ImageView fx:id="iconoFavorito" fitWidth="42" fitHeight="43"
+                                   preserveRatio="true" smooth="false" />
+                    </graphic>
+                </Button>
+                <Label fx:id="etiquetaFavorito" styleClass="etiqueta-campo"
+                       text="NO ES FAVORITA" wrapText="true" />
+            </HBox>
         </HBox>
 
         <Label fx:id="etiquetaError" styleClass="texto-aviso" wrapText="true"

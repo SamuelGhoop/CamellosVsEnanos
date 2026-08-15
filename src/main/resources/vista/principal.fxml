@@ -33,7 +33,10 @@
 
 <!-- La raiz es un StackPane para poder superponer la capa de animaciones sobre toda la
      interfaz. Esa capa es transparente al raton, asi que no roba ni un clic. -->
-<StackPane xmlns="http://javafx.com/javafx"
+<!-- Arranca en modo claro: la clase "tema-claro" ya viene puesta. El modo oscuro (traje negro)
+     se activa con el boton de la cabecera. -->
+<StackPane styleClass="tema-claro"
+           xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
            fx:controller="com.eia.reproductor.controlador.PrincipalController">
 
@@ -91,7 +94,10 @@
                 </VBox>
                 <Region HBox.hgrow="ALWAYS" />
                 <VBox styleClass="bloque-derecho-cabecera">
-                    <Button fx:id="botonTema" styleClass="boton-tema" text="TEMA OSCURO"
+                    <!-- La etiqueta dice el modo en el que ESTAS, no el que activarias. Antes
+                         decia solo "TEMA OSCURO" y se leia como si fuera el boton para pasar a
+                         oscuro, cuando ya estabas en oscuro. -->
+                    <Button fx:id="botonTema" styleClass="boton-tema" text="MODO: CLARO"
                             onAction="#alternarTema" />
                     <ImageView fx:id="insigniaDerecha" styleClass="insignia-imagen"
                                fitWidth="85" fitHeight="70" preserveRatio="true" smooth="false" />

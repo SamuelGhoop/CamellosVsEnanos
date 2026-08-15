@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@link #disponible()} devuelve {@code false} y las pruebas que dependen de el se saltan en vez de
  * fallar: no es la aplicacion la que esta rota, es que el entorno no da.</p>
  */
-final class EntornoJavaFx {
+public final class EntornoJavaFx {
 
     private static final long ESPERA_MAXIMA_SEGUNDOS = 15;
 
@@ -28,7 +28,7 @@ final class EntornoJavaFx {
     }
 
     /** @return {@code true} si el hilo de JavaFX esta levantado y se puede usar */
-    static synchronized boolean disponible() {
+    public static synchronized boolean disponible() {
         if (iniciado) {
             return disponible;
         }
@@ -58,7 +58,7 @@ final class EntornoJavaFx {
      *
      * @param accion codigo a ejecutar
      */
-    static void enElHiloFx(Runnable accion) {
+    public static void enElHiloFx(Runnable accion) {
         AtomicReference<RuntimeException> fallo = new AtomicReference<>();
         CountDownLatch terminado = new CountDownLatch(1);
         Platform.runLater(() -> {
@@ -81,7 +81,7 @@ final class EntornoJavaFx {
      *
      * @param cerrojo cerrojo a esperar
      */
-    static void esperar(CountDownLatch cerrojo) {
+    public static void esperar(CountDownLatch cerrojo) {
         try {
             if (!cerrojo.await(ESPERA_MAXIMA_SEGUNDOS, TimeUnit.SECONDS)) {
                 throw new AssertionError("El hilo de JavaFX no respondió a tiempo.");
