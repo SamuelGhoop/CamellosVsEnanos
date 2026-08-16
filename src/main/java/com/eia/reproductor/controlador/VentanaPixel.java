@@ -11,6 +11,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
 
 import java.net.URL;
 
@@ -28,6 +29,9 @@ import java.net.URL;
 public final class VentanaPixel {
 
     private static final String RUTA_ESTILOS = "/vista/estilos.css";
+
+    /** La misma clase que usa la ventana principal; la hoja de estilos hace el resto. */
+    private static final String CLASE_TEMA_CLARO = "tema-claro";
 
     private VentanaPixel() {
     }
@@ -51,8 +55,47 @@ public final class VentanaPixel {
         if (hoja != null) {
             escena.getStylesheets().add(hoja.toExternalForm());
         }
+        heredarTema(escenario, escena);
         escenario.setScene(escena);
         return escena;
+    }
+
+    /**
+     * Copia el tema de la ventana que abre el dialogo.
+     *
+     * <p><b>Por que hace falta.</b> El tema es una clase en la raiz de la escena, y cada dialogo
+     * tiene su propia escena: sin esto, la ventana principal se ponia en modo claro y los dialogos
+     * seguian saliendo oscuros. Se mira la ventana duenia en vez de guardar el tema en una variable
+     * global, asi no hay dos sitios que puedan quedar desincronizados.</p>
+     */
+    private static void heredarTema(Stage escenario, Scene escena) {
+        Window duenio = escenario.getOwner();
+        if (duenio == null || duenio.getScene() == null) {
+            return;
+        }
+        if (duenio.getScene().getRoot().getStyleClass().contains(CLASE_TEMA_CLARO)) {
+            escena.getRoot().getStyleClass().add(CLASE_TEMA_CLARO);
+        }
+    }
+
+    /**
+     * Pone o quita el tema claro en una ventana ya abierta.
+     *
+     * @param escenario ventana a retocar; admite {@code null} y ventanas ya cerradas
+     * @param claro     {@code true} para el tema claro
+     */
+    public static void aplicarTema(Stage escenario, boolean claro) {
+        if (escenario == null || escenario.getScene() == null) {
+            return;
+        }
+        var clases = escenario.getScene().getRoot().getStyleClass();
+        if (claro) {
+            if (!clases.contains(CLASE_TEMA_CLARO)) {
+                clases.add(CLASE_TEMA_CLARO);
+            }
+        } else {
+            clases.remove(CLASE_TEMA_CLARO);
+        }
     }
 
     /**

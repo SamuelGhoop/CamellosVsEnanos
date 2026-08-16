@@ -1235,8 +1235,14 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         // Al cerrarla se suelta la referencia: si no, refrescar seguiria pintando en una ventana
         // que ya no existe.
         ventanaEstructura.setOnHidden(evento -> ventanaEstructura = null);
+
+        // Se pinta ANTES de mostrar. Al reves —que es como estaba— show() dimensiona la ventana
+        // con el lienzo todavia en su tamanio por defecto, y el arbol, que es mas alto, quedaba
+        // cortado por abajo nada mas abrirla.
+        if (modoActivo != null) {
+            visualizador.mostrar(modoActivo.estructuraVisual());
+        }
         ventanaEstructura.show();
-        refrescarVisualizador();
     }
 
     /**
@@ -1267,10 +1273,18 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         ventanaEstadisticas.show();
     }
 
-    /** Repinta la estructura, si la ventana esta abierta. */
+    /**
+     * Repinta la estructura, si la ventana esta abierta.
+     *
+     * <p>Se reajusta el tamanio despues de pintar porque al cambiar de modo cambia la estructura, y
+     * un arbol no ocupa lo mismo que una cola: sin esto, pasar de cola a arbol con la ventana
+     * abierta lo dejaba cortado. Dentro de un mismo modo el dibujo no cambia de tamanio, asi que
+     * la llamada no mueve nada.</p>
+     */
     private void refrescarVisualizador() {
         if (ventanaEstructura != null && ventanaEstructura.isShowing() && modoActivo != null) {
             visualizador.mostrar(modoActivo.estructuraVisual());
+            ventanaEstructura.sizeToScene();
         }
     }
 
@@ -1478,6 +1492,15 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         botonTema.setText(pasandoAClaro ? "MODO: CLARO" : "MODO: OSCURO");
         // El tema no es solo paleta: el modo oscuro lleva el traje negro y el claro el rojo.
         capaSpidey.usarTrajeNegro(!pasandoAClaro);
+
+        // Las ventanas que se pueden quedar abiertas mientras se cambia el tema. Los diálogos
+        // modales no hacen falta: mientras están abiertos no se puede pulsar el botón del tema, y
+        // al abrirse heredan el tema de esta ventana.
+        VentanaPixel.aplicarTema(ventanaEstructura, pasandoAClaro);
+        VentanaPixel.aplicarTema(ventanaEstadisticas, pasandoAClaro);
+        // El visualizador pinta sobre un lienzo, donde el CSS no llega: hay que repintarlo para
+        // que cambie de paleta.
+        refrescarVisualizador();
     }
 
     // ------------------------------------------------------------------
