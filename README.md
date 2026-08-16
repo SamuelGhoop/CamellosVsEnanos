@@ -30,7 +30,7 @@ La aplicación arranca **sin internet y sin configuración**. Las carátulas y l
 metadatos son opcionales.
 
 ```
-mvn test     # 448 pruebas
+mvn test     # 454 pruebas
 ```
 
 ---

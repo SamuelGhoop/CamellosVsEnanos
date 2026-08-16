@@ -167,39 +167,47 @@
                 <HBox styleClass="fila-titulo">
                     <Label styleClass="panel-encabezado" text="• BIBLIOTECA" />
                     <Region HBox.hgrow="ALWAYS" />
-                    <!-- Va en esta fila y no en la de abajo porque aquélla ya tiene el selector y
-                         cuatro botones: uno más la desbordaba. Aquí sólo había un hueco. -->
+                    <!-- Los dos botones de consulta van aquí, en la fila que estaba vacía. Abajo
+                         no caben: con el selector y los tres de listas, la fila se desborda y los
+                         textos salen cortados. minWidth="-Infinity" es USE_PREF_SIZE: antes que
+                         recortar el texto, que se encoja el desplegable. -->
+                    <Button fx:id="botonVerEstructura" text="VER ESTRUCTURA"
+                            minWidth="-Infinity" onAction="#verEstructura" />
                     <Button fx:id="botonEstadisticas" text="ESTADÍSTICAS"
-                            onAction="#verEstadisticas" />
-                    <Label fx:id="etiquetaContador" styleClass="texto-tenue" text="0 CANCIONES" />
+                            minWidth="-Infinity" onAction="#verEstadisticas" />
+                    <Label fx:id="etiquetaContador" styleClass="texto-tenue" text="0 CANCIONES"
+                           minWidth="-Infinity" />
                 </HBox>
 
                 <!-- Filtro por campo. El buscador es un ComboBox editable y no un TextField: así
                      se puede escribir a mano o desplegar los valores que de verdad hay en la
                      biblioteca (los géneros, los artistas...), sin ocupar más ancho que antes. -->
                 <HBox styleClass="fila-busqueda">
-                    <ComboBox fx:id="selectorCampo" onAction="#cambiarCampoDeFiltro" />
+                    <ComboBox fx:id="selectorCampo" onAction="#cambiarCampoDeFiltro"
+                              minWidth="-Infinity" />
                     <ComboBox fx:id="campoBusqueda" editable="true"
                               promptText="BUSCAR TITULO, ARTISTA O ALBUM"
                               HBox.hgrow="ALWAYS" maxWidth="Infinity" />
-                    <Button fx:id="botonBuscar" text="BUSCAR" onAction="#buscar" />
-                    <Button fx:id="botonLimpiarBusqueda" text="X" onAction="#limpiarBusqueda" />
+                    <Button fx:id="botonBuscar" text="BUSCAR" minWidth="-Infinity"
+                            onAction="#buscar" />
+                    <Button fx:id="botonLimpiarBusqueda" text="X" minWidth="-Infinity"
+                            onAction="#limpiarBusqueda" />
                 </HBox>
 
                 <!-- Selector de coleccion. Lo que se elija aqui es lo que muestra la tabla y lo
                      que reciben los tres modos: cualquier lista suena con cualquier modo. -->
                 <HBox styleClass="fila-busqueda">
-                    <Label styleClass="etiqueta-lista" text="▶ SONANDO:" />
+                    <Label styleClass="etiqueta-lista" text="▶ SONANDO:" minWidth="-Infinity" />
                     <ComboBox fx:id="selectorColeccion" onAction="#cambiarColeccion"
                               HBox.hgrow="ALWAYS" maxWidth="Infinity" />
-                    <!-- Abre el panel que dibuja la estructura de datos real del modo activo.
-                         En ventana aparte para poder dejarlo al lado en la sustentación. -->
-                    <Button fx:id="botonVerEstructura" text="VER ESTRUCTURA"
-                            onAction="#verEstructura" />
-                    <Button fx:id="botonNuevaLista" text="+ NUEVA" onAction="#crearPlaylist" />
-                    <Button fx:id="botonRenombrarLista" text="RENOMBRAR"
+                    <!-- Sólo acciones de listas. El que abre la estructura se subió a la fila de
+                         la cabecera: aquí los cinco controles no cabían y se recortaban todos. -->
+                    <Button fx:id="botonNuevaLista" text="+ NUEVA" minWidth="-Infinity"
+                            onAction="#crearPlaylist" />
+                    <Button fx:id="botonRenombrarLista" text="RENOMBRAR" minWidth="-Infinity"
                             onAction="#renombrarPlaylist" />
-                    <Button fx:id="botonBorrarLista" text="BORRAR" onAction="#borrarPlaylist" />
+                    <Button fx:id="botonBorrarLista" text="BORRAR" minWidth="-Infinity"
+                            onAction="#borrarPlaylist" />
                 </HBox>
 
                 <TableView fx:id="tablaBiblioteca" VBox.vgrow="ALWAYS">
