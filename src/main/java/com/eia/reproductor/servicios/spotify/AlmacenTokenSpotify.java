@@ -11,21 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 
-/**
- * Guarda y recupera el token de Spotify en {@code config/token-spotify.json}.
- *
- * <p>Persistirlo es lo que evita tener que abrir el navegador en cada arranque: el token de
- * refresco no caduca solo, asi que basta autorizar una vez.</p>
- *
- * <p>El archivo esta en {@code .gitignore}. Es el mas sensible del proyecto — con el se puede
- * controlar la cuenta de Spotify de su dueno — y por eso nunca se versiona.</p>
- *
- * <p>El JSON se arma y se lee a mano en vez de dejarselo a la reflexion de Gson. Son tres campos, y
- * asi un archivo corrupto o editado a mano se detecta aqui en vez de producir un objeto a medio
- * construir mas adelante. Es el mismo criterio que sigue {@code DeserializadorCancion}.</p>
- */
+/** Guarda y recupera el token de Spotify en {@code config/token-spotify.json}. */
 public class AlmacenTokenSpotify {
-
     /** Ubicacion del archivo, relativa a la carpeta desde donde se ejecuta la aplicacion. */
     public static final Path RUTA_POR_DEFECTO = Path.of("config", "token-spotify.json");
 
@@ -40,24 +27,12 @@ public class AlmacenTokenSpotify {
         this(RUTA_POR_DEFECTO);
     }
 
-    /**
-     * Crea un almacen sobre una ruta concreta.
-     *
-     * @param archivo destino del token; las pruebas usan una carpeta temporal
-     */
+    /** Crea un almacen sobre una ruta concreta. */
     public AlmacenTokenSpotify(Path archivo) {
         this.archivo = archivo;
     }
 
-    /**
-     * Lee el token guardado.
-     *
-     * <p>Un archivo ausente, ilegible o corrupto se trata igual que "no hay token": se devuelve
-     * vacio y el usuario tendra que autorizar de nuevo. No se lanza excepcion, porque no poder
-     * leerlo no es un error de la aplicacion sino un estado normal del primer arranque.</p>
-     *
-     * @return el token guardado, o vacio si no hay uno utilizable
-     */
+    /** Lee el token guardado. */
     public Optional<TokenSpotify> cargar() {
         if (!Files.isRegularFile(archivo)) {
             return Optional.empty();
@@ -80,16 +55,7 @@ public class AlmacenTokenSpotify {
         }
     }
 
-    /**
-     * Guarda el token, sobreescribiendo el anterior.
-     *
-     * <p>La escritura es atomica: se escribe en un temporal y se mueve encima. Si el proceso muere
-     * a mitad, el archivo viejo queda intacto en vez de quedar un token truncado que obligaria a
-     * autorizar otra vez.</p>
-     *
-     * @param token token a persistir
-     * @return {@code true} si se pudo guardar
-     */
+    /** Guarda el token, sobreescribiendo el anterior. */
     public boolean guardar(TokenSpotify token) {
         if (token == null) {
             return false;
@@ -118,14 +84,7 @@ public class AlmacenTokenSpotify {
         }
     }
 
-    /**
-     * Borra el token guardado.
-     *
-     * <p>Se usa cuando Spotify lo rechaza: conservar una credencial que el servidor ya no acepta
-     * solo consigue que cada arranque intente renovarla y falle.</p>
-     *
-     * @return {@code true} si el archivo ya no existe al terminar
-     */
+    /** Borra el token guardado. */
     public boolean borrar() {
         try {
             Files.deleteIfExists(archivo);

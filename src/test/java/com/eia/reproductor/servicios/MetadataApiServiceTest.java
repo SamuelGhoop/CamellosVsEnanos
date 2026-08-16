@@ -12,16 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del {@link MetadataApiService}.
- *
- * <p><b>Ninguna de estas pruebas sale a internet.</b> Se ejercita el mapeo con respuestas reales
- * guardadas: asi la suite corre igual sin conexion y no depende de que iTunes siga devolviendo hoy
- * lo mismo que ayer.</p>
- */
+/** Pruebas del {@link MetadataApiService}. */
 @DisplayName("Servicio de metadata (iTunes + MusicBrainz)")
 class MetadataApiServiceTest {
-
     /** Respuesta real de iTunes, recortada a un resultado. */
     private static final String RESPUESTA_ITUNES = """
             {
@@ -60,7 +53,6 @@ class MetadataApiServiceTest {
     @Nested
     @DisplayName("Mapeo de iTunes")
     class MapeoItunes {
-
         @Test
         @DisplayName("traduce todos los campos que pide el enunciado")
         void mapeaTodosLosCampos() {
@@ -132,7 +124,6 @@ class MetadataApiServiceTest {
     @Nested
     @DisplayName("Mapeo de MusicBrainz")
     class MapeoMusicBrainz {
-
         @Test
         @DisplayName("traduce titulo, artista, album, anio y duracion")
         void mapeaLoDisponible() {
@@ -193,7 +184,6 @@ class MetadataApiServiceTest {
     @Nested
     @DisplayName("Utilidades")
     class Utilidades {
-
         @Test
         @DisplayName("el anio se extrae de fechas en varios formatos")
         void anioDeFecha() {
@@ -217,7 +207,6 @@ class MetadataApiServiceTest {
     @Nested
     @DisplayName("Comportamiento sin red")
     class SinRed {
-
         @Test
         @DisplayName("una consulta vacia no dispara ninguna llamada")
         void consultaVacia() {

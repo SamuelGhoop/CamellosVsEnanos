@@ -11,33 +11,17 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * Herramienta de linea de comandos para comprobar que la sesion de Spotify funciona.
- *
- * <p>Sirve para separar los problemas de autenticacion de los de reproduccion: si esto responde, el
- * token es valido y cualquier fallo posterior esta en librespot o en el dispositivo, no en OAuth.
- * Tambien es lo que ejecuta un companero del grupo la primera vez, para autorizar su cuenta.</p>
- *
- * <p>Se ejecuta con:</p>
- * <pre>mvn exec:java -Dexec.mainClass=com.eia.reproductor.servicios.spotify.DiagnosticoSpotify</pre>
- *
- * <p>No forma parte de la aplicacion: no lo llama nadie desde la interfaz.</p>
- */
+/** Herramienta de linea de comandos para comprobar que la sesion de Spotify funciona. */
 public final class DiagnosticoSpotify {
-
     private static final String URL_PERFIL = "https://api.spotify.com/v1/me";
 
-    /** Pista con la que se comprueba que sale audio. Sale del catálogo de la propia cuenta. */
+    /** Pista con la que se comprueba que sale audio. */
     private static final String URI_DE_PRUEBA = "spotify:track:0GCaWksDZM7PV7mjdodhTT";
 
     private DiagnosticoSpotify() {
     }
 
-    /**
-     * Punto de entrada del diagnostico.
-     *
-     * @param argumentos no se usan
-     */
+    /** Punto de entrada del diagnostico. */
     public static void main(String[] argumentos) {
         System.out.println("== Diagnóstico de Spotify ==");
 
@@ -89,12 +73,7 @@ public final class DiagnosticoSpotify {
         }
     }
 
-    /**
-     * Lanza librespot y comprueba que Spotify lo reconoce.
-     *
-     * <p>Deja el proceso arrancado unos segundos y lo cierra: el objetivo es demostrar el ciclo
-     * completo, incluido que no queda ningun proceso vivo al terminar.</p>
-     */
+    /** Lanza librespot y comprueba que Spotify lo reconoce. */
     private static void comprobarLibrespot(ConfiguracionSpotify config,
                                            AutenticacionSpotify autenticacion) {
         System.out.println("== Paso 2: librespot ==");
@@ -139,13 +118,7 @@ public final class DiagnosticoSpotify {
                 + "(verificalo con: Get-Process librespot)");
     }
 
-    /**
-     * Transfiere la reproduccion al dispositivo y comprueba que Spotify lo dio por activo.
-     *
-     * <p>La API acepta la transferencia enseguida pero tarda un poco en reflejarla, asi que se
-     * vuelve a consultar hasta que el dispositivo aparece como activo. Confiar en el codigo de
-     * respuesta sin verificar seria justo el error que este paso existe para evitar.</p>
-     */
+    /** Transfiere la reproduccion al dispositivo y comprueba que Spotify lo dio por activo. */
     private static void transferir(ClienteWebApiSpotify api, DispositivoSpotify dispositivo) {
         boolean aceptada = api.transferirA(dispositivo.id());
         System.out.println("transferido : " + aceptada);
@@ -184,13 +157,7 @@ public final class DiagnosticoSpotify {
         System.out.println("activo      : false  <- Spotify aceptó pero no lo marcó activo");
     }
 
-    /**
-     * Muestra el estado del reproductor tras transferir.
-     *
-     * <p>Sirve para dos cosas: comprobar que {@code play:false} de verdad no arranco la musica —la
-     * transferencia arrastra el contexto anterior de la cuenta y podria ponerse a sonar sola— y ver
-     * la forma real de la respuesta que el paso 5 va a sondear.</p>
-     */
+    /** Muestra el estado del reproductor tras transferir. */
     private static void estadoDelReproductor(ClienteWebApiSpotify api) {
         Optional<JsonObject> estado = api.obtener("/me/player");
         if (estado.isEmpty()) {
@@ -220,12 +187,7 @@ public final class DiagnosticoSpotify {
                 + "   <- deben quedar en off para no pelear con la cola");
     }
 
-    /**
-     * Paso 4: reproduce una pista de verdad, salta de posicion y pausa.
-     *
-     * <p>Aqui es donde se oye. Se imprime el avance real leido de la API en vez de anunciar que
-     * funciona: si {@code progress_ms} sube, esta saliendo audio.</p>
-     */
+    /** Paso 4: reproduce una pista de verdad, salta de posicion y pausa. */
     private static void sonarDeVerdad(ClienteWebApiSpotify api, DispositivoSpotify dispositivo) {
         System.out.println();
         System.out.println("== Paso 4: play / seek / pause ==");
@@ -254,12 +216,7 @@ public final class DiagnosticoSpotify {
         sondearHastaElFinal(api, dispositivo);
     }
 
-    /**
-     * Paso 5: sondea hasta que el detector confirma el fin de la pista.
-     *
-     * <p>Se salta a pocos segundos del final para no esperar la cancion entera. Lo que se demuestra
-     * es que el aviso llega solo, por sondeo, sin que Spotify empuje nada.</p>
-     */
+    /** Paso 5: sondea hasta que el detector confirma el fin de la pista. */
     private static void sondearHastaElFinal(ClienteWebApiSpotify api,
                                             DispositivoSpotify dispositivo) {
         System.out.println();
@@ -349,12 +306,7 @@ public final class DiagnosticoSpotify {
         }
     }
 
-    /**
-     * Comprueba que la renovacion funciona sin volver a abrir el navegador.
-     *
-     * <p>Se construye un autenticador nuevo sobre el token ya guardado y se le pide un token sin
-     * interaccion: es exactamente lo que hara la aplicacion en el proximo arranque.</p>
-     */
+    /** Comprueba que la renovacion funciona sin volver a abrir el navegador. */
     private static void comprobarRenovacion(ConfiguracionSpotify config,
                                             AlmacenTokenSpotify almacen) {
         Optional<TokenSpotify> guardado = almacen.cargar();

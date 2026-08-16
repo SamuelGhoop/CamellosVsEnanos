@@ -17,28 +17,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Busca metadata de canciones en internet.
- *
- * <p><b>API principal: iTunes Search.</b> No pide registro ni clave, y en una sola llamada
- * devuelve titulo, artista, album, duracion, genero, anio y caratula, que es exactamente lo que
- * pide el enunciado.</p>
- *
- * <p><b>Respaldo: MusicBrainz + Cover Art Archive.</b> Solo se consulta si iTunes no devolvio
- * nada. MusicBrainz exige un {@code User-Agent} identificable (si no, responde 403) y admite como
- * maximo una peticion por segundo, asi que hay un limitador que espera lo que haga falta antes de
- * llamar.</p>
- *
- * <p><b>Esta clase bloquea.</b> Hace peticiones de red sincronas, asi que jamas debe invocarse
- * desde el hilo de la interfaz: el controlador la envuelve en un {@code Task} de JavaFX. A cambio,
- * no importa nada de JavaFX y se puede probar sin levantar la aplicacion.</p>
- *
- * <p>Ningun fallo de red se propaga: si no hay internet, si se agota el tiempo o si la respuesta
- * no se entiende, se devuelve una lista vacia y se deja el motivo en {@link #ultimoAviso()}. La
- * aplicacion tiene que seguir funcionando en modo manual.</p>
- */
+/** Busca metadata de canciones en internet. */
 public class MetadataApiService {
-
     /** Cuantos resultados se piden a iTunes. */
     public static final int LIMITE_RESULTADOS = 15;
 
@@ -48,10 +28,7 @@ public class MetadataApiService {
     /** Separacion minima entre peticiones a MusicBrainz, que lo exige en sus condiciones de uso. */
     public static final long MILIS_ENTRE_LLAMADAS_MUSICBRAINZ = 1000;
 
-    /**
-     * MusicBrainz rechaza con 403 a quien no se identifique con un contacto real.
-     * Cambiar el correo por el institucional antes de entregar si hace falta.
-     */
+    /** MusicBrainz rechaza con 403 a quien no se identifique con un contacto real. */
     private static final String USER_AGENT =
             "ReproductorEIA/1.0 ( samuelgiraldojimenez@gmail.com )";
 
@@ -77,14 +54,7 @@ public class MetadataApiService {
                 .build();
     }
 
-    /**
-     * Busca canciones que coincidan con la consulta.
-     *
-     * <p>Intenta primero con iTunes y, solo si no obtiene resultados, con MusicBrainz.</p>
-     *
-     * @param consulta texto libre, por ejemplo {@code "queen bohemian rhapsody"}
-     * @return los resultados encontrados; lista vacia si no hay ninguno o si fallo la red
-     */
+    /** Busca canciones que coincidan con la consulta. */
     public List<ResultadoBusquedaApi> buscar(String consulta) {
         ultimoAviso = null;
         if (consulta == null || consulta.isBlank()) {
@@ -98,16 +68,12 @@ public class MetadataApiService {
         return buscarEnMusicBrainz(consulta.trim());
     }
 
-    /**
-     * @return el motivo del ultimo problema de red, si lo hubo
-     */
+    /** @return el motivo del ultimo problema de red, si lo hubo */
     public java.util.Optional<String> ultimoAviso() {
         return java.util.Optional.ofNullable(ultimoAviso);
     }
 
-    // ------------------------------------------------------------------
-    // iTunes
-    // ------------------------------------------------------------------
+    // --- iTunes ---
 
     private List<ResultadoBusquedaApi> buscarEnItunes(String consulta) {
         String url = URL_ITUNES
@@ -123,15 +89,7 @@ public class MetadataApiService {
         }
     }
 
-    /**
-     * Traduce la respuesta de iTunes a resultados del dominio.
-     *
-     * <p>Es package-private y estatico a proposito: asi las pruebas pueden comprobar el mapeo con
-     * una respuesta guardada, sin depender de que haya internet.</p>
-     *
-     * @param json cuerpo de la respuesta
-     * @return los resultados contenidos en la respuesta
-     */
+    /** Traduce la respuesta de iTunes a resultados del dominio. */
     static List<ResultadoBusquedaApi> mapearItunes(String json) {
         List<ResultadoBusquedaApi> resultados = new ArrayList<>();
         JsonElement raiz = JsonParser.parseString(json);
@@ -168,15 +126,7 @@ public class MetadataApiService {
         return resultados;
     }
 
-    /**
-     * Sube la resolucion de la caratula de iTunes.
-     *
-     * <p>La URL que devuelve la API termina en {@code 100x100bb.jpg}. Cambiando esa parte por
-     * {@code 600x600bb} el mismo servidor entrega la version grande, sin ninguna llamada extra.</p>
-     *
-     * @param urlMiniatura URL de la caratula pequenia
-     * @return la URL en alta resolucion, o la original si no tiene el formato esperado
-     */
+    /** Sube la resolucion de la caratula de iTunes. */
     static String aAltaResolucion(String urlMiniatura) {
         if (urlMiniatura == null) {
             return null;
@@ -196,9 +146,7 @@ public class MetadataApiService {
         }
     }
 
-    // ------------------------------------------------------------------
-    // MusicBrainz
-    // ------------------------------------------------------------------
+    // --- MusicBrainz ---
 
     private List<ResultadoBusquedaApi> buscarEnMusicBrainz(String consulta) {
         String url = URL_MUSICBRAINZ
@@ -214,15 +162,7 @@ public class MetadataApiService {
         }
     }
 
-    /**
-     * Traduce la respuesta de MusicBrainz a resultados del dominio.
-     *
-     * <p>MusicBrainz es un catalogo bibliografico, no una tienda: no trae genero y muchas veces
-     * tampoco duracion. Se rellena lo que haya y el usuario completa el resto a mano.</p>
-     *
-     * @param json cuerpo de la respuesta
-     * @return los resultados contenidos en la respuesta
-     */
+    /** Traduce la respuesta de MusicBrainz a resultados del dominio. */
     static List<ResultadoBusquedaApi> mapearMusicBrainz(String json) {
         List<ResultadoBusquedaApi> resultados = new ArrayList<>();
         JsonElement raiz = JsonParser.parseString(json);
@@ -299,12 +239,7 @@ public class MetadataApiService {
         return arreglo.get(0).getAsJsonObject();
     }
 
-    /**
-     * Respeta el limite de una peticion por segundo que impone MusicBrainz.
-     *
-     * <p>Superarlo hace que el servicio empiece a rechazar las peticiones, asi que se espera lo que
-     * falte desde la llamada anterior antes de lanzar la siguiente.</p>
-     */
+    /** Respeta el limite de una peticion por segundo que impone MusicBrainz. */
     private void esperarTurnoDeMusicBrainz() throws InterruptedException {
         long transcurrido = System.currentTimeMillis() - instanteUltimaLlamadaMusicBrainz;
         long pendiente = MILIS_ENTRE_LLAMADAS_MUSICBRAINZ - transcurrido;
@@ -314,9 +249,7 @@ public class MetadataApiService {
         instanteUltimaLlamadaMusicBrainz = System.currentTimeMillis();
     }
 
-    // ------------------------------------------------------------------
-    // Apoyo interno
-    // ------------------------------------------------------------------
+    // --- Apoyo interno ---
 
     private String pedir(String url, boolean conUserAgent) throws IOException, InterruptedException {
         HttpRequest.Builder constructor = HttpRequest.newBuilder(URI.create(url))

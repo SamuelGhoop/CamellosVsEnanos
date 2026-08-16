@@ -19,15 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de las tres colecciones reproducibles.
- *
- * <p>Lo que mas importa esta al final: que <b>cualquier</b> coleccion se pueda reproducir con
- * <b>cualquiera</b> de los tres modos. Es lo que hace que las listas no obliguen a tocar las
- * estructuras de datos.</p>
- */
+/** Pruebas de las tres colecciones reproducibles. */
 class ColeccionesTest {
-
     @TempDir
     Path carpeta;
 
@@ -183,7 +176,6 @@ class ColeccionesTest {
         for (ColeccionDeCanciones coleccion : colecciones) {
             for (ModoReproduccion modo : List.of(
                     new ModoAleatorio(), new ModoOrdenLlegada(), new ModoAlfabetico())) {
-
                 // Este es el punto del diseño: los modos reciben Iterable<Cancion> y no saben ni
                 // les importa de qué colección salió.
                 modo.cargar(coleccion.canciones());

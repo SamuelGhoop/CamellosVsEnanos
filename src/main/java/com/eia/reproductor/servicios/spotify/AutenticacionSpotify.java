@@ -19,34 +19,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Autenticacion con Spotify mediante OAuth 2.0 con PKCE.
- *
- * <p><b>Por que PKCE y no usuario/contrasena.</b> El flujo de credenciales directas esta
- * descontinuado por Spotify y ya no funciona. Ademas, pedirle la contrasena al usuario dentro de la
- * aplicacion significaria que la aplicacion la ve; con PKCE nunca la ve: el usuario la escribe en
- * el navegador, en el sitio de Spotify, y la aplicacion solo recibe un codigo de un solo uso.</p>
- *
- * <p><b>Que aporta el "PK" de PKCE.</b> Al iniciar se genera un secreto al azar (el
- * <i>verifier</i>) y se envia solo su huella SHA-256 (el <i>challenge</i>). Al canjear el codigo se
- * presenta el verifier original. Asi, aunque alguien interceptara el codigo de retorno, no podria
- * canjearlo sin el verifier, que nunca viajo por la red. Es lo que permite que una aplicacion de
- * escritorio se autentique sin guardar ningun secreto.</p>
- *
- * <p><b>Uso.</b> {@link #tokenDeAcceso()} es el unico metodo que hace falta: devuelve un token
- * utilizable, renovandolo si esta por vencer, y abre el navegador solo la primera vez. Bloquea
- * mientras dura el intercambio, asi que nunca debe llamarse desde el hilo de la interfaz.</p>
- */
+/** Autenticacion con Spotify mediante OAuth 2.0 con PKCE. */
 public class AutenticacionSpotify {
-
-    /**
-     * Permisos que se piden. Son los minimos para lo que hace la aplicacion.
-     *
-     * <p>{@code user-read-playback-state} para consultar el reproductor y la lista de dispositivos;
-     * {@code user-modify-playback-state} para transferir la reproduccion y controlar play, pausa y
-     * salto de posicion. No se pide leer la biblioteca, ni el correo, ni el perfil privado: cuantos
-     * menos permisos, menos puede hacer el token si alguna vez se filtra.</p>
-     */
+    /** Permisos que se piden. */
     public static final String PERMISOS = "user-read-playback-state user-modify-playback-state";
 
     private static final String URL_AUTORIZACION = "https://accounts.spotify.com/authorize";
@@ -63,12 +38,7 @@ public class AutenticacionSpotify {
     private TokenSpotify token;
     private String ultimoAviso;
 
-    /**
-     * Crea el autenticador.
-     *
-     * @param configuracion datos del archivo {@code config/spotify.properties}
-     * @param almacen       donde persistir el token entre ejecuciones
-     */
+    /** Crea el autenticador. */
     public AutenticacionSpotify(ConfiguracionSpotify configuracion, AlmacenTokenSpotify almacen) {
         this.configuracion = configuracion;
         this.almacen = almacen;
@@ -76,27 +46,12 @@ public class AutenticacionSpotify {
         this.token = almacen.cargar().orElse(null);
     }
 
-    /**
-     * Indica si hay una sesion utilizable sin intervencion del usuario.
-     *
-     * <p>No abre el navegador ni hace peticiones: solo mira si hay un token vigente o uno que se
-     * pueda renovar. Es lo que consulta la fuente de audio para declararse disponible al arrancar,
-     * y por eso tiene que ser inmediato y silencioso.</p>
-     *
-     * @return {@code true} si hay token vigente o renovable
-     */
+    /** Indica si hay una sesion utilizable sin intervencion del usuario. */
     public boolean haySesion() {
         return token != null && (token.vigente() || token.puedeRenovarse());
     }
 
-    /**
-     * Devuelve un token de acceso utilizable.
-     *
-     * <p>Renueva por adelantado si esta por vencer, y solo abre el navegador si no hay forma de
-     * renovar. Bloquea: no llamar desde el hilo de la interfaz.</p>
-     *
-     * @return el token, o vacio si no se pudo obtener
-     */
+    /** Devuelve un token de acceso utilizable. */
     public synchronized Optional<String> tokenDeAcceso() {
         if (token != null && token.vigente()) {
             return Optional.of(token.accessToken());
@@ -110,15 +65,7 @@ public class AutenticacionSpotify {
         return Optional.empty();
     }
 
-    /**
-     * Devuelve un token sin abrir jamas el navegador.
-     *
-     * <p>Es la variante para el arranque automatico: si la sesion guardada ya no sirve, la
-     * aplicacion sigue con audio local en vez de plantarle al usuario una ventana del navegador que
-     * no pidio.</p>
-     *
-     * @return el token, o vacio si haria falta autorizar de nuevo
-     */
+    /** Devuelve un token sin abrir jamas el navegador. */
     public synchronized Optional<String> tokenSinInteraccion() {
         if (token != null && token.vigente()) {
             return Optional.of(token.accessToken());
@@ -129,15 +76,7 @@ public class AutenticacionSpotify {
         return Optional.empty();
     }
 
-    /**
-     * Fuerza una renovacion aunque el token todavia se crea vigente.
-     *
-     * <p>Es la respuesta a un {@code 401} inesperado: el token puede haber sido revocado desde la
-     * cuenta de Spotify, y entonces la fecha de vencimiento que guardamos miente. Renovar y
-     * reintentar una vez distingue ese caso de una caida real.</p>
-     *
-     * @return el token nuevo, o vacio si tampoco se pudo renovar
-     */
+    /** Fuerza una renovacion aunque el token todavia se crea vigente. */
     public synchronized Optional<String> forzarRenovacion() {
         if (token == null || !token.puedeRenovarse()) {
             return Optional.empty();
@@ -156,15 +95,9 @@ public class AutenticacionSpotify {
         almacen.borrar();
     }
 
-    // ------------------------------------------------------------------
-    // Renovacion
-    // ------------------------------------------------------------------
+    // --- Renovacion ---
 
-    /**
-     * Pide un token nuevo usando el de refresco.
-     *
-     * @return {@code true} si la renovacion funciono
-     */
+    /** Pide un token nuevo usando el de refresco. */
     private boolean renovar() {
         Map<String, String> parametros = new LinkedHashMap<>();
         parametros.put("grant_type", "refresh_token");
@@ -181,15 +114,9 @@ public class AutenticacionSpotify {
         return guardarDesde(respuesta.get(), token.refreshToken());
     }
 
-    // ------------------------------------------------------------------
-    // Autorizacion inicial
-    // ------------------------------------------------------------------
+    // --- Autorizacion inicial ---
 
-    /**
-     * Abre el navegador, espera el retorno y canjea el codigo por un token.
-     *
-     * @return {@code true} si se obtuvo un token
-     */
+    /** Abre el navegador, espera el retorno y canjea el codigo por un token. */
     private boolean autorizarEnNavegador() {
         String verificador = generarVerificador();
         String desafio = calcularDesafio(verificador);
@@ -201,7 +128,6 @@ public class AutenticacionSpotify {
 
         try (ServidorDeRetorno servidor = new ServidorDeRetorno(
                 configuracion.puertoDeRetorno(), configuracion.rutaDeRetorno(), estado)) {
-
             abrirNavegador(construirUrlDeAutorizacion(desafio, estado));
 
             Optional<String> codigo = servidor.esperarCodigo(ESPERA_DEL_USUARIO);
@@ -240,14 +166,7 @@ public class AutenticacionSpotify {
         return URL_AUTORIZACION + "?" + comoFormulario(parametros);
     }
 
-    /**
-     * Abre la URL en el navegador del sistema.
-     *
-     * <p>Se usa {@code rundll32} en Windows en vez de {@code java.awt.Desktop} a proposito:
-     * {@code Desktop} arrastra el entorno grafico de AWT, y mezclar AWT con JavaFX en el mismo
-     * proceso provoca bloqueos. Si el navegador no se puede abrir, se imprime la direccion para que
-     * el usuario la pegue a mano en vez de quedarse sin salida.</p>
-     */
+    /** Abre la URL en el navegador del sistema. */
     private void abrirNavegador(String url) {
         try {
             String sistema = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
@@ -260,9 +179,7 @@ public class AutenticacionSpotify {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Llamada al servidor de tokens
-    // ------------------------------------------------------------------
+    // --- Llamada al servidor de tokens ---
 
     private Optional<JsonObject> pedirToken(Map<String, String> parametros) {
         HttpRequest peticion = HttpRequest.newBuilder(URI.create(URL_TOKEN))
@@ -306,30 +223,16 @@ public class AutenticacionSpotify {
         return true;
     }
 
-    // ------------------------------------------------------------------
-    // Utilidades de PKCE
-    // ------------------------------------------------------------------
+    // --- Utilidades de PKCE ---
 
-    /**
-     * Genera el secreto de un solo uso del flujo PKCE.
-     *
-     * <p>64 bytes al azar en base64 sin relleno dan 86 caracteres, dentro del rango de 43 a 128 que
-     * exige la especificacion, y usando solo caracteres que la URL admite sin escapar.</p>
-     *
-     * @return el verificador
-     */
+    /** Genera el secreto de un solo uso del flujo PKCE. */
     static String generarVerificador() {
         byte[] aleatorio = new byte[64];
         new SecureRandom().nextBytes(aleatorio);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(aleatorio);
     }
 
-    /**
-     * Calcula la huella que se envia en lugar del verificador.
-     *
-     * @param verificador secreto generado localmente
-     * @return el desafio en base64url, o {@code null} si la maquina no tiene SHA-256
-     */
+    /** Calcula la huella que se envia en lugar del verificador. */
     static String calcularDesafio(String verificador) {
         try {
             byte[] huella = MessageDigest.getInstance("SHA-256")

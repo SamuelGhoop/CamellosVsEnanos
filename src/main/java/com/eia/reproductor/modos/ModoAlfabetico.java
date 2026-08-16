@@ -8,34 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Modo 3: reproduccion alfabetica sobre un {@link ArbolBinarioBusqueda}.
- *
- * <p>Las canciones se insertan en el arbol usando {@link Cancion#POR_TITULO}, que compara titulos
- * con las reglas del espanol. La reproduccion simula el recorrido inorden: avanzar es ir al
- * <b>sucesor inorden</b> y retroceder es ir al <b>predecesor inorden</b>.</p>
- *
- * <p><b>La navegacion no aplana el arbol.</b> No existe ninguna lista interna con las canciones
- * ordenadas por la que se avance con un indice. Cada paso se resuelve caminando por los enlaces del
- * arbol: si el nodo tiene subarbol derecho, el sucesor es el minimo de ese subarbol; si no lo
- * tiene, se sube por los punteros al padre hasta el primer ancestro del que se venga por la
- * izquierda. La consecuencia practica es que agregar o eliminar una cancion no obliga a reconstruir
- * nada: el recorrido se adapta solo.</p>
- *
- * <p><b>Que pasa al llegar al final.</b> Cuando se avanza desde la ultima cancion, la reproduccion
- * <b>vuelve a la primera</b>, y al retroceder desde la primera se salta a la ultima. Se eligio el
- * comportamiento circular en lugar de detenerse porque un reproductor que se congela en la ultima
- * pista es peor experiencia de uso. Es una decision del modo, no del arbol: el arbol responde
- * {@code null} cuando no hay sucesor y es este modo el que decide dar la vuelta.</p>
- *
- * <p><b>Por que un arbol y no una lista ordenada.</b> Mantener el orden alfabetico en una lista
- * obligaria a recorrerla entera para encontrar donde insertar cada cancion nueva, O(n). El arbol
- * inserta y busca en O(h), que con titulos que llegan en orden arbitrario es del orden de
- * O(log n). El precio es el peor caso: si las canciones se insertaran ya ordenadas alfabeticamente,
- * el arbol degeneraria en una lista de altura n.</p>
- */
+/** Modo 3: reproduccion alfabetica sobre un {@link ArbolBinarioBusqueda}. */
 public class ModoAlfabetico extends ModoBase {
-
     private static final String NOMBRE = "Alfabético";
     private static final String ESTRUCTURA = "Árbol Binario de Búsqueda";
 
@@ -112,7 +86,6 @@ public class ModoAlfabetico extends ModoBase {
 
         // Se esta eliminando justo la cancion que suena, que es el punto de apoyo de la
         // navegacion. Hay que averiguar a donde saltar ANTES de sacarla del arbol: despues ya no
-        // se le puede pedir su sucesor porque no estaria.
         Cancion reemplazo = arbol.sucesorInorden(cancion);
         if (reemplazo == null) {
             reemplazo = arbol.predecesorInorden(cancion);
@@ -122,12 +95,8 @@ public class ModoAlfabetico extends ModoBase {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Este es el unico modo que reacciona a la edicion, porque es el unico cuya estructura
-     * coloca las canciones segun sus datos. Se retira la cancion del arbol <b>mientras su titulo
-     * sigue siendo el viejo</b>, que es la unica ventana en la que el arbol todavia sabe donde
-     * esta.</p>
+     * {@inheritDoc} Este es el unico modo que reacciona a la edicion, porque es el unico cuya
+     * estructura coloca las canciones segun sus datos.
      */
     @Override
     public void prepararEdicion(Cancion cancion) {
@@ -141,10 +110,8 @@ public class ModoAlfabetico extends ModoBase {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Se reinserta con el titulo nuevo, con lo que el arbol la coloca sola en su posicion
-     * alfabetica correcta. Si era la cancion que sonaba, se conserva como actual.</p>
+     * {@inheritDoc} Se reinserta con el titulo nuevo, con lo que el arbol la coloca sola en su
+     * posicion alfabetica correcta.
      */
     @Override
     public void confirmarEdicion(Cancion cancion) {
@@ -164,9 +131,7 @@ public class ModoAlfabetico extends ModoBase {
         return arbol.recorridoInorden();
     }
 
-    /**
-     * @return la altura del arbol, para mostrarla en la interfaz junto al nombre de la estructura
-     */
+    /** @return la altura del arbol, para mostrarla en la interfaz junto al nombre de la estructura */
     public int alturaDelArbol() {
         return arbol.altura();
     }
@@ -182,10 +147,8 @@ public class ModoAlfabetico extends ModoBase {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>La forma real del arbol, no el recorrido aplanado: se ve como se ramifica y, si las
-     * canciones entraron ya ordenadas, se ve degenerar en una sola rama.</p>
+     * {@inheritDoc} La forma real del arbol, no el recorrido aplanado: se ve como se ramifica y, si
+     * las canciones entraron ya ordenadas, se ve degenerar en una sola rama.
      */
     @Override
     public EstructuraVisual estructuraVisual() {

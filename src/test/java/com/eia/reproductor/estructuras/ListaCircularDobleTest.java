@@ -17,15 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la {@link ListaCircularDoble}.
- *
- * <p>El foco esta en la circularidad en ambos sentidos, que es la propiedad que el enunciado exige
- * para que la reproduccion aleatoria no tenga final.</p>
- */
+/** Pruebas de la {@link ListaCircularDoble}. */
 @DisplayName("Lista ligada circular doble")
 class ListaCircularDobleTest {
-
     private ListaCircularDoble<String> lista;
 
     @BeforeEach
@@ -51,7 +45,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Estado inicial")
     class EstadoInicial {
-
         @Test
         @DisplayName("una lista recien creada esta vacia")
         void listaNuevaEstaVacia() {
@@ -77,7 +70,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Circularidad")
     class Circularidad {
-
         @Test
         @DisplayName("avanzando mas alla del ultimo se vuelve al primero")
         void avanzarDaLaVuelta() {
@@ -154,7 +146,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Altas")
     class Altas {
-
         @Test
         @DisplayName("agregar deja los elementos en orden de llegada")
         void agregarMantieneOrden() {
@@ -209,7 +200,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Bajas")
     class Bajas {
-
         @Test
         @DisplayName("eliminar el primero, uno del medio y el ultimo")
         void eliminarEnCadaPosicion() {
@@ -274,7 +264,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Consultas")
     class Consultas {
-
         @Test
         @DisplayName("buscar encuentra lo que esta y no lo que no esta")
         void buscar() {
@@ -311,7 +300,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Iterador")
     class Iterador {
-
         @Test
         @DisplayName("recorre la lista una sola vuelta y se detiene")
         void iteradorNoSeCuelga() {
@@ -350,7 +338,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Mezcla aleatoria")
     class Mezcla {
-
         @Test
         @DisplayName("mezclar conserva todos los elementos y el tamanio")
         void mezclarNoPierdeElementos() {
@@ -431,7 +418,6 @@ class ListaCircularDobleTest {
     @Nested
     @DisplayName("Cursor")
     class CursorLista {
-
         @Test
         @DisplayName("posicionarEn mueve el cursor a un elemento concreto")
         void posicionarEn() {

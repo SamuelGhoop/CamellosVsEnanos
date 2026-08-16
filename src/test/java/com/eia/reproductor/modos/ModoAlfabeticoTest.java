@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Pruebas del {@link ModoAlfabetico}: recorrido inorden sobre el arbol vivo. */
 @DisplayName("Modo 3 - Alfabetico (arbol binario de busqueda)")
 class ModoAlfabeticoTest {
-
     private ModoAlfabetico modo;
     private List<Cancion> biblioteca;
 

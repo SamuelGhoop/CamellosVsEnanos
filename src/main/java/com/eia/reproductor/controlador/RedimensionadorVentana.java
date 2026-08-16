@@ -4,20 +4,8 @@ import javafx.scene.Cursor;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
-/**
- * Devuelve el redimensionado a una ventana sin decoracion del sistema.
- *
- * <p>Al pasar el escenario a {@code UNDECORATED} desaparece el marco de Windows y con el la
- * capacidad de arrastrar los bordes para cambiar el tamanio. Esta clase la reimplementa: vigila el
- * puntero cerca de los bordes de la ventana, cambia el cursor para indicar que ahi se puede
- * arrastrar, y al hacerlo recalcula posicion y tamanio.</p>
- *
- * <p>Se respetan los tamanios minimos del escenario, de modo que la ventana no se puede encoger
- * hasta romper la maquetacion. Estando maximizada no hace nada, igual que en cualquier
- * aplicacion.</p>
- */
+/** Devuelve el redimensionado a una ventana sin decoracion del sistema. */
 public final class RedimensionadorVentana {
-
     /** Franja, en pixeles desde el borde, donde el puntero activa el redimensionado. */
     private static final int MARGEN = 7;
 
@@ -37,12 +25,7 @@ public final class RedimensionadorVentana {
         this.raiz = raiz;
     }
 
-    /**
-     * Instala el redimensionado sobre una ventana.
-     *
-     * @param ventana escenario sin decoracion
-     * @param raiz    nodo raiz de su escena
-     */
+    /** Instala el redimensionado sobre una ventana. */
     public static void instalar(Stage ventana, Region raiz) {
         RedimensionadorVentana redimensionador = new RedimensionadorVentana(ventana, raiz);
         raiz.setOnMouseMoved(redimensionador::alMover);

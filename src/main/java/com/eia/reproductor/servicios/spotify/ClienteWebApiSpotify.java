@@ -17,23 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Cliente de la Web API de Spotify.
- *
- * <p>Concentra en un solo sitio el token, los tiempos limite y el manejo de los codigos de estado,
- * para que el resto del codigo no repita eso en cada llamada.</p>
- *
- * <p><b>Sobre el 401.</b> Un token puede dejar de valer antes de su fecha de vencimiento si el
- * usuario revoca el permiso desde su cuenta. En ese caso la fecha que guardamos miente, asi que
- * ante un {@code 401} se fuerza una renovacion y se reintenta <b>una sola vez</b>. Reintentar en
- * bucle contra un token muerto solo gastaria peticiones.</p>
- *
- * <p><b>Sobre el 204.</b> Varios endpoints del reproductor responden {@code 204 No Content} cuando
- * no hay nada sonando. No es un error: es la forma de decir "no hay reproduccion activa", y por eso
- * se traduce a un resultado vacio y no a un fallo.</p>
- */
+/** Cliente de la Web API de Spotify. */
 public class ClienteWebApiSpotify {
-
     private static final String BASE = "https://api.spotify.com/v1";
     private static final Duration TIEMPO_LIMITE = Duration.ofSeconds(10);
 
@@ -47,25 +32,13 @@ public class ClienteWebApiSpotify {
     private String ultimoAviso;
     private int ultimoEstado;
 
-    /**
-     * Crea el cliente.
-     *
-     * @param autenticacion de donde sale el token de cada peticion
-     */
+    /** Crea el cliente. */
     public ClienteWebApiSpotify(AutenticacionSpotify autenticacion) {
         this.autenticacion = autenticacion;
         this.http = HttpClient.newBuilder().connectTimeout(TIEMPO_LIMITE).build();
     }
 
-    /**
-     * Lista los dispositivos visibles en la cuenta.
-     *
-     * <p>Es la consulta con la que se comprueba que librespot arranco de verdad: mientras no
-     * aparezca en esta lista, el proceso todavia no se registro en Spotify Connect y transferirle
-     * la reproduccion fallaria.</p>
-     *
-     * @return los dispositivos, o lista vacia si la consulta no se pudo hacer
-     */
+    /** Lista los dispositivos visibles en la cuenta. */
     public List<DispositivoSpotify> dispositivos() {
         Optional<JsonObject> respuesta = obtener("/me/player/devices");
         if (respuesta.isEmpty() || !respuesta.get().has("devices")) {
@@ -79,31 +52,14 @@ public class ClienteWebApiSpotify {
         return dispositivos;
     }
 
-    /**
-     * Busca un dispositivo por su nombre visible.
-     *
-     * @param nombre nombre configurado en {@code device.name}
-     * @return el dispositivo, o vacio si Spotify todavia no lo ve
-     */
+    /** Busca un dispositivo por su nombre visible. */
     public Optional<DispositivoSpotify> buscarDispositivo(String nombre) {
         return dispositivos().stream()
                 .filter(dispositivo -> dispositivo.nombre().equalsIgnoreCase(nombre))
                 .findFirst();
     }
 
-    /**
-     * Transfiere la reproduccion al dispositivo indicado.
-     *
-     * <p><b>Es el paso que se olvida.</b> Sin el, cualquier orden de reproduccion se va al ultimo
-     * dispositivo que uso la cuenta —el telefono, el navegador, lo que sea— y por los parlantes de
-     * esta maquina no suena nada, aunque la API responda que todo salio bien.</p>
-     *
-     * <p>Se transfiere con {@code play:false} a proposito: transferir y arrancar son dos cosas
-     * distintas. Aqui solo se mueve el foco; que suene es decision del modo de reproduccion.</p>
-     *
-     * @param idDispositivo identificador que devuelve {@code GET /v1/me/player/devices}
-     * @return {@code true} si Spotify acepto la transferencia
-     */
+    /** Transfiere la reproduccion al dispositivo indicado. */
     public boolean transferirA(String idDispositivo) {
         if (idDispositivo == null || idDispositivo.isBlank()) {
             ultimoAviso = "No hay dispositivo al que transferir la reproducción.";
@@ -114,20 +70,7 @@ public class ClienteWebApiSpotify {
                 constructor -> constructor.PUT(HttpRequest.BodyPublishers.ofString(cuerpo)));
     }
 
-    /**
-     * Apaga la repeticion y el modo aleatorio de la cuenta.
-     *
-     * <p><b>No es un detalle cosmetico.</b> Estos dos ajustes viven en la cuenta, no en el
-     * dispositivo, y sobreviven a la transferencia: si el usuario dejo {@code repeat} encendido en
-     * su telefono, Spotify repetiria la pista o el contexto y el aviso de fin de pista no llegaria
-     * nunca, dejando colgada la cola. Aqui el orden lo mandan las estructuras de datos, asi que
-     * Spotify tiene que limitarse a obedecer.</p>
-     *
-     * <p>Ojo: {@code --autoplay off} de librespot es otra cosa y no cubre esto.</p>
-     *
-     * @param idDispositivo dispositivo sobre el que aplicar los ajustes
-     * @return {@code true} si ambos ajustes quedaron apagados
-     */
+    /** Apaga la repeticion y el modo aleatorio de la cuenta. */
     public boolean silenciarRepeticionYAleatorio(String idDispositivo) {
         String sufijo = (idDispositivo == null || idDispositivo.isBlank())
                 ? ""
@@ -167,18 +110,7 @@ public class ClienteWebApiSpotify {
         return sinRepeticion && sinAleatorio;
     }
 
-    /**
-     * Reproduce una pista concreta desde el principio o desde donde se pida.
-     *
-     * <p>Se manda la pista en {@code uris} y no un contexto (album o lista): asi Spotify reproduce
-     * exactamente esa y nada mas al terminar. El orden de las canciones lo deciden las estructuras
-     * de datos de la aplicacion, no Spotify.</p>
-     *
-     * @param idDispositivo dispositivo donde reproducir
-     * @param uriPista      identificador tipo {@code spotify:track:...}
-     * @param posicionMs    desde donde empezar; 0 para el principio
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Reproduce una pista concreta desde el principio o desde donde se pida. */
     public boolean reproducir(String idDispositivo, String uriPista, long posicionMs) {
         if (uriPista == null || uriPista.isBlank()) {
             ultimoAviso = "La canción no tiene URI de Spotify.";
@@ -190,24 +122,13 @@ public class ClienteWebApiSpotify {
                 constructor -> constructor.PUT(HttpRequest.BodyPublishers.ofString(cuerpo)));
     }
 
-    /**
-     * Continua la pista actual sin cambiarla.
-     *
-     * @param idDispositivo dispositivo a reanudar
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Continua la pista actual sin cambiarla. */
     public boolean reanudar(String idDispositivo) {
         return exito("/me/player/play" + porDispositivo(idDispositivo),
                 constructor -> constructor.PUT(HttpRequest.BodyPublishers.noBody()));
     }
 
-    /**
-     * Salta a una posicion de la pista actual.
-     *
-     * @param idDispositivo dispositivo sobre el que saltar
-     * @param posicionMs    posicion absoluta desde el inicio
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Salta a una posicion de la pista actual. */
     public boolean buscarPosicion(String idDispositivo, long posicionMs) {
         String ruta = "/me/player/seek?position_ms=" + Math.max(0, posicionMs)
                 + (idDispositivo == null || idDispositivo.isBlank()
@@ -222,17 +143,7 @@ public class ClienteWebApiSpotify {
                 : "?device_id=" + idDispositivo;
     }
 
-    /**
-     * Fija el volumen del dispositivo.
-     *
-     * <p>Hace falta ademas de {@code --initial-volume}: librespot guarda el ultimo volumen en su
-     * carpeta de cache y ese valor guardado le gana al de arranque. Fijarlo por la API es lo unico
-     * que garantiza el nivel en cada sesion.</p>
-     *
-     * @param idDispositivo dispositivo a ajustar
-     * @param porcentaje    volumen de 0 a 100
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Fija el volumen del dispositivo. */
     public boolean ajustarVolumen(String idDispositivo, int porcentaje) {
         int limitado = Math.max(0, Math.min(100, porcentaje));
         String ruta = "/me/player/volume?volume_percent=" + limitado
@@ -241,33 +152,13 @@ public class ClienteWebApiSpotify {
         return exito(ruta, constructor -> constructor.PUT(HttpRequest.BodyPublishers.noBody()));
     }
 
-    /**
-     * Pausa la reproduccion.
-     *
-     * <p>Hace falta justo despues de transferir: {@code play:false} significa "no cambies el estado
-     * de reproduccion", no "quedate en silencio". Si la cuenta venia reproduciendo, al transferir
-     * la musica sigue sonando en el dispositivo nuevo.</p>
-     *
-     * @param idDispositivo dispositivo a pausar
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Pausa la reproduccion. */
     public boolean pausar(String idDispositivo) {
         return exito("/me/player/pause" + porDispositivo(idDispositivo),
                 constructor -> constructor.PUT(HttpRequest.BodyPublishers.noBody()));
     }
 
-    /**
-     * Busca una cancion en el catalogo de Spotify.
-     *
-     * <p>Se piden varios resultados y no uno solo: Spotify ordena por relevancia, pero el primero
-     * puede ser una version en directo o de otro interprete. Se devuelve el primero que de verdad
-     * concuerde en titulo e interprete, y si ninguno concuerda no se devuelve nada — es preferible
-     * dejar la cancion sin URI que asociarla a la equivocada.</p>
-     *
-     * @param titulo  titulo de la cancion de la biblioteca
-     * @param artista interprete de la cancion de la biblioteca
-     * @return la pista que concuerda, o vacio
-     */
+    /** Busca una cancion en el catalogo de Spotify. */
     public Optional<PistaSpotify> buscarPista(String titulo, String artista) {
         if (titulo == null || titulo.isBlank()) {
             return Optional.empty();
@@ -281,15 +172,7 @@ public class ClienteWebApiSpotify {
         return Optional.empty();
     }
 
-    /**
-     * Arma las consultas a probar, de la mas precisa a la mas laxa.
-     *
-     * <p>La busqueda por campos ({@code track:} y {@code artist:}) es la que menos falsos positivos
-     * da, pero se atraganta con titulos como "Cancion (feat. Alguien)", donde el catalogo guarda
-     * el invitado como segundo interprete y no dentro del titulo. Por eso se reintenta sin la
-     * coletilla y, al final, con texto libre, que es mas tolerante. El filtro de concordancia se
-     * aplica igual en todos los casos, asi que aflojar la consulta no relaja el criterio.</p>
-     */
+    /** Arma las consultas a probar, de la mas precisa a la mas laxa. */
     private static List<String> consultasPara(String titulo, String artista) {
         String porArtista = (artista == null || artista.isBlank()) ? "" : " artist:" + artista;
         String desnudo = sinColetillas(titulo);
@@ -303,12 +186,7 @@ public class ClienteWebApiSpotify {
         return consultas;
     }
 
-    /**
-     * Quita del titulo lo que suele estorbar en la busqueda.
-     *
-     * @param titulo titulo tal como esta en la biblioteca
-     * @return el titulo sin parentesis, corchetes ni sufijos de edicion
-     */
+    /** Quita del titulo lo que suele estorbar en la busqueda. */
     static String sinColetillas(String titulo) {
         String limpio = titulo
                 .replaceAll("\\s*[(\\[][^)\\]]*[)\\]]", "")
@@ -316,14 +194,7 @@ public class ClienteWebApiSpotify {
         return limpio.isBlank() ? titulo : limpio.trim();
     }
 
-    /**
-     * Lanza una consulta y devuelve el primer resultado que concuerde de verdad.
-     *
-     * @param consulta       texto de busqueda
-     * @param tituloBuscado  titulo con el que comparar
-     * @param artistaBuscado interprete con el que comparar
-     * @return la pista que concuerda, o vacio
-     */
+    /** Lanza una consulta y devuelve el primer resultado que concuerde de verdad. */
     private Optional<PistaSpotify> primeraQueConcuerde(String consulta, String tituloBuscado,
                                                        String artistaBuscado) {
         String ruta = "/search?type=track&limit=10&q="
@@ -346,23 +217,12 @@ public class ClienteWebApiSpotify {
         return Optional.empty();
     }
 
-    /**
-     * Consulta el estado del reproductor.
-     *
-     * <p>Es la unica forma de saber la posicion: Spotify no empuja avisos, hay que preguntarle.</p>
-     *
-     * @return el estado, o vacio si no hay reproduccion activa
-     */
+    /** Consulta el estado del reproductor. */
     public Optional<EstadoReproductorSpotify> estadoDelReproductor() {
         return obtener("/me/player").map(EstadoReproductorSpotify::desdeJson);
     }
 
-    /**
-     * Hace una peticion GET a la API.
-     *
-     * @param ruta ruta relativa a {@code /v1}, empezando por barra
-     * @return el cuerpo de la respuesta, o vacio si no hubo contenido o hubo error
-     */
+    /** Hace una peticion GET a la API. */
     public Optional<JsonObject> obtener(String ruta) {
         return enviar(ruta, constructor -> constructor.GET());
     }
@@ -372,37 +232,19 @@ public class ClienteWebApiSpotify {
         return Optional.ofNullable(ultimoAviso);
     }
 
-    // ------------------------------------------------------------------
-    // Envio
-    // ------------------------------------------------------------------
+    // --- Envio ---
 
     /** Aplica el metodo y el cuerpo a la peticion en construccion. */
     interface Metodo {
         HttpRequest.Builder aplicar(HttpRequest.Builder constructor);
     }
 
-    /**
-     * Envia una peticion y devuelve su cuerpo como JSON.
-     *
-     * @param ruta   ruta relativa a {@code /v1}
-     * @param metodo verbo y cuerpo de la peticion
-     * @return el cuerpo de la respuesta, o vacio
-     */
+    /** Envia una peticion y devuelve su cuerpo como JSON. */
     Optional<JsonObject> enviar(String ruta, Metodo metodo) {
         return interpretar(enviarConReintento(ruta, metodo).orElse(null));
     }
 
-    /**
-     * Envia una peticion cuyo exito no depende del cuerpo sino del codigo de estado.
-     *
-     * <p>Las ordenes del reproductor (transferir, reproducir, pausar, saltar) responden
-     * {@code 204 No Content}. Con {@link #enviar} no se podrian distinguir del fallo, porque ambos
-     * casos dan un resultado vacio; por eso existe este metodo aparte.</p>
-     *
-     * @param ruta   ruta relativa a {@code /v1}
-     * @param metodo verbo y cuerpo de la peticion
-     * @return {@code true} si Spotify acepto la orden
-     */
+    /** Envia una peticion cuyo exito no depende del cuerpo sino del codigo de estado. */
     boolean exito(String ruta, Metodo metodo) {
         Optional<HttpResponse<String>> respuesta = enviarConReintento(ruta, metodo);
         if (respuesta.isEmpty()) {
@@ -419,24 +261,12 @@ public class ClienteWebApiSpotify {
         return false;
     }
 
-    /**
-     * Codigo de estado de la ultima peticion.
-     *
-     * <p>Se expone para poder distinguir un fallo del que se puede uno recuperar de uno que no:
-     * un {@code 404} significa que el dispositivo se durmio y basta con volver a transferirle la
-     * reproduccion, mientras que un {@code 403} no tiene arreglo desde aqui.</p>
-     *
-     * @return el codigo HTTP, o 0 si la peticion ni siquiera se pudo enviar
-     */
+    /** Codigo de estado de la ultima peticion. */
     public int ultimoEstado() {
         return ultimoEstado;
     }
 
-    /**
-     * Envia una peticion, renovando el token y reintentando una vez ante un 401.
-     *
-     * @return la respuesta cruda, o vacio si ni siquiera se pudo enviar
-     */
+    /** Envia una peticion, renovando el token y reintentando una vez ante un 401. */
     private Optional<HttpResponse<String>> enviarConReintento(String ruta, Metodo metodo) {
         Optional<String> token = autenticacion.tokenSinInteraccion();
         if (token.isEmpty()) {
@@ -504,7 +334,6 @@ public class ClienteWebApiSpotify {
         return switch (estado) {
             // Hay dos 403 muy distintos y confundirlos hace perder mucho tiempo: uno es no tener
             // Premium, y el otro es pedir algo que el estado actual no permite (por ejemplo poner
-            // un ajuste en el valor que ya tiene). Solo el primero es un problema de verdad.
             case 403 -> detalle.contains("Restriction violated")
                     ? "Spotify no permitió la operación en el estado actual (403). " + detalle
                     : "Spotify rechazó la operación (403). "

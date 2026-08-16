@@ -7,14 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la vigencia y la renovacion del token.
- *
- * <p>El detalle importante es que el token se considera vencido <i>antes</i> de que realmente
- * venza: si se esperara al ultimo segundo, la primera llamada de cada hora fallaria con 401.</p>
- */
+/** Pruebas de la vigencia y la renovacion del token. */
 class TokenSpotifyTest {
-
     private static final long UNA_HORA_MS = 3_600_000;
 
     private static TokenSpotify queVenceEn(long milisegundos) {

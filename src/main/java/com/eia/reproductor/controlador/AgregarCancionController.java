@@ -39,27 +39,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
-/**
- * Controlador del formulario de agregar y editar canciones.
- *
- * <p>Reune las tres vias que pide el enunciado en una sola pantalla:</p>
- * <ol>
- *   <li><b>Desde archivo:</b> se elige un MP3 o WAV, se leen sus etiquetas ID3 y con ellas se
- *       consulta la API automaticamente.</li>
- *   <li><b>Buscando en linea:</b> el usuario escribe, elige un resultado y el formulario se
- *       autocompleta. Vincular un archivo es opcional.</li>
- *   <li><b>A mano:</b> el formulario esta siempre disponible, funcione o no internet.</li>
- * </ol>
- *
- * <p>Las tres desembocan en el mismo formulario, que es lo unico que se guarda. El dialogo no toca
- * la biblioteca: devuelve unos {@link DatosCancion} y el {@link PrincipalController} decide si
- * crear o editar a traves del servicio.</p>
- *
- * <p><b>Ninguna llamada de red ocurre en el hilo de la interfaz.</b> Las busquedas van dentro de un
- * {@link Task} y el resultado se aplica cuando termina, para que la ventana nunca se congele.</p>
- */
+/** Controlador del formulario de agregar y editar canciones. */
 public class AgregarCancionController implements Initializable {
-
     private static final String RUTA_VISTA = "/vista/agregar-cancion.fxml";
     private static final String RUTA_ESTILOS = "/vista/estilos.css";
     private static final String RUTA_PORTADA_PLACEHOLDER = "/imagenes/portada-placeholder.png";
@@ -68,7 +49,6 @@ public class AgregarCancionController implements Initializable {
     private static final int SEGUNDOS_POR_MINUTO = 60;
     private static final int ANIO_MAXIMO_RAZONABLE = 2200;
     private static final double LADO_MINIATURA = 40;
-
 
     @FXML private Button botonElegirArchivo;
     @FXML private Button botonQuitarArchivo;
@@ -96,7 +76,7 @@ public class AgregarCancionController implements Initializable {
     @FXML private Label etiquetaFavorito;
     @FXML private Label etiquetaError;
 
-    /** Estado de la estrella de favorita. Sustituye a la casilla de verificacion. */
+    /** Estado de la estrella de favorita. */
     private boolean favorita;
     @FXML private Button botonGuardar;
 
@@ -110,17 +90,9 @@ public class AgregarCancionController implements Initializable {
     private String urlPortadaElegida;
     private Path archivoElegido;
 
-    // ------------------------------------------------------------------
-    // Apertura del dialogo
-    // ------------------------------------------------------------------
+    // --- Apertura del dialogo ---
 
-    /**
-     * Abre el formulario y espera a que el usuario termine.
-     *
-     * @param duenio  ventana propietaria, para que el dialogo sea modal sobre ella
-     * @param aEditar cancion cuyos datos precargar, o {@code null} para crear una nueva
-     * @return los datos capturados, o vacio si el usuario cancelo
-     */
+    /** Abre el formulario y espera a que el usuario termine. */
     public static Optional<DatosCancion> mostrar(Window duenio, Cancion aEditar) {
         // Idempotente: garantiza la tipografia de pixeles aunque el dialogo se abra desde un punto
         // de entrada que no sea la aplicacion completa.
@@ -168,18 +140,13 @@ public class AgregarCancionController implements Initializable {
         establecerFavorita(false);
     }
 
-    /** Alterna la estrella de favorita. Sustituye a la antigua casilla de verificacion. */
+    /** Alterna la estrella de favorita. */
     @FXML
     private void alternarFavorita() {
         establecerFavorita(!favorita);
     }
 
-    /**
-     * Refleja el estado de favorita en la estrella.
-     *
-     * <p>Apagada se muestra atenuada y en escala de grises; encendida, a todo color. Se usa un
-     * efecto sobre la misma imagen en vez de dos PNG distintos: es un solo asset que mantener.</p>
-     */
+    /** Refleja el estado de favorita en la estrella. */
     private void establecerFavorita(boolean valor) {
         favorita = valor;
         iconoFavorito.setOpacity(valor ? 1.0 : 0.45);
@@ -223,9 +190,7 @@ public class AgregarCancionController implements Initializable {
         campoConsulta.setText((datos.artista() + " " + datos.titulo()).trim());
     }
 
-    // ------------------------------------------------------------------
-    // Via A: archivo local
-    // ------------------------------------------------------------------
+    // --- Via A: archivo local ---
 
     @FXML
     private void elegirArchivo() {
@@ -284,9 +249,7 @@ public class AgregarCancionController implements Initializable {
         botonQuitarArchivo.setDisable(!hay);
     }
 
-    // ------------------------------------------------------------------
-    // Via B: busqueda en la API
-    // ------------------------------------------------------------------
+    // --- Via B: busqueda en la API ---
 
     @FXML
     private void buscarEnLinea() {
@@ -372,17 +335,7 @@ public class AgregarCancionController implements Initializable {
         buscarUriSpotifyEnSegundoPlano();
     }
 
-    /**
-     * Busca sola la URI de Spotify a partir del titulo y el interprete del formulario.
-     *
-     * <p>Pegar la URI a mano exige ir a Spotify, buscar la cancion y usar el menu Compartir por
-     * cada una: inviable. Como iTunes ya dejo el titulo y el interprete correctos, esa misma
-     * informacion sirve para encontrarla en el catalogo de Spotify.</p>
-     *
-     * <p>No se toca el campo si el usuario ya escribio algo: lo suyo manda. Y si Spotify no esta
-     * configurado, la busqueda simplemente no encuentra nada y el formulario sigue igual — no se
-     * muestra ningun error, porque no haberlo configurado no es un fallo.</p>
-     */
+    /** Busca sola la URI de Spotify a partir del titulo y el interprete del formulario. */
     private void buscarUriSpotifyEnSegundoPlano() {
         if (!textoDe(campoUriSpotify).isBlank()) {
             return;
@@ -415,7 +368,6 @@ public class AgregarCancionController implements Initializable {
 
     /** Celda de la lista de resultados: miniatura, titulo, artista y detalle. */
     private final class CeldaResultado extends ListCell<ResultadoBusquedaApi> {
-
         private final ImageView miniatura = new ImageView();
         private final Label titulo = new Label();
         private final Label detalle = new Label();
@@ -459,9 +411,7 @@ public class AgregarCancionController implements Initializable {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Portada
-    // ------------------------------------------------------------------
+    // --- Portada ---
 
     private void cargarPortadaPorDefecto() {
         try (InputStream flujo = getClass().getResourceAsStream(RUTA_PORTADA_PLACEHOLDER)) {
@@ -496,9 +446,7 @@ public class AgregarCancionController implements Initializable {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Guardar y cancelar
-    // ------------------------------------------------------------------
+    // --- Guardar y cancelar ---
 
     @FXML
     private void guardar() {
@@ -542,16 +490,7 @@ public class AgregarCancionController implements Initializable {
         escenario.close();
     }
 
-    /**
-     * Acepta tanto la URI de Spotify como el enlace que da el boton Compartir.
-     *
-     * <p>Nadie copia a mano un {@code spotify:track:...}: lo que se copia desde la aplicacion de
-     * Spotify es {@code https://open.spotify.com/track/ID?si=...}. Traducirlo aqui evita que el
-     * usuario tenga que saber que existen dos formatos.</p>
-     *
-     * @param texto lo que escribio el usuario
-     * @return la URI normalizada, o {@code null} si el campo venia vacio
-     */
+    /** Acepta tanto la URI de Spotify como el enlace que da el boton Compartir. */
     static String normalizarUriSpotify(String texto) {
         if (texto == null || texto.isBlank()) {
             return null;
@@ -578,17 +517,9 @@ public class AgregarCancionController implements Initializable {
         escenario.close();
     }
 
-    // ------------------------------------------------------------------
-    // Interpretacion de los campos de texto
-    // ------------------------------------------------------------------
+    // --- Interpretacion de los campos de texto ---
 
-    /**
-     * Convierte el texto del anio en un numero.
-     *
-     * @param texto texto escrito por el usuario; vacio significa "desconocido"
-     * @return el anio, o 0 si no se indico
-     * @throws IllegalArgumentException si el texto no es un anio razonable
-     */
+    /** Convierte el texto del anio en un numero. */
     static int interpretarAnio(String texto) {
         if (texto.isBlank()) {
             return 0;
@@ -605,15 +536,7 @@ public class AgregarCancionController implements Initializable {
         }
     }
 
-    /**
-     * Convierte el texto de la duracion en segundos.
-     *
-     * <p>Acepta tanto {@code "5:55"} como un numero suelto de segundos.</p>
-     *
-     * @param texto texto escrito por el usuario; vacio significa "desconocida"
-     * @return la duracion en segundos, o 0 si no se indico
-     * @throws IllegalArgumentException si el formato no se entiende
-     */
+    /** Convierte el texto de la duracion en segundos. */
     static int interpretarDuracion(String texto) {
         String limpio = texto.trim();
         if (limpio.isBlank()) {
@@ -645,9 +568,7 @@ public class AgregarCancionController implements Initializable {
                 segundos % SEGUNDOS_POR_MINUTO);
     }
 
-    // ------------------------------------------------------------------
-    // Utilidades de la vista
-    // ------------------------------------------------------------------
+    // --- Utilidades de la vista ---
 
     private static String textoDe(TextField campo) {
         return campo.getText() == null ? "" : campo.getText().trim();

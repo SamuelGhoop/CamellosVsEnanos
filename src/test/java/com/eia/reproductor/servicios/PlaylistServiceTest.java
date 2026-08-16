@@ -18,14 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del servicio de listas de reproduccion.
- *
- * <p>Trabajan sobre una carpeta temporal: nunca tocan {@code data/playlists.json}.</p>
- */
+/** Pruebas del servicio de listas de reproduccion. */
 @DisplayName("PlaylistService")
 class PlaylistServiceTest {
-
     @TempDir
     Path carpeta;
 
@@ -47,7 +42,6 @@ class PlaylistServiceTest {
     @Nested
     @DisplayName("Crear")
     class Crear {
-
         @Test
         @DisplayName("Crea una lista y la deja disponible")
         void creaUnaLista() {
@@ -88,7 +82,6 @@ class PlaylistServiceTest {
     @Nested
     @DisplayName("Renombrar y borrar")
     class RenombrarYBorrar {
-
         @Test
         @DisplayName("Renombra conservando las canciones")
         void renombraConservandoCanciones() {
@@ -146,7 +139,6 @@ class PlaylistServiceTest {
     @Nested
     @DisplayName("Canciones")
     class CancionesDeLaLista {
-
         @Test
         @DisplayName("Agrega y quita")
         void agregaYQuita() {
@@ -202,7 +194,6 @@ class PlaylistServiceTest {
     @Nested
     @DisplayName("Persistencia")
     class Persistencia {
-
         @Test
         @DisplayName("Guardar y volver a cargar conserva nombres, orden e identificadores")
         void viajeDeIdaYVuelta() {
@@ -276,7 +267,6 @@ class PlaylistServiceTest {
     @Nested
     @DisplayName("Búsqueda")
     class Busqueda {
-
         @Test
         @DisplayName("Encuentra por nombre sin distinguir mayúsculas")
         void encuentraPorNombre() {

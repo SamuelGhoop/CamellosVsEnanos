@@ -10,25 +10,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-/**
- * Fuente unica de verdad de la coleccion de canciones.
- *
- * <p>Toda alta, baja o edicion pasa por aqui. Los modos de reproduccion <b>no</b> guardan la
- * coleccion: guardan una vista suya, construida con {@code cargar()} cada vez que se cambia de
- * modo. Asi solo hay un sitio donde la biblioteca puede quedar mal, en vez de cuatro copias que
- * se desincronizan entre si.</p>
- *
- * <p><b>Por que la biblioteca maestra es una {@link ListaCircularDoble} y no un arreglo.</b>
- * Porque el orden de insercion <i>es informacion del dominio</i>: el modo de orden de llegada
- * depende de el, asi que la estructura maestra tiene que conservarlo intacto. Ademas agregar
- * cuesta O(1) y eliminar solo requiere desenlazar. Y de paso, el proyecto usa sus propias
- * estructuras tambien fuera de los modos.</p>
- *
- * <p>Los cambios se avisan a los {@link ObservadorBiblioteca} registrados y se persisten en disco
- * de inmediato, tal como pide el enunciado.</p>
- */
+/** Fuente unica de verdad de la coleccion de canciones. */
 public class BibliotecaService {
-
     private final ListaCircularDoble<Cancion> maestra = new ListaCircularDoble<>();
     private final List<ObservadorBiblioteca> observadores = new ArrayList<>();
     private final PersistenciaService persistencia;
@@ -38,25 +21,15 @@ public class BibliotecaService {
         this(new PersistenciaService());
     }
 
-    /**
-     * Crea la biblioteca con un servicio de persistencia concreto.
-     *
-     * @param persistencia servicio encargado de leer y escribir el archivo
-     */
+    /** Crea la biblioteca con un servicio de persistencia concreto. */
     public BibliotecaService(PersistenciaService persistencia) {
         this.persistencia = Objects.requireNonNull(persistencia,
                 "El servicio de persistencia no puede ser nulo.");
     }
 
-    // ------------------------------------------------------------------
-    // Observadores
-    // ------------------------------------------------------------------
+    // --- Observadores ---
 
-    /**
-     * Registra a alguien interesado en los cambios de la biblioteca.
-     *
-     * @param observador el interesado; se ignora si ya estaba registrado
-     */
+    /** Registra a alguien interesado en los cambios de la biblioteca. */
     public void registrarObservador(ObservadorBiblioteca observador) {
         Objects.requireNonNull(observador, "El observador no puede ser nulo.");
         if (!observadores.contains(observador)) {
@@ -64,28 +37,14 @@ public class BibliotecaService {
         }
     }
 
-    /**
-     * Da de baja a un observador.
-     *
-     * @param observador el observador a retirar
-     */
+    /** Da de baja a un observador. */
     public void quitarObservador(ObservadorBiblioteca observador) {
         observadores.remove(observador);
     }
 
-    // ------------------------------------------------------------------
-    // Altas, bajas y ediciones
-    // ------------------------------------------------------------------
+    // --- Altas, bajas y ediciones ---
 
-    /**
-     * Agrega una cancion a la biblioteca.
-     *
-     * <p><b>Complejidad:</b> O(n) por la comprobacion de duplicados; el enlace en si es O(1).</p>
-     *
-     * @param cancion cancion a agregar
-     * @return {@code true} si se agrego, {@code false} si ya estaba
-     * @throws NullPointerException si la cancion es {@code null}
-     */
+    /** Agrega una cancion a la biblioteca. O(n). */
     public boolean agregar(Cancion cancion) {
         Objects.requireNonNull(cancion, "La cancion no puede ser nula.");
         if (maestra.buscar(cancion)) {
@@ -99,14 +58,7 @@ public class BibliotecaService {
         return true;
     }
 
-    /**
-     * Elimina una cancion de la biblioteca.
-     *
-     * <p><b>Complejidad:</b> O(n).</p>
-     *
-     * @param cancion cancion a eliminar
-     * @return {@code true} si se elimino, {@code false} si no estaba
-     */
+    /** Elimina una cancion de la biblioteca. O(n). */
     public boolean eliminar(Cancion cancion) {
         if (cancion == null || !maestra.eliminar(cancion)) {
             return false;
@@ -118,22 +70,7 @@ public class BibliotecaService {
         return true;
     }
 
-    /**
-     * Modifica una cancion de forma segura para todas las estructuras.
-     *
-     * <p>Los cambios se aplican dentro de una ventana delimitada por
-     * {@link ObservadorBiblioteca#antesDeEditar(Cancion)} y
-     * {@link ObservadorBiblioteca#despuesDeEditar(Cancion)}. Esto no es ceremonia de mas: el modo
-     * alfabetico guarda las canciones en un arbol ordenado por titulo, y cambiarle el titulo a una
-     * cancion que sigue dentro del arbol la volveria inencontrable. Retirandola antes y
-     * reinsertandola despues, el arbol la recoloca sola en su nueva posicion alfabetica.</p>
-     *
-     * <p>Ejemplo de uso: {@code biblioteca.editar(cancion, c -> c.setTitulo("Nuevo titulo"));}</p>
-     *
-     * @param cancion cancion a modificar, debe pertenecer a la biblioteca
-     * @param cambios operacion que aplica las modificaciones sobre la cancion
-     * @return {@code true} si la cancion estaba en la biblioteca y se edito
-     */
+    /** Modifica una cancion de forma segura para todas las estructuras. */
     public boolean editar(Cancion cancion, Consumer<Cancion> cambios) {
         Objects.requireNonNull(cambios, "La operacion de edicion no puede ser nula.");
         if (cancion == null || !maestra.buscar(cancion)) {
@@ -154,42 +91,19 @@ public class BibliotecaService {
         return true;
     }
 
-    /**
-     * Cambia la calificacion personal de una cancion.
-     *
-     * @param cancion      cancion a calificar
-     * @param calificacion valor entre 0 y 100
-     * @return {@code true} si la cancion estaba en la biblioteca
-     * @throws IllegalArgumentException si la calificacion cae fuera de rango
-     */
+    /** Cambia la calificacion personal de una cancion. */
     public boolean calificar(Cancion cancion, int calificacion) {
         return editar(cancion, objetivo -> objetivo.setCalificacion(calificacion));
     }
 
-    /**
-     * Marca o desmarca una cancion como favorita.
-     *
-     * @param cancion cancion a alternar
-     * @return {@code true} si la cancion estaba en la biblioteca
-     */
+    /** Marca o desmarca una cancion como favorita. */
     public boolean alternarFavorita(Cancion cancion) {
         return editar(cancion, Cancion::alternarFavorita);
     }
 
-    // ------------------------------------------------------------------
-    // Consultas
-    // ------------------------------------------------------------------
+    // --- Consultas ---
 
-    /**
-     * Devuelve la biblioteca completa en orden de insercion.
-     *
-     * <p>Es una copia: modificarla no altera la biblioteca. Sirve para llenar la tabla de la
-     * interfaz y para que los modos construyan su estructura.</p>
-     *
-     * <p><b>Complejidad:</b> O(n).</p>
-     *
-     * @return todas las canciones, de la mas antigua a la mas reciente
-     */
+    /** Devuelve la biblioteca completa en orden de insercion. O(n). */
     public List<Cancion> todas() {
         List<Cancion> copia = new ArrayList<>(maestra.tamanio());
         for (Cancion cancion : maestra) {
@@ -198,16 +112,7 @@ public class BibliotecaService {
         return copia;
     }
 
-    /**
-     * Busca canciones cuyo titulo, artista o album contengan el texto indicado.
-     *
-     * <p>La comparacion ignora mayusculas y tildes, para que "angel" encuentre "Ángel".</p>
-     *
-     * <p><b>Complejidad:</b> O(n).</p>
-     *
-     * @param texto texto a buscar; si viene vacio se devuelve la biblioteca completa
-     * @return las canciones que coinciden
-     */
+    /** Busca canciones cuyo titulo, artista o album contengan el texto indicado. O(n). */
     public List<Cancion> buscar(String texto) {
         if (texto == null || texto.isBlank()) {
             return todas();
@@ -219,16 +124,7 @@ public class BibliotecaService {
                         || Texto.plano(cancion.getAlbum()).contains(aguja));
     }
 
-    /**
-     * Devuelve las canciones que cumplen una condicion.
-     *
-     * <p>Es la base de los filtros por artista, genero, album o favoritas.</p>
-     *
-     * <p><b>Complejidad:</b> O(n).</p>
-     *
-     * @param condicion condicion que deben cumplir las canciones
-     * @return las canciones que la cumplen, en orden de insercion
-     */
+    /** Devuelve las canciones que cumplen una condicion. O(n). */
     public List<Cancion> filtrar(Predicate<Cancion> condicion) {
         Objects.requireNonNull(condicion, "La condicion no puede ser nula.");
         List<Cancion> resultado = new ArrayList<>();
@@ -240,12 +136,7 @@ public class BibliotecaService {
         return resultado;
     }
 
-    /**
-     * Busca una cancion por su identificador.
-     *
-     * @param id identificador buscado
-     * @return la cancion, o {@code null} si no esta en la biblioteca
-     */
+    /** Busca una cancion por su identificador. */
     public Cancion porId(String id) {
         if (id == null) {
             return null;
@@ -258,41 +149,24 @@ public class BibliotecaService {
         return null;
     }
 
-    /**
-     * @return cantidad de canciones en la biblioteca
-     *         <p><b>Complejidad:</b> O(1).</p>
-     */
+    /** @return cantidad de canciones en la biblioteca. O(1). */
     public int tamanio() {
         return maestra.tamanio();
     }
 
-    /**
-     * @return {@code true} si la biblioteca no tiene canciones
-     */
+    /** @return {@code true} si la biblioteca no tiene canciones */
     public boolean estaVacia() {
         return maestra.estaVacia();
     }
 
-    /**
-     * @return {@code true} si la cancion pertenece a la biblioteca
-     */
+    /** @return {@code true} si la cancion pertenece a la biblioteca */
     public boolean contiene(Cancion cancion) {
         return cancion != null && maestra.buscar(cancion);
     }
 
-    // ------------------------------------------------------------------
-    // Persistencia
-    // ------------------------------------------------------------------
+    // --- Persistencia ---
 
-    /**
-     * Reemplaza la biblioteca por el contenido del archivo en disco.
-     *
-     * <p>Si el archivo no existe o esta corrupto, la biblioteca queda vacia y el aviso
-     * correspondiente se puede consultar con {@link #ultimoAviso()}. La aplicacion arranca
-     * igual.</p>
-     *
-     * @return cantidad de canciones cargadas
-     */
+    /** Reemplaza la biblioteca por el contenido del archivo en disco. */
     public int cargarDesdeDisco() {
         maestra.limpiar();
         for (Cancion cancion : persistencia.cargar()) {
@@ -304,35 +178,19 @@ public class BibliotecaService {
         return maestra.tamanio();
     }
 
-    /**
-     * Escribe la biblioteca en disco.
-     *
-     * <p>Se invoca sola tras cada alta, baja o edicion. Tambien conviene llamarla al cerrar la
-     * aplicacion.</p>
-     *
-     * @return {@code true} si se guardo correctamente
-     */
+    /** Escribe la biblioteca en disco. */
     public boolean guardar() {
         return persistencia.guardar(todas());
     }
 
-    /**
-     * @return el aviso de la ultima operacion de disco, si hubo algun problema
-     */
+    /** @return el aviso de la ultima operacion de disco, si hubo algun problema */
     public Optional<String> ultimoAviso() {
         return persistencia.ultimoAviso();
     }
 
-    // ------------------------------------------------------------------
-    // Apoyo interno
-    // ------------------------------------------------------------------
+    // --- Apoyo interno ---
 
-    /**
-     * Devuelve una copia de la lista de observadores.
-     *
-     * <p>Se notifica sobre la copia para que un observador que se dé de baja a si mismo mientras
-     * atiende el aviso no rompa el recorrido en curso.</p>
-     */
+    /** Devuelve una copia de la lista de observadores. */
     private List<ObservadorBiblioteca> copiaDeObservadores() {
         return new ArrayList<>(observadores);
     }

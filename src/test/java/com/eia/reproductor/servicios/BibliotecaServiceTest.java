@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Pruebas del {@link BibliotecaService} como fuente unica de verdad. */
 @DisplayName("Biblioteca (fuente unica de verdad)")
 class BibliotecaServiceTest {
-
     @TempDir
     Path carpetaTemporal;
 
@@ -63,7 +62,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Operaciones basicas")
     class OperacionesBasicas {
-
         @Test
         @DisplayName("una biblioteca nueva esta vacia")
         void bibliotecaNueva() {
@@ -136,7 +134,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Busquedas y filtros")
     class BusquedasYFiltros {
-
         @BeforeEach
         void cargarCanciones() {
             biblioteca.agregar(creep);
@@ -189,7 +186,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Edicion")
     class Edicion {
-
         @Test
         @DisplayName("editar aplica los cambios sobre la cancion")
         void editarAplicaCambios() {
@@ -221,7 +217,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Observadores")
     class Observadores {
-
         private ObservadorEspia espia;
 
         @BeforeEach
@@ -288,7 +283,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Sincronizacion con los modos")
     class SincronizacionConModos {
-
         /** Adaptador que conecta la biblioteca con el modo activo, como hara el controlador. */
         private ObservadorBiblioteca conectar(ModoReproduccion modo) {
             return new ObservadorBiblioteca() {
@@ -341,7 +335,6 @@ class BibliotecaServiceTest {
 
             // "Creep" pasa a empezar por B: debe moverse al medio... y sobre todo, el arbol tiene
             // que poder seguir encontrandola. Sin la ventana antes/despues, el nodo quedaria
-            // colgado bajo la letra C y el arbol la perderia para siempre.
             biblioteca.editar(creep, c -> c.setTitulo("Bailando"));
 
             assertEquals(List.of("Africa", "Bailando", "Zombie"), titulos(modo));
@@ -398,7 +391,6 @@ class BibliotecaServiceTest {
     @Nested
     @DisplayName("Persistencia")
     class Persistencia {
-
         @Test
         @DisplayName("los cambios se guardan solos y sobreviven a reabrir la aplicacion")
         void guardadoAutomatico() {

@@ -10,20 +10,9 @@ import javafx.beans.property.ReadOnlyLongWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.util.Duration;
 
-/**
- * Fuente de audio de ultimo recurso: no suena nada, pero el reproductor se comporta igual.
- *
- * <p>Se usa con las canciones que solo tienen metadata, sin archivo local ni URI de Spotify. Un
- * reloj interno avanza la posicion al mismo ritmo que lo haria la reproduccion real y avisa
- * cuando la pista "termina", de modo que la barra de progreso, el encadenado con la siguiente
- * cancion y el resto de la interfaz funcionan sin ningun caso especial.</p>
- *
- * <p>Que exista esta implementacion es lo que permite que el reproductor nunca se quede sin
- * fuente: {@link AudioRuteado} siempre encuentra al menos esta.</p>
- */
+/** Fuente de audio de ultimo recurso: no suena nada, pero el reproductor se comporta igual. */
 public class AudioSimuladoService implements ReproductorAudio {
-
-    /** Cada cuanto avanza el reloj. 250 ms da una barra fluida sin gastar CPU. */
+    /** Cada cuanto avanza el reloj. */
     private static final Duration PASO = Duration.millis(250);
 
     /** Duracion que se asume cuando la cancion no declara la suya. */
@@ -107,10 +96,8 @@ public class AudioSimuladoService implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Acepta cualquier cancion: es la fuente de respaldo y por eso va siempre la ultima en el
-     * orden de preferencia del enrutador.</p>
+     * {@inheritDoc} Acepta cualquier cancion: es la fuente de respaldo y por eso va siempre la
+     * ultima en el orden de preferencia del enrutador.
      */
     @Override
     public boolean puedeReproducir(Cancion cancion) {

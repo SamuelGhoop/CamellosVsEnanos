@@ -14,54 +14,22 @@ import javafx.scene.shape.Rectangle;
 import java.io.InputStream;
 import java.util.function.IntConsumer;
 
-/**
- * Control de volumen dibujado con los sprites del reproductor.
- *
- * <p>Se compone de tres piezas —tapa izquierda, tramo central y tapa derecha— con dos versiones
- * cada una: verde para lo lleno y gris para lo vacio. El tramo central se pinta con un patron que
- * repite el sprite, de modo que la barra se estira sin deformar el pixel art.</p>
- *
- * <p><b>Como se lee.</b> La parte verde es el nivel; el resto queda gris. Las tapas siguen la misma
- * regla: la izquierda se enciende en cuanto hay algo de volumen y la derecha solo al llegar al
- * maximo. En cero <i>todo</i> queda apagado y el icono cambia a mudo, que es la senial mas rapida
- * de "no vas a oir nada".</p>
- *
- * <p>No sabe nada de audio: avisa del nivel por un {@link IntConsumer} y quien lo reciba decide que
- * hacer. Asi este paquete sigue sin depender de los servicios.</p>
- */
+/** Control de volumen dibujado con los sprites del reproductor. */
 public class BarraVolumen {
-
-    /**
-     * Alto en pantalla: los sprites miden 104 px y se muestran a un cuarto.
-     *
-     * <p>A media escala la barra robaba altura a la lista de proximas canciones, que es lo que de
-     * verdad hay que ver. Un cuarto la deja del alto de los botones de transporte, con los que
-     * comparte fila.</p>
-     */
+    /** Alto en pantalla: los sprites miden 104 px y se muestran a un cuarto. */
     private static final double ALTO = 24;
 
     /** Ancho de las tapas: proporcional a los 28 px del sprite. */
     private static final double ANCHO_TAPA = 6;
 
-    /**
-     * Ancho del tramo central; el total de la barra son estos mas las dos tapas.
-     *
-     * <p>Con 130 la fila de transporte se desbordaba por el borde derecho del panel. Este es el
-     * punto medio: se lee bien y cabe junto a los tres botones.</p>
-     */
+    /** Ancho del tramo central; el total de la barra son estos mas las dos tapas. */
     private static final double ANCHO_CENTRO = 96;
 
     /** Tamano del icono de altavoz, en proporcion al sprite de 66x42. */
     private static final double ANCHO_ICONO = 24;
     private static final double ALTO_ICONO = 15;
 
-    /**
-     * Lado del recuadro del altavoz.
-     *
-     * <p>Se fija cuadrado a mano porque {@code HBox} rellena el alto de sus hijos por defecto
-     * ({@code fillHeight}), y el recuadro se estiraba hasta el alto de los botones de transporte:
-     * quedaba un rectangulo alto y estrecho con el icono perdido en el medio.</p>
-     */
+    /** Lado del recuadro del altavoz. */
     private static final double LADO_CAJA_ICONO = 34;
 
     private static final String RUTA_IZQUIERDA_ACTIVA = "/imagenes/vol-izquierda-activa.png";
@@ -116,14 +84,11 @@ public class BarraVolumen {
         barra.setMaxHeight(ALTO);
         // Se convierte desde coordenadas de pantalla y no se usa evento.getX(): en un evento que
         // burbujea desde un hijo, getX() viene referido al hijo que se pulso, no a la barra. Como
-        // el rectangulo verde cambia de ancho al mover el volumen, el hijo bajo el raton cambiaba
-        // y las coordenadas saltaban: el volumen se movia dos veces y despues hacia cualquier cosa.
         barra.setOnMousePressed(evento -> ajustarDesde(evento, barra));
         barra.setOnMouseDragged(evento -> ajustarDesde(evento, barra));
 
         // El sprite del altavoz es negro sobre transparente y sobre el panel negro no se veia.
         // Se le pone detras el mismo recuadro azul de los botones de transporte: es la solucion
-        // que ya usaba la interfaz para el triangulo de play, y no obliga a repintar el sprite.
         StackPane recuadroIcono = new StackPane(icono);
         recuadroIcono.getStyleClass().add("caja-altavoz");
         // Los tres a la vez: sin el maximo, el HBox lo estira igual hasta el alto de la fila.
@@ -144,11 +109,7 @@ public class BarraVolumen {
         return nodo;
     }
 
-    /**
-     * Define a quien avisar cuando el usuario mueve el volumen.
-     *
-     * @param oyente recibe el nivel de 0 a 100
-     */
+    /** Define a quien avisar cuando el usuario mueve el volumen. */
     public void setAlCambiar(IntConsumer oyente) {
         this.alCambiar = oyente == null ? nivel -> { } : oyente;
     }
@@ -158,28 +119,15 @@ public class BarraVolumen {
         return volumen;
     }
 
-    /**
-     * Fija el nivel sin avisar al oyente.
-     *
-     * <p>Para reflejar un volumen que se decidio en otro sitio sin provocar un ida y vuelta.</p>
-     *
-     * @param porcentaje nivel de 0 a 100
-     */
+    /** Fija el nivel sin avisar al oyente. */
     public void mostrarVolumen(int porcentaje) {
         volumen = Math.max(0, Math.min(100, porcentaje));
         repintar();
     }
 
-    // ------------------------------------------------------------------
-    // Interaccion
-    // ------------------------------------------------------------------
+    // --- Interaccion ---
 
-    /**
-     * Traduce la posicion del raton a un nivel de volumen.
-     *
-     * @param evento pulsacion o arrastre sobre la barra
-     * @param barra  contenedor de las tres piezas
-     */
+    /** Traduce la posicion del raton a un nivel de volumen. */
     private void ajustarDesde(MouseEvent evento, HBox barra) {
         double ancho = barra.getWidth();
         if (ancho <= 0) {
@@ -208,9 +156,7 @@ public class BarraVolumen {
         alCambiar.accept(volumen);
     }
 
-    // ------------------------------------------------------------------
-    // Dibujo
-    // ------------------------------------------------------------------
+    // --- Dibujo ---
 
     private void repintar() {
         boolean hayVolumen = volumen > 0;
@@ -226,14 +172,7 @@ public class BarraVolumen {
         centroLleno.setWidth(ANCHO_CENTRO * volumen / 100.0);
     }
 
-    /**
-     * Envuelve un sprite en un patron que cubre el rectangulo entero.
-     *
-     * <p><b>Se estira, no se repite.</b> Repetirlo dejaba una costura visible en cada union, porque
-     * los bordes del sprite no encajan consigo mismos. Estos sprites son bandas horizontales de
-     * color uniforme, asi que estirarlos a lo ancho da exactamente el mismo resultado visual y sin
-     * ninguna linea.</p>
-     */
+    /** Envuelve un sprite en un patron que cubre el rectangulo entero. */
     private static ImagePattern patron(String ruta) {
         Image imagen = cargar(ruta);
         if (imagen == null) {

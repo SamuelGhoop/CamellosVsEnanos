@@ -15,30 +15,14 @@ import javafx.stage.Window;
 
 import java.util.Optional;
 
-/**
- * Ventanita para pedir un texto corto, con la estetica del reproductor.
- *
- * <p>Sustituye al {@code TextInputDialog} de JavaFX, que llega con la barra de titulo del sistema y
- * botones redondeados: en medio del pixel art se veia como una ventana de otro programa. Reescribir
- * algo tan pequeño sale mas barato que pelearse con el CSS interno de un control que no fue pensado
- * para cambiar tanto de aspecto.</p>
- */
+/** Ventanita para pedir un texto corto, con la estetica del reproductor. */
 public final class DialogoTexto {
-
     private static final double ANCHO = 460;
 
     private DialogoTexto() {
     }
 
-    /**
-     * Pide un texto al usuario y espera a que responda.
-     *
-     * @param duenio   ventana sobre la que se abre
-     * @param titulo   texto de la barra superior
-     * @param pregunta que se le pide
-     * @param inicial  valor con el que arranca el campo
-     * @return lo escrito ya recortado, o vacio si cancelo o lo dejo en blanco
-     */
+    /** Pide un texto al usuario y espera a que responda. */
     public static Optional<String> pedir(Window duenio, String titulo, String pregunta,
                                          String inicial) {
         Stage escenario = new Stage();

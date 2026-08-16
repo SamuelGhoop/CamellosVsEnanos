@@ -12,16 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del contrato de la fuente de Spotify.
- *
- * <p>No se prueba la reproduccion real —eso necesita cuenta, red y librespot, y se verifica con
- * {@link DiagnosticoSpotify}—. Lo que se prueba aqui es lo que el enrutador consulta para decidir:
- * si la fuente esta disponible y si sabe reproducir una cancion. Equivocarse en eso deja la
- * aplicacion muda o mandando canciones a una fuente que no puede con ellas.</p>
- */
+/** Pruebas del contrato de la fuente de Spotify. */
 class AudioSpotifyServiceTest {
-
     /** Proceso de mentira: permite fijar si esta vivo y con que dispositivo, sin lanzar nada. */
     private static final class LibrespotFalso extends ProcesoLibrespot {
         private boolean vivo;
@@ -152,5 +144,4 @@ class AudioSpotifyServiceTest {
 
     // Nota: crearSiEstaConfigurado() no se prueba aqui a proposito. En esta maquina todos sus
     // requisitos se cumplen, asi que llamarlo lanzaria librespot de verdad en mitad de "mvn test".
-    // Ese camino se verifica con DiagnosticoSpotify.
 }

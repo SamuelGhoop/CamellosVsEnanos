@@ -12,14 +12,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la carga de {@code config/spotify.properties}.
- *
- * <p>Lo que se comprueba sobre todo es el camino del fallo: sin configuracion, la aplicacion tiene
- * que seguir funcionando, y eso empieza porque esta clase devuelva vacio en vez de reventar.</p>
- */
+/** Pruebas de la carga de {@code config/spotify.properties}. */
 class ConfiguracionSpotifyTest {
-
     @TempDir
     Path carpeta;
 

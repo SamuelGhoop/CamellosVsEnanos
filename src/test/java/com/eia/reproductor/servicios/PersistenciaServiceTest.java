@@ -16,14 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del {@link PersistenciaService}.
- *
- * <p>Todas trabajan sobre una carpeta temporal, asi que nunca tocan {@code data/biblioteca.json}.</p>
- */
+/** Pruebas del {@link PersistenciaService}. */
 @DisplayName("Persistencia de la biblioteca en JSON")
 class PersistenciaServiceTest {
-
     @TempDir
     Path carpetaTemporal;
 

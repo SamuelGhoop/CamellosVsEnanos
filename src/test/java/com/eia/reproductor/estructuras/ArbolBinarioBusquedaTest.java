@@ -19,15 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del {@link ArbolBinarioBusqueda}.
- *
- * <p>El foco esta en la navegacion por sucesor y predecesor inorden sobre el arbol vivo, y en que
- * la eliminacion en sus tres casos deje el arbol coherente.</p>
- */
+/** Pruebas del {@link ArbolBinarioBusqueda}. */
 @DisplayName("Arbol binario de busqueda")
 class ArbolBinarioBusquedaTest {
-
     private ArbolBinarioBusqueda<Integer> arbol;
 
     @BeforeEach
@@ -35,16 +29,7 @@ class ArbolBinarioBusquedaTest {
         arbol = new ArbolBinarioBusqueda<Integer>(Comparator.naturalOrder());
     }
 
-    /**
-     * Carga un arbol equilibrado a mano:
-     * <pre>
-     *            50
-     *         /      \
-     *       30        70
-     *      /  \      /  \
-     *    20    40  60    80
-     * </pre>
-     */
+    /** Carga un arbol equilibrado a mano: 50 / \ 30 70 / \ / \ 20 40 60 80 */
     private void cargarArbolEquilibrado() {
         for (int valor : new int[] {50, 30, 70, 20, 40, 60, 80}) {
             arbol.insertar(valor);
@@ -54,7 +39,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Estado inicial")
     class EstadoInicial {
-
         @Test
         @DisplayName("un arbol recien creado esta vacio")
         void arbolNuevoEstaVacio() {
@@ -87,7 +71,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Insercion")
     class Insercion {
-
         @Test
         @DisplayName("insertar deja el recorrido inorden ordenado")
         void inordenOrdenado() {
@@ -122,7 +105,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Busqueda y extremos")
     class BusquedaYExtremos {
-
         @Test
         @DisplayName("buscar encuentra lo que esta y no lo que no esta")
         void buscar() {
@@ -148,7 +130,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Navegacion inorden en arbol equilibrado")
     class NavegacionEquilibrado {
-
         @Test
         @DisplayName("sucesor cuando el nodo tiene subarbol derecho")
         void sucesorConSubarbolDerecho() {
@@ -246,7 +227,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Navegacion inorden en arbol degenerado")
     class NavegacionDegenerado {
-
         @Test
         @DisplayName("insertar en orden ascendente degenera el arbol en una lista")
         void insercionOrdenadaDegenera() {
@@ -294,7 +274,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Eliminacion")
     class Eliminacion {
-
         @Test
         @DisplayName("caso 1: eliminar una hoja")
         void eliminarHoja() {
@@ -423,7 +402,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Uso real con canciones")
     class ConCanciones {
-
         private Cancion crear(String titulo, String artista) {
             Cancion cancion = new Cancion(titulo);
             cancion.setArtista(artista);
@@ -504,7 +482,6 @@ class ArbolBinarioBusquedaTest {
     @Nested
     @DisplayName("Copia de la forma")
     class Forma {
-
         /** Copia minima para inspeccionar la silueta en los tests. */
         private record Rama(int valor, Rama izquierdo, Rama derecho) { }
 

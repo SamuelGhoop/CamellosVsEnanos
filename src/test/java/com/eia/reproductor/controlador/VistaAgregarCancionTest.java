@@ -16,19 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Comprueba que la vista del dialogo de canciones se carga de verdad.
- *
- * <p><b>Por que existe.</b> Este FXML solo se lee cuando el usuario pulsa AGREGAR, asi que un
- * error dentro —un atributo mal escrito, un {@code fx:id} que el controlador ya no tiene— no
- * aparece al compilar ni al arrancar la aplicacion: revienta en la cara del usuario al abrir el
- * dialogo. Ya paso una vez con un comentario XML invalido en la vista principal.</p>
- *
- * <p>Solo se prueba esta vista y no la principal: cargar {@code principal.fxml} construye el
- * controlador, que a su vez levanta el audio y lanzaria librespot en mitad de las pruebas.</p>
- */
+/** Comprueba que la vista del dialogo de canciones se carga de verdad. */
 class VistaAgregarCancionTest {
-
     private static final String RUTA_VISTA = "/vista/agregar-cancion.fxml";
 
     /** Campos que el controlador espera encontrar; si falta uno, el dialogo sale a medias. */

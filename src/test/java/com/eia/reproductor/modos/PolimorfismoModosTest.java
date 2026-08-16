@@ -18,16 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas que ejercitan los tres modos <b>unicamente a traves de {@link ModoReproduccion}</b>.
- *
- * <p>Ninguna de estas pruebas menciona una clase concreta al operar: simulan lo que hara el
- * controlador en la Fase 5, que guardara una referencia del tipo de la interfaz y no sabra nunca
- * si por debajo hay una lista, una cola o un arbol.</p>
- */
+/** Pruebas que ejercitan los tres modos unicamente a traves de {@link ModoReproduccion}. */
 @DisplayName("Polimorfismo de los modos de reproduccion")
 class PolimorfismoModosTest {
-
     private List<Cancion> biblioteca;
 
     @BeforeEach

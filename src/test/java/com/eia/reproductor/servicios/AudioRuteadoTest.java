@@ -15,15 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del enrutador de fuentes de audio.
- *
- * <p>Se usan fuentes de mentira en lugar de las reales: lo que se comprueba aqui es la decision de
- * a quien delegar, no que suene un MP3. Asi las pruebas no necesitan archivos, ni red, ni el
- * entorno grafico de JavaFX.</p>
- */
+/** Pruebas del enrutador de fuentes de audio. */
 class AudioRuteadoTest {
-
     /**
      * Fuente de prueba: acepta las canciones cuyo titulo esta en una lista y anota que le pidieron.
      */
@@ -238,9 +231,7 @@ class AudioRuteadoTest {
         assertEquals(List.of("archivo corrupto"), avisos);
     }
 
-    // ------------------------------------------------------------------
-    // Recuperacion ante fallos
-    // ------------------------------------------------------------------
+    // --- Recuperacion ante fallos ---
 
     @Test
     @DisplayName("Si la fuente activa falla, baja a la siguiente y sigue sonando")
@@ -324,9 +315,7 @@ class AudioRuteadoTest {
         return (int) lista.stream().filter(valor::equals).count();
     }
 
-    // ------------------------------------------------------------------
-    // Politica de red
-    // ------------------------------------------------------------------
+    // --- Politica de red ---
 
     @Test
     @DisplayName("Evitar la red descarta las fuentes que dependen de internet")

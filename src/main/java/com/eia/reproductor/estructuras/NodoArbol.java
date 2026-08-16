@@ -1,27 +1,12 @@
 package com.eia.reproductor.estructuras;
 
-/**
- * Nodo del {@link ArbolBinarioBusqueda}: dos hijos y, sobre todo, un puntero al padre.
- *
- * <p><b>Por que el puntero al padre.</b> Un ABB clasico solo necesita {@code izquierdo} y
- * {@code derecho}. Aqui se agrega {@code padre} porque el modo alfabetico tiene que poder avanzar y
- * retroceder cancion por cancion sobre el arbol vivo, sin volcarlo a una lista. El sucesor inorden
- * de un nodo que no tiene subarbol derecho es un <i>ancestro</i>, y sin el enlace hacia arriba la
- * unica forma de encontrarlo seria recorrer el arbol desde la raiz otra vez.</p>
- *
- * @param <T> tipo del dato almacenado
- */
+/** Nodo del {@link ArbolBinarioBusqueda}: dos hijos y, sobre todo, un puntero al padre. */
 class NodoArbol<T> extends Nodo<T> {
-
     private NodoArbol<T> izquierdo;
     private NodoArbol<T> derecho;
     private NodoArbol<T> padre;
 
-    /**
-     * Crea una hoja suelta, sin hijos ni padre.
-     *
-     * @param dato elemento que guarda el nodo
-     */
+    /** Crea una hoja suelta, sin hijos ni padre. */
     NodoArbol(T dato) {
         super(dato);
     }
@@ -31,7 +16,6 @@ class NodoArbol<T> extends Nodo<T> {
         return izquierdo;
     }
 
-    /** @param izquierdo nuevo hijo izquierdo */
     void setIzquierdo(NodoArbol<T> izquierdo) {
         this.izquierdo = izquierdo;
     }
@@ -41,7 +25,6 @@ class NodoArbol<T> extends Nodo<T> {
         return derecho;
     }
 
-    /** @param derecho nuevo hijo derecho */
     void setDerecho(NodoArbol<T> derecho) {
         this.derecho = derecho;
     }
@@ -51,7 +34,6 @@ class NodoArbol<T> extends Nodo<T> {
         return padre;
     }
 
-    /** @param padre nuevo padre */
     void setPadre(NodoArbol<T> padre) {
         this.padre = padre;
     }

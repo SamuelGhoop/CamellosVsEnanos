@@ -13,16 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del {@link PortadaService}.
- *
- * <p>No se prueba la descarga real: eso dependeria de internet. Se prueba lo que si es logica
- * propia y puede fallar en silencio: la cache, el nombrado de archivos y el comportamiento ante
- * datos ausentes.</p>
- */
+/** Pruebas del {@link PortadaService}. */
 @DisplayName("Cache de caratulas")
 class PortadaServiceTest {
-
     @TempDir
     Path carpeta;
 

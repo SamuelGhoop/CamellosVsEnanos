@@ -6,19 +6,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * Arranca el entorno de JavaFX una sola vez para las pruebas que lo necesitan.
- *
- * <p>Las clases que usan {@code Timeline} no pueden probarse sin el hilo de JavaFX: el reloj de las
- * animaciones lo administra el propio entorno grafico. Este ayudante lo levanta una vez por
- * ejecucion y ofrece un metodo para correr codigo en ese hilo y esperar el resultado.</p>
- *
- * <p>Si la maquina no puede levantarlo (una consola sin escritorio, por ejemplo),
- * {@link #disponible()} devuelve {@code false} y las pruebas que dependen de el se saltan en vez de
- * fallar: no es la aplicacion la que esta rota, es que el entorno no da.</p>
- */
+/** Arranca el entorno de JavaFX una sola vez para las pruebas que lo necesitan. */
 public final class EntornoJavaFx {
-
     private static final long ESPERA_MAXIMA_SEGUNDOS = 15;
 
     private static boolean iniciado;
@@ -53,18 +42,7 @@ public final class EntornoJavaFx {
         return disponible;
     }
 
-    /**
-     * Ejecuta una accion en el hilo de JavaFX y espera a que termine.
-     *
-     * <p><b>Se captura {@code Throwable} y no {@code RuntimeException}.</b> No es exceso de celo:
-     * los {@code assert} de JUnit fallan lanzando {@code AssertionFailedError}, que hereda de
-     * {@code Error}. Capturando solo {@code RuntimeException}, cualquier comprobacion que fallara
-     * dentro del hilo de JavaFX se perdia por el camino —salia impresa como "Exception in thread
-     * JavaFX Application Thread" y nada mas— y la prueba se daba por buena. Las pruebas de vistas
-     * pasaban aunque la vista estuviera rota.</p>
-     *
-     * @param accion codigo a ejecutar
-     */
+    /** Ejecuta una accion en el hilo de JavaFX y espera a que termine. */
     public static void enElHiloFx(Runnable accion) {
         AtomicReference<Throwable> fallo = new AtomicReference<>();
         CountDownLatch terminado = new CountDownLatch(1);
@@ -91,11 +69,7 @@ public final class EntornoJavaFx {
         }
     }
 
-    /**
-     * Espera a que se abra un cerrojo, fallando si tarda demasiado.
-     *
-     * @param cerrojo cerrojo a esperar
-     */
+    /** Espera a que se abra un cerrojo, fallando si tarda demasiado. */
     public static void esperar(CountDownLatch cerrojo) {
         try {
             if (!cerrojo.await(ESPERA_MAXIMA_SEGUNDOS, TimeUnit.SECONDS)) {

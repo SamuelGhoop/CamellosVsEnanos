@@ -19,25 +19,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Guarda y recupera la biblioteca en {@code data/biblioteca.json}.
- *
- * <p>La ruta es siempre relativa a la carpeta del proyecto, nunca absoluta, para que el proyecto
- * funcione igual en el computador de cualquier integrante del grupo.</p>
- *
- * <p><b>Tolerancia a fallos.</b> Ninguna operacion de disco puede tumbar la aplicacion:</p>
- * <ul>
- *   <li>Si el archivo no existe todavia, se arranca con una biblioteca vacia.</li>
- *   <li>Si el archivo esta corrupto, se conserva una copia en {@code biblioteca.json.bak} antes de
- *       arrancar vacio, para no destruir el trabajo del usuario, y se deja un aviso para mostrar
- *       en pantalla.</li>
- *   <li>Al guardar se escribe primero un archivo temporal y solo despues se reemplaza el
- *       definitivo. Asi, si el proceso muere a mitad de la escritura, el archivo bueno sigue
- *       intacto en vez de quedar a medias.</li>
- * </ul>
- */
+/** Guarda y recupera la biblioteca en {@code data/biblioteca.json}. */
 public class PersistenciaService {
-
     /** Ubicacion por defecto de la biblioteca, relativa a la carpeta del proyecto. */
     public static final Path RUTA_POR_DEFECTO = Path.of("data", "biblioteca.json");
 
@@ -55,14 +38,7 @@ public class PersistenciaService {
         this(RUTA_POR_DEFECTO);
     }
 
-    /**
-     * Crea el servicio apuntando a un archivo concreto.
-     *
-     * <p>El constructor con ruta explicita permite que las pruebas trabajen sobre una carpeta
-     * temporal sin tocar los datos reales.</p>
-     *
-     * @param archivo ruta del archivo JSON de la biblioteca
-     */
+    /** Crea el servicio apuntando a un archivo concreto. */
     public PersistenciaService(Path archivo) {
         this.archivo = Objects.requireNonNull(archivo, "La ruta del archivo no puede ser nula.");
         this.gson = new GsonBuilder()
@@ -71,11 +47,7 @@ public class PersistenciaService {
                 .create();
     }
 
-    /**
-     * Lee la biblioteca desde disco.
-     *
-     * @return las canciones guardadas; lista vacia si no hay archivo o si estaba corrupto
-     */
+    /** Lee la biblioteca desde disco. */
     public List<Cancion> cargar() {
         ultimoAviso = null;
 
@@ -101,12 +73,7 @@ public class PersistenciaService {
         }
     }
 
-    /**
-     * Escribe la biblioteca en disco.
-     *
-     * @param canciones canciones a guardar
-     * @return {@code true} si se guardo correctamente
-     */
+    /** Escribe la biblioteca en disco. */
     public boolean guardar(Iterable<Cancion> canciones) {
         Objects.requireNonNull(canciones, "La coleccion de canciones no puede ser nula.");
         ultimoAviso = null;
@@ -132,35 +99,22 @@ public class PersistenciaService {
         }
     }
 
-    /**
-     * @return la ruta del archivo que gestiona este servicio
-     */
+    /** @return la ruta del archivo que gestiona este servicio */
     public Path getArchivo() {
         return archivo;
     }
 
-    /**
-     * Indica si el archivo de la biblioteca ya existe en disco.
-     *
-     * <p>Sirve para distinguir el primer arranque de la aplicacion de un arranque con una
-     * biblioteca que el usuario vacio a proposito.</p>
-     *
-     * @return {@code true} si el archivo existe
-     */
+    /** Indica si el archivo de la biblioteca ya existe en disco. */
     public boolean existeArchivo() {
         return Files.exists(archivo);
     }
 
-    /**
-     * @return el aviso de la ultima operacion, si hubo algun problema que valga la pena mostrar
-     */
+    /** @return el aviso de la ultima operacion, si hubo algun problema que valga la pena mostrar */
     public Optional<String> ultimoAviso() {
         return Optional.ofNullable(ultimoAviso);
     }
 
-    // ------------------------------------------------------------------
-    // Apoyo interno
-    // ------------------------------------------------------------------
+    // --- Apoyo interno ---
 
     private List<Cancion> recuperarDeArchivoCorrupto(String motivo, Exception causa) {
         Path respaldo = archivo.resolveSibling(archivo.getFileName() + SUFIJO_RESPALDO);

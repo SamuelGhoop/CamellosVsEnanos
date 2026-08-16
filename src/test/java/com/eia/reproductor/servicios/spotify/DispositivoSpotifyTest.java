@@ -9,14 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la lectura de un dispositivo de Spotify Connect.
- *
- * <p>De esto depende el health check del paso 2: si el {@code id} se leyera mal, transferir la
- * reproduccion fallaria con un 404 dificil de rastrear.</p>
- */
+/** Pruebas de la lectura de un dispositivo de Spotify Connect. */
 class DispositivoSpotifyTest {
-
     private static JsonObject json(String texto) {
         return JsonParser.parseString(texto).getAsJsonObject();
     }

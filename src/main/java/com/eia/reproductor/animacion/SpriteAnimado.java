@@ -11,20 +11,8 @@ import javafx.util.Duration;
 import java.io.InputStream;
 import java.util.Objects;
 
-/**
- * Reproduce una hoja de sprites horizontal.
- *
- * <p>La hoja se carga una sola vez y lo que va cambiando es la <i>ventana de recorte</i>
- * ({@link ImageView#setViewport(Rectangle2D)}) que decide que trozo se ve. Es mucho mas barato que
- * tener una imagen por cuadro: la textura queda cargada en memoria de video y en cada paso solo se
- * mueve un rectangulo.</p>
- *
- * <p>El dibujo se muestra sin suavizado ({@code setSmooth(false)}, que es el equivalente en JavaFX
- * del vecino mas cercano de Java2D) y a escala entera, que son las dos condiciones para que el
- * pixel art no se vea borroso ni con los pixeles de tamanios distintos.</p>
- */
+/** Reproduce una hoja de sprites horizontal. */
 public class SpriteAnimado {
-
     private final ImageView vista = new ImageView();
     private final int anchoCuadro;
     private final int altoCuadro;
@@ -35,18 +23,7 @@ public class SpriteAnimado {
     private Timeline ciclo;
     private int cuadroActual;
 
-    /**
-     * Carga una hoja y deja el sprite listo en su primer cuadro.
-     *
-     * @param ruta            recurso de la hoja dentro del classpath
-     * @param cantidadCuadros cuantos cuadros contiene, medidos sobre la hoja
-     * @param anchoCuadro     ancho de cada cuadro en pixeles de la hoja
-     * @param altoCuadro      alto de cada cuadro en pixeles de la hoja
-     * @param escala          ampliacion entera
-     * @param cuadrosPorSegundo velocidad de la animacion
-     * @throws IllegalArgumentException si la escala no es un entero positivo
-     * @throws IllegalStateException    si la hoja no esta en el classpath
-     */
+    /** Carga una hoja y deja el sprite listo en su primer cuadro. */
     public SpriteAnimado(String ruta, int cantidadCuadros, int anchoCuadro, int altoCuadro,
                          int escala, double cuadrosPorSegundo) {
         if (escala < 1) {
@@ -114,15 +91,7 @@ public class SpriteAnimado {
                 (double) indice * anchoCuadro, 0, anchoCuadro, altoCuadro));
     }
 
-    /**
-     * Cambia la hoja de sprites sin interrumpir la animacion.
-     *
-     * <p>Lo usa el cambio de tema para pasar al traje negro. Solo vale para hojas del mismo
-     * tamanio de cuadro; como el cuadro actual y el recorte no se tocan, el personaje sigue en la
-     * misma pose y no se nota un salto al cambiar.</p>
-     *
-     * @param ruta hoja nueva, con la misma rejilla de cuadros
-     */
+    /** Cambia la hoja de sprites sin interrumpir la animacion. */
     public void cambiarHoja(String ruta) {
         vista.setImage(cargar(ruta));
         // El viewport apunta al cuadro que ya estaba: se conserva la pose exacta.

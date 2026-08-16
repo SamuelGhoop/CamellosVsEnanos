@@ -19,19 +19,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Administra las listas de reproduccion hechas por el usuario.
- *
- * <p>Guarda en {@code data/playlists.json}, aparte de la biblioteca: son dos cosas con vidas
- * distintas, y mezclarlas obligaria a reescribir el archivo entero de canciones cada vez que
- * alguien renombra una lista.</p>
- *
- * <p>El JSON se lee y se escribe a mano, sin dejarselo a la reflexion de Gson, por el mismo motivo
- * que en {@code DeserializadorCancion}: un archivo editado a mano o a medio escribir se detecta
- * aqui en vez de producir objetos invalidos mas adelante.</p>
- */
+/** Administra las listas de reproduccion hechas por el usuario. */
 public class PlaylistService {
-
     /** Ubicacion por defecto, relativa a la carpeta desde donde se ejecuta la aplicacion. */
     public static final Path RUTA_POR_DEFECTO = Path.of("data", "playlists.json");
 
@@ -45,18 +34,12 @@ public class PlaylistService {
         this(RUTA_POR_DEFECTO);
     }
 
-    /**
-     * Crea el servicio sobre una ruta concreta.
-     *
-     * @param archivo destino del JSON; las pruebas usan una carpeta temporal
-     */
+    /** Crea el servicio sobre una ruta concreta. */
     public PlaylistService(Path archivo) {
         this.archivo = archivo;
     }
 
-    // ------------------------------------------------------------------
-    // Consultas
-    // ------------------------------------------------------------------
+    // --- Consultas ---
 
     /** @return todas las listas, en el orden en que se crearon */
     public List<Playlist> todas() {
@@ -68,12 +51,7 @@ public class PlaylistService {
         return listas.size();
     }
 
-    /**
-     * Busca una lista por su nombre, sin distinguir mayusculas ni espacios sobrantes.
-     *
-     * @param nombre nombre a buscar
-     * @return la lista, o vacio
-     */
+    /** Busca una lista por su nombre, sin distinguir mayusculas ni espacios sobrantes. */
     public Optional<Playlist> porNombre(String nombre) {
         if (nombre == null) {
             return Optional.empty();
@@ -89,19 +67,9 @@ public class PlaylistService {
         return Optional.ofNullable(ultimoAviso);
     }
 
-    // ------------------------------------------------------------------
-    // Altas, bajas y cambios
-    // ------------------------------------------------------------------
+    // --- Altas, bajas y cambios ---
 
-    /**
-     * Crea una lista nueva.
-     *
-     * <p>Se rechazan los nombres repetidos: dos listas con el mismo nombre en el selector serian
-     * indistinguibles para el usuario, aunque por dentro tengan identificadores distintos.</p>
-     *
-     * @param nombre nombre visible
-     * @return la lista creada, o vacio si el nombre no vale o ya existe
-     */
+    /** Crea una lista nueva. */
     public Optional<Playlist> crear(String nombre) {
         if (nombre == null || nombre.isBlank()) {
             ultimoAviso = "La lista necesita un nombre.";
@@ -123,13 +91,7 @@ public class PlaylistService {
         }
     }
 
-    /**
-     * Cambia el nombre de una lista.
-     *
-     * @param lista  lista a renombrar
-     * @param nombre nombre nuevo
-     * @return {@code true} si se pudo
-     */
+    /** Cambia el nombre de una lista. */
     public boolean renombrar(Playlist lista, String nombre) {
         if (lista == null || !listas.contains(lista)) {
             return false;
@@ -150,15 +112,7 @@ public class PlaylistService {
         }
     }
 
-    /**
-     * Borra una lista.
-     *
-     * <p>Solo desaparece la lista: las canciones siguen en la biblioteca, porque la lista nunca
-     * fue su dueña sino una forma de agruparlas.</p>
-     *
-     * @param lista lista a borrar
-     * @return {@code true} si existia y se borro
-     */
+    /** Borra una lista. */
     public boolean eliminar(Playlist lista) {
         if (lista == null || !listas.remove(lista)) {
             return false;
@@ -167,13 +121,7 @@ public class PlaylistService {
         return true;
     }
 
-    /**
-     * Agrega una cancion al final de una lista.
-     *
-     * @param lista   lista destino
-     * @param cancion cancion a agregar
-     * @return {@code true} si se agrego; {@code false} si ya estaba
-     */
+    /** Agrega una cancion al final de una lista. */
     public boolean agregarCancion(Playlist lista, Cancion cancion) {
         if (lista == null || cancion == null || !listas.contains(lista)) {
             return false;
@@ -187,13 +135,7 @@ public class PlaylistService {
         return true;
     }
 
-    /**
-     * Quita una cancion de una lista.
-     *
-     * @param lista   lista de la que quitarla
-     * @param cancion cancion a quitar
-     * @return {@code true} si estaba y se quito
-     */
+    /** Quita una cancion de una lista. */
     public boolean quitarCancion(Playlist lista, Cancion cancion) {
         if (lista == null || cancion == null || !lista.quitar(cancion.getId())) {
             return false;
@@ -202,15 +144,7 @@ public class PlaylistService {
         return true;
     }
 
-    /**
-     * Saca de todas las listas las canciones que ya no existen en la biblioteca.
-     *
-     * <p>Se llama despues de borrar canciones. Sin esto, los identificadores huerfanos se quedan
-     * para siempre en el archivo y los contadores del selector mienten.</p>
-     *
-     * @param biblioteca de donde se sacan los identificadores que siguen siendo validos
-     * @return cuantas referencias se descartaron
-     */
+    /** Saca de todas las listas las canciones que ya no existen en la biblioteca. */
     public int limpiarHuerfanas(BibliotecaService biblioteca) {
         Set<String> vigentes = new HashSet<>();
         for (Cancion cancion : biblioteca.todas()) {
@@ -226,15 +160,9 @@ public class PlaylistService {
         return descartadas;
     }
 
-    // ------------------------------------------------------------------
-    // Persistencia
-    // ------------------------------------------------------------------
+    // --- Persistencia ---
 
-    /**
-     * Carga las listas del disco, reemplazando las que hubiera en memoria.
-     *
-     * @return cuantas listas se cargaron
-     */
+    /** Carga las listas del disco, reemplazando las que hubiera en memoria. */
     public int cargarDesdeDisco() {
         listas.clear();
         if (!Files.isRegularFile(archivo)) {
@@ -255,12 +183,7 @@ public class PlaylistService {
         return listas.size();
     }
 
-    /**
-     * Lee una lista del JSON, descartando lo que no tenga sentido.
-     *
-     * @param elemento elemento del arreglo
-     * @return la lista, o vacio si el elemento no vale
-     */
+    /** Lee una lista del JSON, descartando lo que no tenga sentido. */
     private static Optional<Playlist> leerUna(JsonElement elemento) {
         if (!elemento.isJsonObject()) {
             return Optional.empty();
@@ -287,14 +210,7 @@ public class PlaylistService {
         }
     }
 
-    /**
-     * Escribe las listas en el disco.
-     *
-     * <p>Con temporal y movimiento, como la biblioteca: si el proceso muere a mitad, el archivo
-     * viejo queda intacto en vez de quedar uno truncado.</p>
-     *
-     * @return {@code true} si se pudo guardar
-     */
+    /** Escribe las listas en el disco. */
     public boolean guardar() {
         JsonArray arreglo = new JsonArray();
         for (Playlist lista : listas) {

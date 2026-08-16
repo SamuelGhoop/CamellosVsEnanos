@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Pruebas del {@link ModoAleatorio}: circularidad infinita en ambos sentidos. */
 @DisplayName("Modo 1 - Aleatorio (lista circular doble)")
 class ModoAleatorioTest {
-
     private ModoAleatorio modo;
     private List<Cancion> biblioteca;
 

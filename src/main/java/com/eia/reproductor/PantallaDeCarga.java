@@ -18,23 +18,12 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Ventana de bienvenida que se ve mientras la aplicacion termina de arrancar.
- *
- * <p><b>Por que hace falta.</b> Entre que se lanza el proceso y aparece la ventana principal pasan
- * varios segundos: se registra la tipografia, se carga el FXML, se lee la biblioteca del disco y se
- * levanta el audio. Sin nada en pantalla, parece que no se abrio y la gente vuelve a hacer doble
- * clic.</p>
- *
- * <p>Es deliberadamente ligera —una imagen y una etiqueta, sin FXML ni hoja de estilos— porque
- * cargar cualquiera de esas dos cosas la retrasaria justo lo que intenta disimular.</p>
- */
+/** Ventana de bienvenida que se ve mientras la aplicacion termina de arrancar. */
 public final class PantallaDeCarga {
-
     /** Ancho de la ventanita; el alto lo pone el contenido. */
     private static final double ANCHO = 340;
 
-    /** Escala del logo. El original mide 192x187, que se queda corto para una portada. */
+    /** Escala del logo. */
     private static final double ESCALA_LOGO = 1.4;
 
     /** Cada cuanto avanzan los puntos suspensivos del texto. */
@@ -91,11 +80,7 @@ public final class PantallaDeCarga {
         puntos.play();
     }
 
-    /**
-     * Cambia el texto de estado, para que se vea que el arranque avanza.
-     *
-     * @param texto que se esta haciendo ahora mismo
-     */
+    /** Cambia el texto de estado, para que se vea que el arranque avanza. */
     public void informar(String texto) {
         mensaje.setText(texto.toUpperCase(java.util.Locale.ROOT));
     }

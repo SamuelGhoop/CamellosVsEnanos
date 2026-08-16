@@ -19,32 +19,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Dibuja la estructura de datos que el modo activo tiene cargada en este momento.
- *
- * <p>No es una ilustracion fija: recibe la forma real y la pinta. Si el arbol degenera porque las
- * canciones entraron ya ordenadas, se ve degenerar; si la cola se vacia, se ve vaciarse.</p>
- *
- * <p>El {@code switch} sobre {@link EstructuraVisual} no lleva {@code default} a proposito: como
- * el tipo es sellado, el compilador comprueba que estan los tres casos. Si algun dia se agrega un
- * cuarto modo, el proyecto no compilara hasta decidir como se dibuja, en vez de mostrar un panel
- * en blanco.</p>
- */
+/** Dibuja la estructura de datos que el modo activo tiene cargada en este momento. */
 public class VisualizadorEstructura {
-
-    /** Lo que se ve sin desplazarse. El lienzo puede ser mayor y entonces aparece la barra. */
+    /** Lo que se ve sin desplazarse. */
     private static final double ANCHO_VISIBLE = 760;
     private static final double ALTO_VISIBLE = 400;
 
     private static final double ANCHO_CAJA = 116;
     private static final double ALTO_CAJA = 30;
 
-    /**
-     * Distancia entre columnas del arbol.
-     *
-     * <p>Es mayor que la caja a proposito: al repartir una columna por nodo, esta separacion es la
-     * que garantiza que dos cajas no puedan tocarse nunca.</p>
-     */
+    /** Distancia entre columnas del arbol. */
     private static final double PASO_COLUMNA = ANCHO_CAJA + 10;
     private static final double PASO_NIVEL = 52;
     private static final double MARGEN = 20;
@@ -53,17 +37,7 @@ public class VisualizadorEstructura {
     private static final double MARGEN_PANTALLA_ANCHO = 120;
     private static final double MARGEN_PANTALLA_ALTO = 200;
 
-    /**
-     * Los colores del dibujo, que hay que repetir aqui y no en la hoja de estilos.
-     *
-     * <p>El CSS no alcanza al interior de un {@code Canvas}: lo que se pinta con el pincel no son
-     * nodos con clases, son pixeles. Por eso las dos paletas estan copiadas del CSS a mano. Los
-     * valores son los mismos que definen {@code .root} y {@code .root.tema-claro} en
-     * {@code estilos.css}: si alli se cambia un color, hay que cambiarlo aqui.</p>
-     *
-     * @param resalte el color de la cancion en curso: cian con el traje negro, rojo en el tema
-     *                claro, igual que el resto de la interfaz
-     */
+    /** Los colores del dibujo, que hay que repetir aqui y no en la hoja de estilos. */
     private record Paleta(Color fondo, Color caja, Color borde, Color texto,
                           Color resalte, Color apagado) { }
 
@@ -118,11 +92,7 @@ public class VisualizadorEstructura {
         return nodo;
     }
 
-    /**
-     * Repinta el panel con el estado actual de la estructura.
-     *
-     * @param estructura descripcion que entrega el modo activo
-     */
+    /** Repinta el panel con el estado actual de la estructura. */
     public void mostrar(EstructuraVisual estructura) {
         if (estructura == null) {
             return;
@@ -139,13 +109,7 @@ public class VisualizadorEstructura {
         }
     }
 
-    /**
-     * Ajusta el lienzo y el hueco por el que se ve.
-     *
-     * <p>El hueco crece con el dibujo hasta donde da la pantalla: asi un arbol de diez niveles se
-     * ve entero sin tener que desplazarse, y uno enorme sigue cabiendo en el monitor y se desplaza.
-     * Sin esto la ventana se quedaba con el alto de por defecto y cortaba el arbol por abajo.</p>
-     */
+    /** Ajusta el lienzo y el hueco por el que se ve. */
     private void redimensionar(double ancho, double alto) {
         lienzo.setWidth(Math.max(ancho, ANCHO_VISIBLE));
         lienzo.setHeight(Math.max(alto, ALTO_VISIBLE));
@@ -157,13 +121,7 @@ public class VisualizadorEstructura {
                 Math.min(lienzo.getHeight(), pantalla.getHeight() - MARGEN_PANTALLA_ALTO));
     }
 
-    /**
-     * Mira el tema de la ventana y elige la paleta.
-     *
-     * <p>Se consulta la escena en vez de recibir el tema por parametro: la clase ya esta puesta en
-     * la raiz, y preguntarla evita tener que enterar al visualizador cada vez que alguien toque el
-     * boton del tema.</p>
-     */
+    /** Mira el tema de la ventana y elige la paleta. */
     private void elegirPaleta() {
         boolean claro = nodo.getScene() != null
                 && nodo.getScene().getRoot().getStyleClass().contains("tema-claro");
@@ -189,16 +147,9 @@ public class VisualizadorEstructura {
         return pincel;
     }
 
-    // ------------------------------------------------------------------
-    // Lista circular doble
-    // ------------------------------------------------------------------
+    // --- Lista circular doble ---
 
-    /**
-     * Dibuja el anillo en circulo, con el cursor en el centro.
-     *
-     * <p>Se pinta en circulo y no en fila justamente para que se vea que no hay principio ni
-     * final: es lo que distingue a esta estructura de una lista normal.</p>
-     */
+    /** Dibuja el anillo en circulo, con el cursor en el centro. */
     private void dibujarAnillo(EstructuraVisual.Anillo anillo) {
         int cuantos = anillo.etiquetas().size();
         if (cuantos == 0) {
@@ -254,9 +205,7 @@ public class VisualizadorEstructura {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Cola FIFO
-    // ------------------------------------------------------------------
+    // --- Cola FIFO ---
 
     private void dibujarCola(EstructuraVisual.Cola cola) {
         leyenda.setText("Entra por la derecha y sale por la izquierda. Las que ya sonaron "
@@ -294,29 +243,12 @@ public class VisualizadorEstructura {
                 12, lienzo.getHeight() - 10);
     }
 
-    // ------------------------------------------------------------------
-    // Arbol binario de busqueda
-    // ------------------------------------------------------------------
+    // --- Arbol binario de busqueda ---
 
     /** Un nodo ya colocado, para poder pintar todas las lineas antes que todas las cajas. */
     private record Colocado(String etiqueta, double x, double y, boolean resaltado) { }
 
-    /**
-     * Dibuja el arbol colocando cada subarbol entero y apartandolos solo lo justo.
-     *
-     * <p><b>Los dos intentos anteriores y por que fallaron.</b> Partir el ancho a la mitad en cada
-     * nivel deja separaciones de 180, 90, 45, 22, 11... y a partir del cuarto nivel son menores que
-     * una caja: los nodos se pisan, y peor cuanto mas degenerado esta el arbol, que es justo el
-     * caso que hay que ensenar. Correr a la derecha el nodo suelto que choca arregla el solape pero
-     * rompe la lectura: el empujon puede dejar al padre encima de su propio hijo derecho, y
-     * entonces no se ve cual es el hijo izquierdo y cual el derecho.</p>
-     *
-     * <p>Lo que se hace es apartar el <b>subarbol completo</b>. Con eso, respecto de cada padre sus
-     * hijos caen siempre del lado que les toca. Lo que <i>no</i> se cumple —y por eso la leyenda no
-     * lo promete— es que barrer el dibujo de izquierda a derecha de una punta a otra de el orden
-     * alfabetico: en un dibujo compacto un nieto puede quedar mas a la izquierda que su abuelo.
-     * Para eso hay que recorrer el arbol, que es precisamente lo que hace el modo.</p>
-     */
+    /** Dibuja el arbol colocando cada subarbol entero y apartandolos solo lo justo. */
     private void dibujarArbol(EstructuraVisual.Arbol arbol) {
         if (arbol.raiz() == null) {
             redimensionar(ANCHO_VISIBLE, ALTO_VISIBLE);
@@ -327,7 +259,6 @@ public class VisualizadorEstructura {
         int altura = arbol.raiz().altura();
         // Se habla del hijo respecto de SU padre, no de barrer el dibujo con la vista: en un
         // dibujo compacto un nieto del subárbol derecho puede quedar más a la izquierda que su
-        // abuelo, así que prometer "de izquierda a derecha sale el orden alfabético" sería falso.
         leyenda.setText("De cada canción cuelgan a la izquierda las anteriores alfabéticamente y "
                 + "a la derecha las posteriores. " + cuantos + " canciones, altura " + altura
                 + ". Recorrer el árbol por la izquierda, la raíz y la derecha da el orden en que "
@@ -336,7 +267,6 @@ public class VisualizadorEstructura {
 
         // Las coordenadas salen relativas y pueden ser negativas: el subarbol izquierdo de la raiz
         // crece hacia la izquierda del origen. Se corren todas para que la de mas a la izquierda
-        // caiga en el margen.
         Disposicion disposicion = disponer(arbol.raiz(), 0, arbol.actual());
         double masALaIzquierda = Double.MAX_VALUE;
         double masALaDerecha = 0;
@@ -369,18 +299,7 @@ public class VisualizadorEstructura {
     /** Un subarbol ya colocado, con sus coordenadas todavia relativas. */
     private record Disposicion(List<Colocado> nodos, List<double[]> lineas, double xRaiz) { }
 
-    /**
-     * Une padre e hijo con tres tramos en escuadra en vez de una diagonal.
-     *
-     * <p><b>Por que no una recta.</b> En un dibujo apretado la diagonal de un padre a su hijo pasa
-     * rozando otras cajas, y entonces no se sabe de quien cuelga cada cual: en una prueba real se
-     * leyo "Esas Cosas" como hija de "Dream On" cuando en realidad lo es de "Roger Federer". Con
-     * la escuadra, cada hijo recibe un tramo vertical que aterriza justo en el centro de su borde
-     * superior, y el recorrido se puede seguir con el dedo sin dudar.</p>
-     *
-     * @param xPadre centro del padre; {@code yPadre} es su borde inferior
-     * @param xHijo  centro del hijo;  {@code yHijo}  es su borde superior
-     */
+    /** Une padre e hijo con tres tramos en escuadra en vez de una diagonal. */
     private static void escuadra(GraphicsContext pincel,
                                  double xPadre, double yPadre, double xHijo, double yHijo) {
         double yMedio = (yPadre + yHijo) / 2;
@@ -389,22 +308,7 @@ public class VisualizadorEstructura {
         pincel.strokeLine(xHijo, yMedio, xHijo, yHijo);
     }
 
-    /**
-     * Coloca un subarbol entero: primero el izquierdo, luego el derecho, y el padre encima.
-     *
-     * <p><b>Por que se desplaza el subarbol completo y no el nodo suelto.</b> Lo barato es correr
-     * a la derecha solo el nodo que choca, pero ese empujon lo puede dejar encima —o incluso a la
-     * derecha— de su propio hijo derecho, y entonces el dibujo deja de leerse: la leyenda promete
-     * "izquierda = antes alfabeticamente" y el arbol dice otra cosa. Aqui, cuando el subarbol
-     * derecho chocaria con el izquierdo, se aparta <i>entero</i>, con sus hijos y sus lineas. Asi
-     * el subarbol izquierdo queda siempre completamente a la izquierda del derecho y leer el
-     * dibujo de izquierda a derecha da el orden alfabetico, que es justo lo que hay que ensenar.</p>
-     *
-     * <p>Se copian listas en cada union, asi que es O(n²) en el peor caso. Con una biblioteca de
-     * canciones eso es irrelevante, y a cambio el algoritmo cabe en una pantalla.</p>
-     *
-     * @return el subarbol colocado, o {@code null} si la rama esta vacia
-     */
+    /** Coloca un subarbol entero: primero el izquierdo, luego el derecho, y el padre encima. */
     private Disposicion disponer(EstructuraVisual.Rama rama, int nivel, String actual) {
         if (rama == null) {
             return null;
@@ -444,13 +348,7 @@ public class VisualizadorEstructura {
         return new Disposicion(nodos, lineas, x);
     }
 
-    /**
-     * Cuanto hay que apartar el subarbol derecho para que no toque al izquierdo.
-     *
-     * <p>Se comparan nivel por nivel: en cada altura, lo mas a la derecha que llega el subarbol
-     * izquierdo contra lo mas a la izquierda que empieza el derecho. El desplazamiento es el mayor
-     * de todos, para que no quede ni un solape a ninguna profundidad.</p>
-     */
+    /** Cuanto hay que apartar el subarbol derecho para que no toque al izquierdo. */
     private static double separacionNecesaria(Disposicion izquierda, Disposicion derecha) {
         Map<Double, Double> topeIzquierdo = new HashMap<>();
         for (Colocado nodo : izquierda.nodos()) {
@@ -496,16 +394,9 @@ public class VisualizadorEstructura {
         return 1 + contar(rama.izquierdo()) + contar(rama.derecho());
     }
 
-    // ------------------------------------------------------------------
-    // Piezas comunes
-    // ------------------------------------------------------------------
+    // --- Piezas comunes ---
 
-    /**
-     * Una caja con su etiqueta, resaltada si es la cancion en curso.
-     *
-     * @param x centro horizontal de la caja
-     * @param y borde superior de la caja
-     */
+    /** Una caja con su etiqueta, resaltada si es la cancion en curso. */
     private void caja(GraphicsContext pincel, double x, double y,
                       String etiqueta, boolean resaltada) {
         double izquierda = x - ANCHO_CAJA / 2;
@@ -526,13 +417,7 @@ public class VisualizadorEstructura {
                 lienzo.getHeight() / 2);
     }
 
-    /**
-     * Recorta la etiqueta a lo que de verdad cabe en la caja.
-     *
-     * <p>Se mide el texto en vez de contar caracteres: con una fuente de ancho fijo la cuenta
-     * seria equivalente, pero si la fuente pixel no esta instalada JavaFX cae en otra de ancho
-     * variable y una cuenta fija dejaria los titulos cortados a media palabra o desbordados.</p>
-     */
+    /** Recorta la etiqueta a lo que de verdad cabe en la caja. */
     private String recortar(String texto) {
         if (texto == null) {
             return "";

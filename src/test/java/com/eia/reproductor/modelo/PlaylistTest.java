@@ -17,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Pruebas de la lista de reproduccion hecha por el usuario. */
 @DisplayName("Playlist")
 class PlaylistTest {
-
     private Playlist lista;
 
     @BeforeEach
@@ -28,7 +27,6 @@ class PlaylistTest {
     @Nested
     @DisplayName("Nombre")
     class Nombre {
-
         @Test
         @DisplayName("Se recortan los espacios de los extremos")
         void recortaEspacios() {
@@ -75,7 +73,6 @@ class PlaylistTest {
     @Nested
     @DisplayName("Canciones")
     class Canciones {
-
         @Test
         @DisplayName("Conserva el orden en que se agregaron")
         void conservaElOrden() {
@@ -139,7 +136,6 @@ class PlaylistTest {
     @Nested
     @DisplayName("Limpieza de huérfanas")
     class Huerfanas {
-
         @Test
         @DisplayName("Descarta las canciones que ya no están en la biblioteca")
         void descartaLasQueYaNoExisten() {
@@ -176,7 +172,6 @@ class PlaylistTest {
     @Nested
     @DisplayName("Identidad")
     class Identidad {
-
         @Test
         @DisplayName("Dos listas con el mismo nombre son distintas")
         void mismoNombreNoEsLaMismaLista() {

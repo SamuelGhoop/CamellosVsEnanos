@@ -8,19 +8,8 @@ import javafx.scene.image.ImageView;
 import java.io.InputStream;
 import java.util.Objects;
 
-/**
- * El personaje que se queda de pie sobre su plataforma, en la esquina inferior derecha.
- *
- * <p>Anima sin parar mientras la aplicacion este abierta: es un adorno fijo, no reacciona a nada.</p>
- *
- * <p><b>Como se apoya.</b> El sprite tiene 119 px de alto pero el dibujo termina en la fila 114:
- * debajo hay cuatro pixeles de aire. Si se alineara por el borde inferior del cuadro, el personaje
- * quedaria flotando cuatro pixeles sobre la plataforma. Por eso se alinea por
- * {@link AjustesAnimacion#CENTINELA_FILA_PIES}, la fila real de los pies, y se le resta un pequenio
- * apoyo para que se vea parado encima y no despegado.</p>
- */
+/** El personaje que se queda de pie sobre su plataforma, en la esquina inferior derecha. */
 public class CentinelaEsquina {
-
     private final Group grupo = new Group();
     private final SpriteAnimado sprite;
     private final double ancho;
@@ -90,15 +79,7 @@ public class CentinelaEsquina {
         return alto;
     }
 
-    /**
-     * Recoloca el conjunto en la esquina inferior izquierda del area disponible.
-     *
-     * <p>La capa que lo contiene llama a este metodo cada vez que la ventana cambia de tamanio,
-     * asi que la posicion se recalcula sola en lugar de quedar fija.</p>
-     *
-     * @param anchoDisponible ancho del area
-     * @param altoDisponible  alto del area
-     */
+    /** Recoloca el conjunto en la esquina inferior izquierda del area disponible. */
     public void recolocar(double anchoDisponible, double altoDisponible) {
         grupo.setLayoutX(AjustesAnimacion.CENTINELA_MARGEN_IZQUIERDO);
         grupo.setLayoutY(altoDisponible - alto - AjustesAnimacion.CENTINELA_MARGEN_INFERIOR);
@@ -121,11 +102,7 @@ public class CentinelaEsquina {
             throw new IllegalStateException("No se pudo cargar la imagen " + ruta, excepcion);
         }
     }
-    /**
-     * Cambia entre el traje rojo y el negro.
-     *
-     * @param oscuro {@code true} para el traje negro del tema oscuro
-     */
+    /** Cambia entre el traje rojo y el negro. */
     public void usarTrajeNegro(boolean oscuro) {
         sprite.cambiarHoja(oscuro
                 ? AjustesAnimacion.RUTA_CENTINELA_NEGRO

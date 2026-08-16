@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Pruebas del {@link ModoOrdenLlegada}: FIFO estricto y sin marcha atras. */
 @DisplayName("Modo 2 - Orden de llegada (cola simple)")
 class ModoOrdenLlegadaTest {
-
     private ModoOrdenLlegada modo;
     private List<Cancion> biblioteca;
     private Cancion primera;

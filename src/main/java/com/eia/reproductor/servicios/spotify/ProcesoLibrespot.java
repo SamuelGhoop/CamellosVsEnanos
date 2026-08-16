@@ -9,45 +9,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Lanza y vigila el proceso externo de librespot.
- *
- * <p>librespot es el que de verdad reproduce: se registra en Spotify Connect como un dispositivo
- * mas, y la aplicacion le manda ordenes por la Web API. Esta clase se encarga de arrancarlo, de
- * confirmar que Spotify lo ve, y sobre todo de que no quede vivo cuando la aplicacion se cierre.</p>
- *
- * <p><b>Como se autentica.</b> Con {@code --enable-oauth}, o sea con su propio inicio de sesion en
- * el navegador. No se le pasa el token de la aplicacion, y la razon esta en el codigo fuente de
- * librespot 0.8.0: los permisos que necesita para actuar como dispositivo incluyen
- * {@code streaming} y {@code app-remote-control}, que nuestro token no pide a proposito. Ademas
- * librespot usa su propio {@code client_id} interno, sin opcion de cambiarlo. Son dos sesiones
- * independientes, y esta bien que lo sean: la nuestra queda con los permisos minimos.</p>
- *
- * <p>librespot guarda sus credenciales en su carpeta de cache, asi que ese inicio de sesion ocurre
- * una sola vez y no en cada arranque.</p>
- *
- * <p><b>Nada de procesos huerfanos.</b> Se registra un gancho de cierre de la maquina virtual, y al
- * detener se pide primero un cierre ordenado y, si no obedece en cinco segundos, se lo mata. Un
- * librespot olvidado seguiria apareciendo como dispositivo y robandole la reproduccion al
- * siguiente arranque.</p>
- */
+/** Lanza y vigila el proceso externo de librespot. */
 public class ProcesoLibrespot implements AutoCloseable {
-
     /** Ubicacion del registro de librespot, relativa a la carpeta de ejecucion. */
     public static final Path RUTA_LOG = Path.of("logs", "librespot.log");
 
     /** Carpeta de cache de librespot; ahi guarda sus credenciales y el audio. */
     private static final Path RUTA_CACHE = Path.of("data", "librespot-cache");
 
-    /**
-     * Donde se anota el identificador del proceso lanzado.
-     *
-     * <p><b>Por que un archivo y no buscar el proceso por su linea de comandos.</b> En Windows
-     * {@code ProcessHandle.Info} devuelve el ejecutable pero <b>no</b> los argumentos: tanto
-     * {@code arguments()} como {@code commandLine()} vienen vacios. Sin argumentos no hay forma de
-     * distinguir nuestro librespot del que el usuario pueda tener corriendo, asi que se anota el
-     * identificador al lanzarlo y se lee en el arranque siguiente.</p>
-     */
+    /** Donde se anota el identificador del proceso lanzado. */
     private static final Path RUTA_PID = RUTA_CACHE.resolve("librespot.pid");
 
     /** Cuanto se espera a que Spotify reconozca el dispositivo antes de rendirse. */
@@ -67,30 +37,13 @@ public class ProcesoLibrespot implements AutoCloseable {
     private DispositivoSpotify dispositivo;
     private String ultimoAviso;
 
-    /**
-     * Crea el vigilante del proceso.
-     *
-     * @param configuracion datos de {@code config/spotify.properties}
-     * @param api           cliente con el que se comprueba que Spotify ve el dispositivo
-     */
+    /** Crea el vigilante del proceso. */
     public ProcesoLibrespot(ConfiguracionSpotify configuracion, ClienteWebApiSpotify api) {
         this.configuracion = configuracion;
         this.api = api;
     }
 
-    /**
-     * Arranca librespot y espera a que Spotify lo reconozca.
-     *
-     * <p>El exito no es "el proceso arranco": es "Spotify ya lo lista como dispositivo". Esa
-     * diferencia importa, porque entre lo uno y lo otro hay varios segundos de conexion, y
-     * transferirle la reproduccion antes de tiempo falla con un 404 dificil de interpretar. Por eso
-     * se consulta la API en vez de dormir un rato y confiar.</p>
-     *
-     * <p>Bloquea hasta que el dispositivo aparece o se agota la espera. No llamar desde el hilo de
-     * la interfaz.</p>
-     *
-     * @return {@code true} si librespot quedo registrado y utilizable
-     */
+    /** Arranca librespot y espera a que Spotify lo reconozca. */
     public synchronized boolean iniciar() {
         if (activo()) {
             return true;
@@ -133,11 +86,7 @@ public class ProcesoLibrespot implements AutoCloseable {
         return Optional.ofNullable(ultimoAviso);
     }
 
-    /**
-     * Detiene librespot, por las buenas o por las malas.
-     *
-     * <p>Es idempotente: llamarlo dos veces no hace dano.</p>
-     */
+    /** Detiene librespot, por las buenas o por las malas. */
     public synchronized void detener() {
         quitarGanchoDeCierre();
         matar(proceso);
@@ -151,16 +100,9 @@ public class ProcesoLibrespot implements AutoCloseable {
         detener();
     }
 
-    // ------------------------------------------------------------------
-    // Construccion del comando
-    // ------------------------------------------------------------------
+    // --- Construccion del comando ---
 
-    /**
-     * Arma la linea de comandos.
-     *
-     * <p>Todas las opciones estan verificadas contra el codigo fuente de librespot 0.8.0, no contra
-     * la memoria ni contra guias de internet.</p>
-     */
+    /** Arma la linea de comandos. */
     private List<String> argumentos(Path ejecutable) {
         List<String> comando = new ArrayList<>();
         comando.add(ejecutable.toString());
@@ -177,8 +119,6 @@ public class ProcesoLibrespot implements AutoCloseable {
 
         // Sin esto se oye muy bajo. Los valores por defecto de librespot son volumen al 50 % y
         // curva logaritmica, y un 50 % logaritmico ronda los -30 dB: casi un susurro. Se arranca
-        // al maximo y con curva lineal, que ademas es la que espera cualquiera al mover un control
-        // de volumen. El volumen real lo sigue mandando el del sistema.
         comando.add("--initial-volume");
         comando.add(String.valueOf(configuracion.volumenInicial()));
         comando.add("--volume-ctrl");
@@ -204,11 +144,7 @@ public class ProcesoLibrespot implements AutoCloseable {
         return comando;
     }
 
-    /**
-     * Busca el ejecutable de librespot.
-     *
-     * @return la ruta, o vacio si no esta instalado
-     */
+    /** Busca el ejecutable de librespot. */
     static Optional<Path> localizarEjecutable() {
         // cargo instala aqui, y esta carpeta no siempre esta en el PATH de la sesion actual.
         Path enCargo = Path.of(System.getProperty("user.home"), ".cargo", "bin", nombreEjecutable());
@@ -233,15 +169,9 @@ public class ProcesoLibrespot implements AutoCloseable {
                 : "librespot";
     }
 
-    // ------------------------------------------------------------------
-    // Health check
-    // ------------------------------------------------------------------
+    // --- Health check ---
 
-    /**
-     * Pregunta a Spotify hasta que el dispositivo aparezca.
-     *
-     * @return {@code true} si Spotify termino viendolo
-     */
+    /** Pregunta a Spotify hasta que el dispositivo aparezca. */
     private boolean esperarRegistroEnSpotify() {
         long limite = System.currentTimeMillis() + ESPERA_REGISTRO.toMillis();
         while (System.currentTimeMillis() < limite) {
@@ -292,22 +222,9 @@ public class ProcesoLibrespot implements AutoCloseable {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Ciclo de vida del proceso
-    // ------------------------------------------------------------------
+    // --- Ciclo de vida del proceso ---
 
-    /**
-     * Mata los librespot que hayan sobrevivido a una sesion anterior de la aplicacion.
-     *
-     * <p><b>Por que hace falta.</b> El gancho de cierre cubre el cierre normal y las excepciones no
-     * capturadas, pero <b>no</b> cubre que maten el proceso a la fuerza —desde el administrador de
-     * tareas o con {@code Stop-Process -Force}—, porque en ese caso la maquina virtual no ejecuta
-     * nada. Un librespot olvidado seguiria apareciendo como dispositivo y le robaria la
-     * reproduccion al arranque siguiente, asi que se limpia antes de lanzar el nuestro.</p>
-     *
-     * <p>Solo se matan los que llevan <i>nuestro</i> nombre de dispositivo en la linea de comandos:
-     * si el usuario tiene su propio librespot corriendo para otra cosa, no se toca.</p>
-     */
+    /** Mata los librespot que hayan sobrevivido a una sesion anterior de la aplicacion. */
     private void barrerHuerfanosDeSesionesAnteriores() {
         leerPidGuardado(RUTA_PID)
                 .flatMap(ProcessHandle::of)
@@ -316,28 +233,14 @@ public class ProcesoLibrespot implements AutoCloseable {
         borrarPidGuardado();
     }
 
-    /**
-     * Comprueba que un identificador reutilizado no nos haga matar otra cosa.
-     *
-     * <p>El sistema recicla los identificadores de proceso. Si entre una sesion y otra el numero
-     * quedo asignado a otro programa, matarlo seria un desastre; por eso se verifica que el
-     * ejecutable siga siendo librespot antes de tocarlo.</p>
-     *
-     * @param candidato proceso apuntado por el identificador guardado
-     * @return {@code true} si de verdad es un librespot
-     */
+    /** Comprueba que un identificador reutilizado no nos haga matar otra cosa. */
     static boolean pareceLibrespot(ProcessHandle candidato) {
         return candidato.info().command()
                 .map(comando -> comando.toLowerCase(java.util.Locale.ROOT).contains("librespot"))
                 .orElse(false);
     }
 
-    /**
-     * Lee el identificador de proceso de la sesion anterior.
-     *
-     * @param archivo archivo donde se anoto
-     * @return el identificador, o vacio si no hay o esta corrupto
-     */
+    /** Lee el identificador de proceso de la sesion anterior. */
     static Optional<Long> leerPidGuardado(Path archivo) {
         try {
             if (!Files.isRegularFile(archivo)) {
@@ -366,12 +269,7 @@ public class ProcesoLibrespot implements AutoCloseable {
         }
     }
 
-    /**
-     * Registra un gancho que mata librespot si la maquina virtual termina.
-     *
-     * <p>Cubre lo que {@code detener()} no alcanza a cubrir: que cierren la aplicacion desde el
-     * administrador de tareas, o que reviente con una excepcion no capturada.</p>
-     */
+    /** Registra un gancho que mata librespot si la maquina virtual termina. */
     private void registrarGanchoDeCierre() {
         Process aMatar = proceso;
         ganchoDeCierre = new Thread(() -> matar(aMatar), "cerrar-librespot");
@@ -390,11 +288,7 @@ public class ProcesoLibrespot implements AutoCloseable {
         ganchoDeCierre = null;
     }
 
-    /**
-     * Cierra el proceso con un margen antes de forzarlo.
-     *
-     * @param aMatar proceso a cerrar; admite {@code null}
-     */
+    /** Cierra el proceso con un margen antes de forzarlo. */
     private static void matar(Process aMatar) {
         if (aMatar == null || !aMatar.isAlive()) {
             return;

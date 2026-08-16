@@ -13,32 +13,17 @@ import java.io.File;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-/**
- * Reproduce archivos MP3 y WAV del disco con {@link MediaPlayer}.
- *
- * <p>Es la fuente que cubre la bonificacion de "reproduccion real" del enunciado, y no necesita
- * ninguna dependencia externa: {@code javafx-media} ya esta en el proyecto.</p>
- *
- * <p><b>Excepcion a la regla de capas.</b> Este es el unico archivo de {@code servicios} que
- * importa {@code javafx.scene.*}, porque {@code MediaPlayer} vive en {@code javafx.scene.media} y
- * no existe alternativa en el JDK. Aun asi no toca la interfaz grafica: publica su avance por
- * propiedades observables y quien quiera pintarlo se ata a ellas.</p>
- *
- * <p><b>Sobre la duracion.</b> Un MP3 no conoce su duracion hasta que se lee su cabecera, asi que
- * al principio vale cero y se rellena en {@code setOnReady}. La barra de progreso tiene que
- * tolerar ese instante en que la duracion todavia no se sabe.</p>
- */
+/** Reproduce archivos MP3 y WAV del disco con {@link MediaPlayer}. */
 public class AudioLocalService implements ReproductorAudio {
-
     private static final String[] EXTENSIONES = {".mp3", ".wav"};
 
-    /** Cada cuanto entrega MediaPlayer un analisis nuevo. 20 veces por segundo va fluido. */
+    /** Cada cuanto entrega MediaPlayer un analisis nuevo. */
     private static final double INTERVALO_ESPECTRO_SEGUNDOS = 0.05;
 
-    /** Por debajo de este nivel se considera silencio. Es el suelo de la escala. */
+    /** Por debajo de este nivel se considera silencio. */
     private static final int UMBRAL_ESPECTRO_DB = -60;
 
-    /** Curva que realza los niveles bajos. Menor que 1 levanta las barras; 1 las deja lineales. */
+    /** Curva que realza los niveles bajos. */
     private static final double EXPONENTE_REALCE = 0.6;
 
     private final ReadOnlyLongWrapper posicionMs = new ReadOnlyLongWrapper(0);
@@ -49,7 +34,7 @@ public class AudioLocalService implements ReproductorAudio {
     private Runnable alTerminarPista;
     private Consumer<String> alFallar;
 
-    /** Nivel de 0 a 1. Empieza al maximo, igual que la barra de la interfaz. */
+    /** Nivel de 0 a 1. */
     private double volumen = 1.0;
 
     private Consumer<double[]> oyenteDelEspectro;
@@ -180,12 +165,8 @@ public class AudioLocalService implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Aqui si se puede: {@code MediaPlayer} hace el analisis de frecuencias por su cuenta y
-     * entrega las magnitudes ya calculadas. Llegan en decibelios, desde el umbral configurado
-     * hasta cero, y se convierten a una fraccion de 0 a 1 para que quien pinte las barras no
-     * tenga que saber nada de decibelios.</p>
+     * {@inheritDoc} Aqui si se puede: {@code MediaPlayer} hace el analisis de frecuencias por su
+     * cuenta y entrega las magnitudes ya calculadas.
      */
     @Override
     public void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
@@ -196,7 +177,7 @@ public class AudioLocalService implements ReproductorAudio {
         }
     }
 
-    /** {@inheritDoc} <p>El audio se decodifica aqui dentro, asi que hay muestras que mirar.</p> */
+    /** {@inheritDoc} El audio se decodifica aqui dentro, asi que hay muestras que mirar. */
     @Override
     public boolean analizaEspectro() {
         return true;
@@ -218,7 +199,6 @@ public class AudioLocalService implements ReproductorAudio {
                 fraccion = Math.max(0, Math.min(1, fraccion));
                 // La escala de decibelios deja casi toda la musica apretada en la parte baja y
                 // las barras apenas se despegaban del suelo. La curva reparte mejor ese tramo,
-                // que es donde de verdad pasan las cosas.
                 niveles[i] = Math.pow(fraccion, EXPONENTE_REALCE);
             }
             oyenteDelEspectro.accept(niveles);
@@ -226,10 +206,9 @@ public class AudioLocalService implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Se guarda el nivel aunque no haya nada sonando, porque {@code MediaPlayer} se crea de
-     * nuevo con cada cancion: sin recordarlo, la siguiente arrancaria al volumen por defecto.</p>
+     * {@inheritDoc} Se guarda el nivel aunque no haya nada sonando, porque {@code MediaPlayer} se
+     * crea de nuevo con cada cancion: sin recordarlo, la siguiente arrancaria al volumen por
+     * defecto.
      */
     @Override
     public void setVolumen(int porcentaje) {
@@ -245,11 +224,7 @@ public class AudioLocalService implements ReproductorAudio {
         }
     }
 
-    /**
-     * Devuelve el archivo de la cancion si existe y tiene una extension soportada.
-     *
-     * @return el archivo, o {@code null} si no sirve
-     */
+    /** Devuelve el archivo de la cancion si existe y tiene una extension soportada. */
     static File archivoDe(Cancion cancion) {
         if (cancion == null || cancion.getRutaArchivo() == null
                 || cancion.getRutaArchivo().isBlank()) {

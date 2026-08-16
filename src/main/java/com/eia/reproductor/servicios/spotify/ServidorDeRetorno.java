@@ -16,25 +16,8 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Servidor minimo que recibe el retorno del navegador tras autorizar en Spotify.
- *
- * <p><b>Por que hace falta.</b> El flujo de OAuth termina con el navegador redirigiendo a una
- * direccion. Para que esa redireccion llegue a la aplicacion, tiene que haber algo escuchando en
- * esa direccion; de ahi el servidor. Se usa {@code com.sun.net.httpserver}, que ya viene en el JDK,
- * para no sumar ninguna dependencia por veinte lineas de HTTP.</p>
- *
- * <p><b>Vive lo minimo posible.</b> Se levanta justo antes de abrir el navegador y se apaga en
- * cuanto recibe el codigo, gracias a {@link AutoCloseable}. Escucha unicamente en
- * {@code 127.0.0.1}, nunca en todas las interfaces: asi el puerto no queda expuesto a la red del
- * salon ni un segundo.</p>
- *
- * <p><b>Sobre el parametro {@code state}.</b> Se genera al azar al iniciar y se compara al recibir
- * la respuesta. Si no coincide, la peticion se rechaza: es lo que impide que un tercero induzca al
- * navegador a entregar un codigo de otra sesion.</p>
- */
+/** Servidor minimo que recibe el retorno del navegador tras autorizar en Spotify. */
 final class ServidorDeRetorno implements AutoCloseable {
-
     private static final int SIN_COLA_DE_ESPERA = 0;
     private static final int CIERRE_INMEDIATO_SEGUNDOS = 0;
 
@@ -45,14 +28,7 @@ final class ServidorDeRetorno implements AutoCloseable {
     private String codigo;
     private String motivoDelFallo;
 
-    /**
-     * Levanta el servidor y queda escuchando.
-     *
-     * @param puerto         puerto local, tomado del redirect uri configurado
-     * @param ruta           ruta del callback, tomada del redirect uri configurado
-     * @param estadoEsperado valor aleatorio que la respuesta debe traer de vuelta
-     * @throws IOException si el puerto ya esta ocupado
-     */
+    /** Levanta el servidor y queda escuchando. */
     ServidorDeRetorno(int puerto, String ruta, String estadoEsperado) throws IOException {
         this.estadoEsperado = estadoEsperado;
         this.servidor = HttpServer.create(
@@ -62,12 +38,7 @@ final class ServidorDeRetorno implements AutoCloseable {
         this.servidor.start();
     }
 
-    /**
-     * Espera a que el navegador entregue el codigo.
-     *
-     * @param tiempoMaximo cuanto esperar antes de rendirse
-     * @return el codigo de autorizacion, o vacio si hubo fallo o se agoto la espera
-     */
+    /** Espera a que el navegador entregue el codigo. */
     Optional<String> esperarCodigo(Duration tiempoMaximo) {
         try {
             if (!respuestaRecibida.await(tiempoMaximo.toMillis(), TimeUnit.MILLISECONDS)) {

@@ -18,26 +18,8 @@ import javafx.util.Duration;
 
 import java.util.Random;
 
-/**
- * El personaje que baja colgado de una telarania cada tanto y despues vuelve a subir.
- *
- * <p>No esta siempre a la vista: espera un rato al azar, aparece por el borde superior, desciende
- * una distancia tambien al azar, se queda un momento y se recoge. Que la espera y la profundidad
- * cambien en cada visita es a proposito: una animacion que hace siempre lo mismo en el mismo sitio
- * cansa enseguida.</p>
- *
- * <p><b>Por que nunca estorba.</b> Tres cosas lo garantizan: la capa que lo contiene es
- * transparente al raton, asi que jamas intercepta un clic; el descenso se recorta para no entrar
- * en la franja inferior donde viven los botones
- * ({@link AjustesAnimacion#COLGANTE_ZONA_PROHIBIDA_ABAJO}); y aparece dentro de una franja
- * horizontal acotada, lejos de los bordes donde estan los controles.</p>
- *
- * <p>La telarania se dibuja como una linea desde el borde superior hasta el sprite. El propio
- * dibujo ya trae un trozo de red en su fila cero, asi que la linea se alinea con esa columna
- * ({@link AjustesAnimacion#COLGANTE_COLUMNA_TELARANA}) y las dos se ven como una sola.</p>
- */
+/** El personaje que baja colgado de una telarania cada tanto y despues vuelve a subir. */
 public class VisitanteColgante {
-
     private final Group grupo = new Group();
     private final Line telarana = new Line();
     private final SpriteAnimado sprite;
@@ -48,8 +30,6 @@ public class VisitanteColgante {
 
     /**
      * Altura del borde desde el que cuelga: el techo del area de contenido, no el de la ventana.
-     * El controlador la ata a la altura real de la cabecera, asi que si esta cambia de tamanio la
-     * telarania sigue naciendo en el sitio correcto.
      */
     private final DoubleProperty origenY = new SimpleDoubleProperty();
 
@@ -94,19 +74,12 @@ public class VisitanteColgante {
         return grupo;
     }
 
-    /**
-     * @return altura del borde superior desde el que cuelga; se ata a la altura de la cabecera
-     */
+    /** @return altura del borde superior desde el que cuelga; se ata a la altura de la cabecera */
     public DoubleProperty origenYProperty() {
         return origenY;
     }
 
-    /**
-     * Informa el tamanio del area por la que puede moverse.
-     *
-     * @param ancho ancho del area
-     * @param alto  alto del area
-     */
+    /** Informa el tamanio del area por la que puede moverse. */
     public void redimensionar(double ancho, double alto) {
         this.anchoDisponible = ancho;
         this.altoDisponible = alto;
@@ -133,9 +106,7 @@ public class VisitanteColgante {
         grupo.setVisible(false);
     }
 
-    // ------------------------------------------------------------------
-    // Apoyo interno
-    // ------------------------------------------------------------------
+    // --- Apoyo interno ---
 
     private void programarProximaVisita(Duration espera) {
         PauseTransition pausa = new PauseTransition(espera);
@@ -192,14 +163,13 @@ public class VisitanteColgante {
         telarana.setEndX(columna);
         // startY no se toca: esta atado a origenY. Asignarlo a mano lanza
         // "A bound value cannot be set" y se lleva por delante el hilo de la interfaz.
-        // El sprite se corre para que su propio trozo de red caiga sobre la columna elegida.
         sprite.nodo().setLayoutX(columna - AjustesAnimacion.COLGANTE_COLUMNA_TELARANA
                 * AjustesAnimacion.ESCALA);
     }
 
     /**
-     * Sortea cuanto baja, recortando el resultado para que el sprite entero quede por encima de
-     * la franja intocable.
+     * Sortea cuanto baja, recortando el resultado para que el sprite entero quede por encima de la
+     * franja intocable.
      */
     private double sortearProfundidad() {
         double tope = altoDisponible
@@ -224,11 +194,7 @@ public class VisitanteColgante {
         return grupo.isVisible() && visita != null
                 && visita.getStatus() == Animation.Status.RUNNING;
     }
-    /**
-     * Cambia entre el traje rojo y el negro.
-     *
-     * @param oscuro {@code true} para el traje negro del tema oscuro
-     */
+    /** Cambia entre el traje rojo y el negro. */
     public void usarTrajeNegro(boolean oscuro) {
         sprite.cambiarHoja(oscuro
                 ? AjustesAnimacion.RUTA_COLGANTE_NEGRO

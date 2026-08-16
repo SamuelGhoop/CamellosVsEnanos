@@ -18,15 +18,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Pruebas del dibujante de estructuras.
- *
- * <p>No comprueban que el dibujo sea bonito —eso hay que mirarlo— sino que ninguna forma lo tumbe.
- * Importa porque el visualizador se abre en la sustentacion: un arbol vacio, uno degenerado o un
- * titulo larguisimo no pueden reventar delante del profesor.</p>
- */
+/** Pruebas del dibujante de estructuras. */
 class VisualizadorEstructuraTest {
-
     @BeforeAll
     static void prepararEntorno() {
         assumeTrue(EntornoJavaFx.disponible(), "No hay entorno gráfico para levantar JavaFX.");

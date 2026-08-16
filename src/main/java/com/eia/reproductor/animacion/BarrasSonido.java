@@ -16,31 +16,15 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Ecualizador decorativo: unas barras que suben y bajan mientras hay musica.
- *
- * <p>Es la traduccion a JavaFX del bloque HTML/CSS de referencia. Las equivalencias son directas:
- * el {@code display:flex} con {@code align-items:flex-end} es un {@link HBox} alineado abajo, el
- * {@code gap} es el espaciado, y la animacion {@code equalizer} que va de {@code scaleY(0.2)} a
- * {@code scaleY(1)} con {@code alternate} es un {@link Timeline} de ida y vuelta.</p>
- *
- * <p><b>El unico punto delicado es el pivote.</b> En CSS una barra escalada verticalmente crece
- * desde su base porque el contenedor la alinea abajo. En JavaFX el escalado se aplica desde el
- * centro del nodo, asi que una barra crecería hacia los dos lados. Por eso cada barra lleva una
- * transformacion {@link Scale} con el pivote fijado en su borde inferior.</p>
- *
- * <p>Cuando no suena nada las barras se quedan quietas en su altura base, no desaparecen: asi la
- * fila no cambia de tamanio al empezar y parar la musica.</p>
- */
+/** Ecualizador decorativo: unas barras que suben y bajan mientras hay musica. */
 public class BarrasSonido {
-
     /** Cuantas bandas de frecuencia se piden: una por barra. */
     public static final int BANDAS = AjustesAnimacion.BARRAS_ALTURAS.length;
 
     /** Cuanto se espera sin recibir espectro antes de volver a la animacion decorativa. */
     private static final long ESPERA_SIN_DATOS_MS = 400;
 
-    /** Fraccion que baja la barra en cada cuadro. Mas bajo, caida mas lenta. */
+    /** Fraccion que baja la barra en cada cuadro. */
     private static final double SUAVIZADO_BAJADA = 0.35;
 
     private final HBox contenedor = new HBox();
@@ -82,14 +66,7 @@ public class BarrasSonido {
         return contenedor;
     }
 
-    /**
-     * Arranca o detiene el ecualizador segun este sonando algo.
-     *
-     * <p>Solo actua cuando el estado cambia de verdad: este metodo se llama en cada refresco de la
-     * pantalla y reiniciar las animaciones a cada paso las dejaria congeladas en su primer cuadro.</p>
-     *
-     * @param hayMusica {@code true} si hay una cancion reproduciendose
-     */
+    /** Arranca o detiene el ecualizador segun este sonando algo. */
     public void sincronizar(boolean hayMusica) {
         if (hayMusica == sonando) {
             return;
@@ -107,18 +84,7 @@ public class BarrasSonido {
         }
     }
 
-    /**
-     * Mueve las barras con el espectro real de la musica.
-     *
-     * <p>Mientras lleguen niveles, la animacion decorativa se aparta: no tiene sentido inventar un
-     * movimiento cuando se conoce el de verdad. Si dejan de llegar —porque la fuente cambio a una
-     * que no puede analizar— la animacion vuelve sola pasado {@link #ESPERA_SIN_DATOS_MS}.</p>
-     *
-     * <p>Se aplica un descenso suave: el espectro salta mucho de un cuadro a otro y sin suavizar
-     * las barras parpadean en vez de bailar.</p>
-     *
-     * @param niveles un valor de 0 a 1 por banda
-     */
+    /** Mueve las barras con el espectro real de la musica. */
     public void mostrarNiveles(double[] niveles) {
         if (niveles == null || niveles.length == 0) {
             return;
@@ -141,12 +107,7 @@ public class BarrasSonido {
         }
     }
 
-    /**
-     * Devuelve las barras a la animacion decorativa si hace rato que no llegan datos.
-     *
-     * <p>Lo llama el controlador en cada refresco. Hace falta porque la fuente puede cambiar a una
-     * que no analiza —Spotify— y entonces las barras se quedarian congeladas en su ultimo valor.</p>
-     */
+    /** Devuelve las barras a la animacion decorativa si hace rato que no llegan datos. */
     public void revisarSiSiguenLlegandoDatos() {
         if (!conDatosReales || System.currentTimeMillis() - ultimoDato < ESPERA_SIN_DATOS_MS) {
             return;
@@ -159,7 +120,7 @@ public class BarrasSonido {
         }
     }
 
-    /** Detiene todo. Se llama al cerrar la aplicacion. */
+    /** Detiene todo. */
     public void detener() {
         animaciones.forEach(Timeline::stop);
         sonando = false;

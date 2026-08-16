@@ -11,46 +11,18 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Lee las etiquetas ID3 de un archivo de audio local.
- *
- * <p>Es el primer paso de la via "agregar desde archivo": antes de salir a internet se mira que
- * dice el propio MP3 sobre si mismo. Muchos archivos ya traen titulo, artista, album, anio y
- * genero, y con eso se arma la consulta a la API en vez de obligar al usuario a escribirla.</p>
- *
- * <p>La duracion la da la cabecera del audio, no las etiquetas, asi que es fiable incluso en
- * archivos sin ningun tag.</p>
- *
- * <p>Un archivo sin etiquetas, corrupto o de un formato que la libreria no entienda no es un
- * error: se devuelve lo que se haya podido leer, o vacio, y el usuario completa el resto.</p>
- */
+/** Lee las etiquetas ID3 de un archivo de audio local. */
 public class EtiquetasAudioService {
-
     static {
         // jaudiotagger escribe muchisimo por consola al abrir cada archivo; se silencia para que
         // no tape los mensajes reales de la aplicacion.
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);
     }
 
-    /**
-     * Datos leidos de un archivo de audio.
-     *
-     * @param titulo           titulo segun las etiquetas, o {@code null}
-     * @param artista          artista segun las etiquetas, o {@code null}
-     * @param album            album segun las etiquetas, o {@code null}
-     * @param genero           genero segun las etiquetas, o {@code null}
-     * @param anio             anio de lanzamiento, 0 si no se pudo leer
-     * @param duracionSegundos duracion real del audio segun su cabecera
-     */
+    /** Datos leidos de un archivo de audio. */
     public record Etiquetas(String titulo, String artista, String album, String genero,
                             int anio, int duracionSegundos) {
-
-        /**
-         * Arma la consulta con la que se buscara en la API.
-         *
-         * @param archivo archivo del que provienen las etiquetas, para usar su nombre de respaldo
-         * @return una consulta razonable, nunca vacia
-         */
+        /** Arma la consulta con la que se buscara en la API. */
         public String consultaSugerida(Path archivo) {
             String texto = ((artista == null ? "" : artista) + " "
                     + (titulo == null ? "" : titulo)).trim();
@@ -62,12 +34,7 @@ public class EtiquetasAudioService {
         }
     }
 
-    /**
-     * Lee las etiquetas de un archivo de audio.
-     *
-     * @param archivo ruta al MP3 o WAV
-     * @return las etiquetas leidas, o vacio si el archivo no se pudo abrir
-     */
+    /** Lee las etiquetas de un archivo de audio. */
     public Optional<Etiquetas> leer(Path archivo) {
         if (archivo == null || !archivo.toFile().isFile()) {
             return Optional.empty();

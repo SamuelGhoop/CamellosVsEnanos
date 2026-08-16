@@ -12,30 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Fuente de audio que delega en otras, eligiendo la mejor para cada cancion.
- *
- * <p>Implementa {@link ReproductorAudio} y a la vez contiene varias: es el patron compuesto. El
- * controlador habla solo con esta y nunca sabe cuantas fuentes hay ni cuales.</p>
- *
- * <p><b>Por que existe.</b> Sin ella, el controlador tendria que preguntar "¿esta cancion tiene
- * archivo local? ¿tiene URI de Spotify? ¿esta librespot listo?" y elegir el mismo. Eso significa
- * que agregar Spotify obligaria a modificar el controlador. Con el enrutador, agregar una fuente
- * es registrarla en la lista y nada mas: ni el controlador, ni la interfaz grafica, ni las
- * estructuras de datos se enteran.</p>
- *
- * <p>El orden de registro es el orden de preferencia. Se recorre la lista y gana la primera fuente
- * que este disponible y sepa reproducir la cancion; la simulada va siempre al final porque acepta
- * cualquier cosa, y asi el reproductor nunca se queda sin fuente.</p>
- *
- * <p><b>Recuperacion ante fallos.</b> Si la fuente que esta sonando falla a mitad de la cancion, el
- * enrutador baja a la siguiente que sepa reproducirla y retoma en la posicion donde iba. La
- * busqueda continua siempre <i>hacia abajo</i> desde la que fallo, de modo que cada fuente se
- * intenta como maximo una vez por cancion: eso hace imposible el bucle infinito y garantiza que la
- * cadena termina en la fuente simulada, que acepta cualquier cosa.</p>
- */
+/** Fuente de audio que delega en otras, eligiendo la mejor para cada cancion. */
 public class AudioRuteado implements ReproductorAudio {
-
     /** Valor de {@link #indiceFuenteActiva} cuando todavia no hay ninguna fuente sonando. */
     private static final int SIN_FUENTE = -1;
 
@@ -56,22 +34,14 @@ public class AudioRuteado implements ReproductorAudio {
     private Consumer<double[]> oyenteDelEspectro;
     private int bandasDelEspectro = 9;
 
-    /**
-     * Crea el enrutador con sus fuentes, en orden de preferencia.
-     *
-     * @param enOrdenDePreferencia fuentes a consultar; la ultima deberia aceptar cualquier cancion
-     */
+    /** Crea el enrutador con sus fuentes, en orden de preferencia. */
     public AudioRuteado(ReproductorAudio... enOrdenDePreferencia) {
         for (ReproductorAudio fuente : enOrdenDePreferencia) {
             agregarFuente(fuente);
         }
     }
 
-    /**
-     * Registra una fuente al final de la lista de preferencia.
-     *
-     * @param fuente fuente a registrar
-     */
+    /** Registra una fuente al final de la lista de preferencia. */
     public final void agregarFuente(ReproductorAudio fuente) {
         if (fuente == null) {
             return;
@@ -88,13 +58,7 @@ public class AudioRuteado implements ReproductorAudio {
         fuentes.add(fuente);
     }
 
-    /**
-     * Registra una fuente en cabeza, por delante de las demas.
-     *
-     * <p>Pensado para Spotify: cuando esta disponible tiene que ganarle al archivo local.</p>
-     *
-     * @param fuente fuente prioritaria
-     */
+    /** Registra una fuente en cabeza, por delante de las demas. */
     public void agregarFuentePrioritaria(ReproductorAudio fuente) {
         agregarFuente(fuente);
         if (fuentes.size() > 1) {
@@ -192,10 +156,8 @@ public class AudioRuteado implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Se aplica a <b>todas</b> las fuentes, no solo a la que suena: si se cambia de fuente a
-     * mitad de sesion, la nueva tiene que arrancar al volumen que el usuario dejo puesto.</p>
+     * {@inheritDoc} Se aplica a todas las fuentes, no solo a la que suena: si se cambia de fuente a
+     * mitad de sesion, la nueva tiene que arrancar al volumen que el usuario dejo puesto.
      */
     @Override
     public void setVolumen(int porcentaje) {
@@ -209,10 +171,8 @@ public class AudioRuteado implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Se registra en todas las fuentes; solo entregara datos la que sepa hacerlo y este
-     * sonando.</p>
+     * {@inheritDoc} Se registra en todas las fuentes; solo entregara datos la que sepa hacerlo y
+     * este sonando.
      */
     @Override
     public void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
@@ -221,17 +181,15 @@ public class AudioRuteado implements ReproductorAudio {
         fuentes.forEach(fuente -> fuente.setAlAnalizarEspectro(oyente, bandas));
     }
 
-    /** {@inheritDoc} <p>Depende de la fuente que este sonando en este momento.</p> */
+    /** {@inheritDoc} Depende de la fuente que este sonando en este momento. */
     @Override
     public boolean analizaEspectro() {
         return fuenteActiva() != null && fuenteActiva().analizaEspectro();
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>En el enrutador esto si tiene efecto: las fuentes que dependen de la red quedan fuera de
-     * la seleccion. Es la valvula de seguridad para cuando la conexion no acompana.</p>
+     * {@inheritDoc} En el enrutador esto si tiene efecto: las fuentes que dependen de la red quedan
+     * fuera de la seleccion.
      */
     @Override
     public void setEvitarRed(boolean evitar) {
@@ -262,9 +220,7 @@ public class AudioRuteado implements ReproductorAudio {
         return evitarRed;
     }
 
-    // ------------------------------------------------------------------
-    // Seleccion de fuente
-    // ------------------------------------------------------------------
+    // --- Seleccion de fuente ---
 
     private ReproductorAudio fuenteActiva() {
         return indiceFuenteActiva == SIN_FUENTE ? null : fuentes.get(indiceFuenteActiva);
@@ -277,10 +233,6 @@ public class AudioRuteado implements ReproductorAudio {
 
     /**
      * Busca la primera fuente capaz de reproducir la cancion a partir de una posicion de la lista.
-     *
-     * @param cancion cancion a reproducir
-     * @param desde   indice desde el que empezar a mirar
-     * @return el indice de la fuente elegida, o {@link #SIN_FUENTE} si ninguna sirve
      */
     private int indiceDeFuentePara(Cancion cancion, int desde) {
         for (int i = Math.max(0, desde); i < fuentes.size(); i++) {
@@ -292,12 +244,7 @@ public class AudioRuteado implements ReproductorAudio {
         return SIN_FUENTE;
     }
 
-    /**
-     * Pone a sonar una fuente concreta y ata la interfaz a ella.
-     *
-     * @param indice           fuente a activar
-     * @param posicionARetomar milisegundos desde donde continuar; 0 para empezar de cero
-     */
+    /** Pone a sonar una fuente concreta y ata la interfaz a ella. */
     private void activar(int indice, long posicionARetomar) {
         ReproductorAudio anterior = fuenteActiva();
         ReproductorAudio nueva = fuentes.get(indice);
@@ -316,15 +263,7 @@ public class AudioRuteado implements ReproductorAudio {
         }
     }
 
-    /**
-     * Baja a la primera fuente posterior a la actual que sepa reproducir la cancion.
-     *
-     * <p>La busqueda arranca <i>despues</i> de la fuente en curso, nunca desde el principio: por
-     * eso cada fuente se prueba como maximo una vez por cancion y la cadena no puede ciclar. Como
-     * la ultima fuente registrada acepta cualquier cosa, en la practica siempre hay donde caer.</p>
-     *
-     * @return el nombre de la fuente nueva, o {@code null} si ya no quedaba ninguna
-     */
+    /** Baja a la primera fuente posterior a la actual que sepa reproducir la cancion. */
     private String bajarASiguienteFuente() {
         // Se lee antes de activar nada: al desatar, la propiedad conserva el ultimo valor de la
         // fuente que se va, que es justo la posicion que hay que retomar.
@@ -337,12 +276,7 @@ public class AudioRuteado implements ReproductorAudio {
         return fuentes.get(reemplazo).nombreFuente();
     }
 
-    /**
-     * Salta a la posicion recordada en cuanto la fuente nueva sepa cuanto dura la pista.
-     *
-     * <p>No se puede saltar de inmediato: un MP3 no publica su duracion hasta que carga la
-     * cabecera, y un salto contra una duracion de cero se recorta a cero y perderia el avance.</p>
-     */
+    /** Salta a la posicion recordada en cuanto la fuente nueva sepa cuanto dura la pista. */
     private void retomarEn(ReproductorAudio fuente, long posicionARetomar) {
         if (fuente.duracionMsProperty().get() > 0) {
             fuente.buscarPosicion(posicionARetomar);
@@ -360,9 +294,7 @@ public class AudioRuteado implements ReproductorAudio {
         });
     }
 
-    // ------------------------------------------------------------------
-    // Avisos de las fuentes
-    // ------------------------------------------------------------------
+    // --- Avisos de las fuentes ---
 
     private void alTerminar(ReproductorAudio fuente) {
         // Solo cuenta el final de la fuente que esta sonando: una fuente vieja que se apaga tarde
@@ -390,16 +322,9 @@ public class AudioRuteado implements ReproductorAudio {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Propiedades observables
-    // ------------------------------------------------------------------
+    // --- Propiedades observables ---
 
-    /**
-     * Reexpone las propiedades de la fuente activa como propias.
-     *
-     * <p>Asi la interfaz se ata una sola vez al enrutador y sigue funcionando aunque por debajo se
-     * cambie de fuente a mitad de sesion.</p>
-     */
+    /** Reexpone las propiedades de la fuente activa como propias. */
     private void atar(ReproductorAudio fuente) {
         posicionMs.bind(fuente.posicionMsProperty());
         duracionMs.bind(fuente.duracionMsProperty());

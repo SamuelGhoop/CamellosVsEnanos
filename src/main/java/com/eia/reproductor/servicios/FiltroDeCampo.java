@@ -9,19 +9,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-/**
- * Por que campo se filtra la biblioteca.
- *
- * <p>Un {@code enum} y no una cadena suelta en el controlador: asi el compilador garantiza que solo
- * existen estos campos, y el {@code switch} que decide como filtrar no puede olvidarse de ninguno.
- * La logica de comparacion vive aqui, no en la interfaz, para que se pueda probar sin abrir una
- * ventana.</p>
- *
- * <p>Comparte {@link Texto#plano} con la busqueda de la biblioteca, de modo que escribir "rock"
- * encuentra "Rock" y "clasico" encuentra "Clásico".</p>
- */
+/** Por que campo se filtra la biblioteca. */
 public enum FiltroDeCampo {
-
     /** Sin restringir: busca el texto en titulo, artista y album, como siempre. */
     TODO("TODO", null),
     TITULO("TÍTULO", Cancion::getTitulo),
@@ -44,12 +33,7 @@ public enum FiltroDeCampo {
         return etiqueta;
     }
 
-    /**
-     * Busca la opcion que corresponde a un texto del desplegable.
-     *
-     * @param etiqueta texto elegido; admite {@code null}
-     * @return la opcion, o {@link #TODO} si no se reconoce
-     */
+    /** Busca la opcion que corresponde a un texto del desplegable. */
     public static FiltroDeCampo porEtiqueta(String etiqueta) {
         for (FiltroDeCampo campo : values()) {
             if (campo.etiqueta.equals(etiqueta)) {
@@ -68,13 +52,7 @@ public enum FiltroDeCampo {
         return nombres;
     }
 
-    /**
-     * Decide si una cancion pasa el filtro.
-     *
-     * @param cancion cancion a evaluar
-     * @param texto   texto escrito; si viene vacio pasan todas
-     * @return {@code true} si el campo elegido contiene ese texto
-     */
+    /** Decide si una cancion pasa el filtro. */
     public boolean coincide(Cancion cancion, String texto) {
         if (texto == null || texto.isBlank()) {
             return true;
@@ -88,23 +66,13 @@ public enum FiltroDeCampo {
         return Texto.plano(lector.apply(cancion)).contains(aguja);
     }
 
-    /**
-     * Los valores distintos que tiene este campo en una lista de canciones.
-     *
-     * <p>Se sacan de la biblioteca y no de una lista fija de generos: si manana se agrega una
-     * cancion de un genero nuevo, aparece sola en el desplegable.</p>
-     *
-     * @param canciones canciones de donde sacarlos
-     * @return los valores sin repetir, ordenados alfabeticamente ignorando mayusculas; vacio
-     *         para {@link #TODO}, que no tiene un campo unico del que sacarlos
-     */
+    /** Los valores distintos que tiene este campo en una lista de canciones. */
     public List<String> valoresEn(List<Cancion> canciones) {
         if (lector == null) {
             return List.of();
         }
         // Nada de TreeSet: el enunciado lo prohibe y no conviene que aparezca en el proyecto ni
         // para algo tan lejano a los modos como llenar un desplegable. Se deduplica con un HashSet
-        // de claves normalizadas —asi "Rock" y "rock" cuentan como uno— y se ordena al final.
         Set<String> vistos = new HashSet<>();
         List<String> valores = new ArrayList<>();
         for (Cancion cancion : canciones) {

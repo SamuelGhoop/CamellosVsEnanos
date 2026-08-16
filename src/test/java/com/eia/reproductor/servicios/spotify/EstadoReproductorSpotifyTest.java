@@ -10,14 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la lectura del estado del reproductor.
- *
- * <p>Los JSON de aqui son recortes de respuestas reales de {@code GET /v1/me/player} obtenidas
- * durante las pruebas con la cuenta.</p>
- */
+/** Pruebas de la lectura del estado del reproductor. */
 class EstadoReproductorSpotifyTest {
-
     private static EstadoReproductorSpotify leer(String json) {
         JsonObject objeto = JsonParser.parseString(json).getAsJsonObject();
         return EstadoReproductorSpotify.desdeJson(objeto);

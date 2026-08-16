@@ -28,32 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Comprueba que la vista principal y su controlador siguen encajando.
- *
- * <p><b>Por que no se carga el FXML como en {@link VistaAgregarCancionTest}.</b> Cargar
- * {@code principal.fxml} construye el {@link PrincipalController}, que levanta el audio y podria
- * lanzar librespot en mitad de las pruebas. Asi que en vez de cargarlo se lee como XML y se coteja
- * contra el controlador por reflexion: no hace falta ni entorno grafico.</p>
- *
- * <p><b>Que caza.</b> Los dos desajustes que no aparecen al compilar:</p>
- * <ul>
- *   <li>un {@code @FXML} en el controlador sin su {@code fx:id} en la vista — el campo se queda
- *       nulo y la aplicacion revienta al arrancar;</li>
- *   <li>un {@code onAction="#metodo"} que apunta a un metodo que ya no existe — el boton falla
- *       justo cuando alguien lo pulsa, que en esta asignatura es delante del profesor.</li>
- * </ul>
- */
+/** Comprueba que la vista principal y su controlador siguen encajando. */
 class VistaPrincipalTest {
-
     private static final String RUTA_VISTA = "/vista/principal.fxml";
 
-    /**
-     * Campos que el controlador rellena a mano y que por eso no llevan {@code fx:id}.
-     *
-     * <p>Es la unica excepcion admitida: si aparece otra, o falta de verdad en la vista o hay que
-     * justificarla aqui.</p>
-     */
+    /** Campos que el controlador rellena a mano y que por eso no llevan {@code fx:id}. */
     private static final Set<String> SIN_FX_ID = Set.of();
 
     private static Document vista() {
@@ -90,9 +69,6 @@ class VistaPrincipalTest {
     void laVistaSeConstruye(@TempDir Path carpeta) {
         // Comprobar el XML no basta: "bien formado" no quiere decir que un ComboBox acepte el
         // atributo que le pusimos, ni que falte un <?import?>. Eso solo lo dice el FXMLLoader.
-        // Se carga una copia sin fx:controller ni onAction para que no construya el controlador,
-        // que levantaria el audio en mitad de las pruebas; los onAction ya los revisa el test de
-        // arriba por reflexion. La vista no trae rutas relativas, asi que moverla no rompe nada.
         assumeTrue(EntornoJavaFx.disponible(), "No hay entorno gráfico para levantar JavaFX.");
 
         Path copia = sinControlador(carpeta);

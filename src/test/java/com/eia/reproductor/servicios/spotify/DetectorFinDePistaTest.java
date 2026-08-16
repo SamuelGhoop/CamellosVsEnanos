@@ -8,14 +8,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la deteccion de fin de pista.
- *
- * <p>Es la logica que en produccion solo se ejercita en vivo y que, si falla, hace saltar de
- * cancion sola en medio de la sustentacion. Aqui se prueba entera sin red.</p>
- */
+/** Pruebas de la deteccion de fin de pista. */
 class DetectorFinDePistaTest {
-
     private static final String LA_PISTA = "spotify:track:0GCaWksDZM7PV7mjdodhTT";
     private static final long DURACION = 189_239;
 
@@ -47,7 +41,6 @@ class DetectorFinDePistaTest {
     @Nested
     @DisplayName("Reproducción normal")
     class ReproduccionNormal {
-
         @Test
         @DisplayName("Sonando a mitad de canción no es el final")
         void sonandoAMitadNoEsFinal() {
@@ -89,7 +82,6 @@ class DetectorFinDePistaTest {
     @Nested
     @DisplayName("Fin de pista")
     class FinDePista {
-
         @Test
         @DisplayName("Detenida al borde del final, confirmado dos veces")
         void detenidaAlFinalTrasConfirmar() {
@@ -156,7 +148,6 @@ class DetectorFinDePistaTest {
     @Nested
     @DisplayName("Tolerancia a las lecturas inconsistentes de la API")
     class LecturasInconsistentes {
-
         @Test
         @DisplayName("Que la posición retroceda no significa nada")
         void posicionQueRetrocedeNoEsFinal() {
@@ -191,7 +182,6 @@ class DetectorFinDePistaTest {
     @Nested
     @DisplayName("Ciclo de vida")
     class CicloDeVida {
-
         @Test
         @DisplayName("Sin nada que vigilar no dispara nunca")
         void sinVigilarNoDispara() {

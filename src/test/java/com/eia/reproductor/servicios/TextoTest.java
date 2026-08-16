@@ -6,14 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-/**
- * Pruebas del normalizador de texto.
- *
- * <p>Lo usan la busqueda, los filtros y el emparejado de resultados de Spotify. Es poco codigo,
- * pero si se equivoca, los tres fallan a la vez y por motivos que parecen distintos.</p>
- */
+/** Pruebas del normalizador de texto. */
 class TextoTest {
-
     @Test
     @DisplayName("Quita tildes y baja a minúsculas")
     void quitaTildesYMayusculas() {

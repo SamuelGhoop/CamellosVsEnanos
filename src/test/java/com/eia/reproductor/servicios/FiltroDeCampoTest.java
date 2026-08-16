@@ -10,15 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del filtro por campo.
- *
- * <p>Lo que se comprueba aqui es que filtrar por GÉNERO mire de verdad el genero y no acabe
- * colando canciones porque la palabra aparezca en el titulo, y que las tildes no impidan encontrar
- * nada.</p>
- */
+/** Pruebas del filtro por campo. */
 class FiltroDeCampoTest {
-
     private static Cancion cancion(String titulo, String artista, String album, String genero) {
         Cancion cancion = new Cancion(titulo);
         cancion.setArtista(artista);
@@ -84,7 +77,6 @@ class FiltroDeCampoTest {
 
         // "rock" y "Rock" son el mismo género: aparece una sola vez, y ordenado alfabéticamente.
         // El género en blanco entra como "Desconocido" —así lo guarda Cancion— y es un valor útil:
-        // sirve para encontrar justo lo que falta por etiquetar.
         assertEquals(List.of(Cancion.TEXTO_DESCONOCIDO, "Pop", "rock"),
                 FiltroDeCampo.GENERO.valoresEn(biblioteca));
         assertEquals(List.of("Radiohead", "Soda", "Toto"),

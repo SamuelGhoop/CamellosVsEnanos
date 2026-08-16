@@ -11,35 +11,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Rellena la URI de Spotify de las canciones que ya estan en la biblioteca.
- *
- * <p>Buscar una por una a mano es inviable, y el dato es imprescindible: sin URI, la fuente de
- * Spotify no sabe reproducir la cancion y el enrutador nunca la elige.</p>
- *
- * <p><b>No escribe nada por defecto.</b> La primera pasada solo informa de lo que encontraria, para
- * que se pueda revisar antes de tocar la biblioteca. Con {@code --aplicar} guarda, y antes hace una
- * copia de seguridad: el archivo es el trabajo de varias sesiones y una busqueda equivocada no
- * puede costarlo.</p>
- *
- * <pre>
- * mvn exec:java -Dexec.mainClass=...EnriquecerConSpotify                    # solo mira
- * mvn exec:java -Dexec.mainClass=...EnriquecerConSpotify -Dexec.args=--aplicar
- * </pre>
- */
+/** Rellena la URI de Spotify de las canciones que ya estan en la biblioteca. */
 public final class EnriquecerConSpotify {
-
     /** Pausa entre busquedas, para no castigar la API con una rafaga. */
     private static final long PAUSA_ENTRE_BUSQUEDAS_MS = 250;
 
     private EnriquecerConSpotify() {
     }
 
-    /**
-     * Punto de entrada.
-     *
-     * @param argumentos {@code --aplicar} para guardar los cambios
-     */
+    /** Punto de entrada. */
     public static void main(String[] argumentos) {
         boolean aplicar = argumentos.length > 0 && "--aplicar".equals(argumentos[0]);
 
@@ -108,12 +88,7 @@ public final class EnriquecerConSpotify {
         return encontradas;
     }
 
-    /**
-     * Guarda la biblioteca, dejando antes una copia de seguridad.
-     *
-     * @param persistencia servicio de guardado
-     * @param biblioteca   canciones ya modificadas en memoria
-     */
+    /** Guarda la biblioteca, dejando antes una copia de seguridad. */
     private static void guardar(PersistenciaService persistencia, List<Cancion> biblioteca) {
         Path original = Path.of("data", "biblioteca.json");
         Path copia = Path.of("data", "biblioteca.antes-de-spotify.json");

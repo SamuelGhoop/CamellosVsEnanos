@@ -12,14 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-/**
- * Pruebas de la fuente de audio simulada.
- *
- * <p>Necesitan el hilo de JavaFX porque el avance lo lleva un {@code Timeline}. Si la maquina no
- * puede levantarlo, las pruebas se saltan en lugar de dar falso negativo.</p>
- */
+/** Pruebas de la fuente de audio simulada. */
 class AudioSimuladoServiceTest {
-
     private static final long UN_MINUTO_MS = 60_000;
 
     private AudioSimuladoService servicio;

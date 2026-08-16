@@ -6,21 +6,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Representa una cancion de la biblioteca del reproductor.
- *
- * <p>Todos los atributos son privados y solo se exponen mediante getters y setters que validan
- * los valores recibidos (encapsulamiento). El identificador {@code id} es inmutable: se genera
- * una unica vez al construir la cancion y es lo que permite distinguir dos canciones que tengan
- * exactamente el mismo titulo y artista.</p>
- *
- * <p>La clase implementa {@link Comparable} porque el modo de reproduccion alfabetico la almacena
- * dentro de un Arbol Binario de Busqueda, que necesita un criterio de orden total.</p>
- *
- * @see #compareTo(Cancion)
- */
+/** Representa una cancion de la biblioteca del reproductor. */
 public class Cancion implements Comparable<Cancion> {
-
     /** Calificacion minima que acepta el enunciado. */
     public static final int CALIFICACION_MIN = 0;
 
@@ -35,26 +22,10 @@ public class Cancion implements Comparable<Cancion> {
 
     private static final int SEGUNDOS_POR_MINUTO = 60;
 
-    /**
-     * Comparador de cadenas sensible al idioma espanol.
-     *
-     * <p>Con {@link Collator#PRIMARY} se ignoran tildes y mayusculas, de modo que "Angel",
-     * "angel" y "Angel" con tilde quedan juntos en el orden alfabetico, que es lo que espera
-     * un usuario hispanohablante y lo que un {@code String.compareTo()} (orden Unicode puro)
-     * haria mal.</p>
-     *
-     * <p>Nota de concurrencia: {@link Collator} no es thread-safe. En esta aplicacion todas las
-     * comparaciones ocurren en el hilo de la interfaz de JavaFX (o en el hilo principal durante
-     * las pruebas), por lo que una unica instancia compartida es segura.</p>
-     */
+    /** Comparador de cadenas sensible al idioma espanol. */
     private static final Collator COLLATOR_ESPANOL = crearCollatorEspanol();
 
-    /**
-     * Criterio de orden que usa el Arbol Binario de Busqueda del modo alfabetico.
-     *
-     * <p>Se expone como constante para que la logica de ordenamiento viva en un solo lugar y el
-     * arbol no tenga que reimplementarla.</p>
-     */
+    /** Criterio de orden que usa el Arbol Binario de Busqueda del modo alfabetico. */
     public static final Comparator<Cancion> POR_TITULO = Cancion::compareTo;
 
     private final String id;
@@ -72,26 +43,12 @@ public class Cancion implements Comparable<Cancion> {
     private boolean favorita;
     private int vecesReproducida;
 
-    /**
-     * Crea una cancion nueva con un identificador generado automaticamente.
-     *
-     * @param titulo nombre de la cancion; es el unico campo obligatorio
-     * @throws IllegalArgumentException si el titulo es nulo o esta en blanco
-     */
+    /** Crea una cancion nueva con un identificador generado automaticamente. */
     public Cancion(String titulo) {
         this(UUID.randomUUID().toString(), titulo);
     }
 
-    /**
-     * Reconstruye una cancion conservando un identificador ya existente.
-     *
-     * <p>Se usa al cargar la biblioteca desde {@code data/biblioteca.json}, donde el id debe
-     * sobrevivir entre ejecuciones porque es el nombre del archivo de la caratula cacheada.</p>
-     *
-     * @param id     identificador previamente asignado
-     * @param titulo nombre de la cancion
-     * @throws IllegalArgumentException si el id o el titulo son nulos o estan en blanco
-     */
+    /** Reconstruye una cancion conservando un identificador ya existente. */
     public Cancion(String id, String titulo) {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("El id de la cancion no puede estar vacio.");
@@ -110,9 +67,7 @@ public class Cancion implements Comparable<Cancion> {
         return collator;
     }
 
-    // ------------------------------------------------------------------
-    // Getters y setters con validacion
-    // ------------------------------------------------------------------
+    // --- Getters y setters con validacion ---
 
     /** @return el identificador unico e inmutable de la cancion */
     public String getId() {
@@ -124,12 +79,7 @@ public class Cancion implements Comparable<Cancion> {
         return titulo;
     }
 
-    /**
-     * Cambia el nombre de la cancion.
-     *
-     * @param titulo nuevo nombre, no puede estar vacio
-     * @throws IllegalArgumentException si el titulo es nulo o esta en blanco
-     */
+    /** Cambia el nombre de la cancion. */
     public void setTitulo(String titulo) {
         if (titulo == null || titulo.isBlank()) {
             throw new IllegalArgumentException("El titulo de la cancion no puede estar vacio.");
@@ -142,7 +92,6 @@ public class Cancion implements Comparable<Cancion> {
         return artista;
     }
 
-    /** @param artista nuevo artista; si es nulo o vacio se guarda {@value #TEXTO_DESCONOCIDO} */
     public void setArtista(String artista) {
         this.artista = normalizarTexto(artista);
     }
@@ -152,7 +101,6 @@ public class Cancion implements Comparable<Cancion> {
         return album;
     }
 
-    /** @param album nuevo album; si es nulo o vacio se guarda {@value #TEXTO_DESCONOCIDO} */
     public void setAlbum(String album) {
         this.album = normalizarTexto(album);
     }
@@ -162,12 +110,7 @@ public class Cancion implements Comparable<Cancion> {
         return duracionSegundos;
     }
 
-    /**
-     * Define la duracion de la cancion.
-     *
-     * @param duracionSegundos duracion en segundos, no puede ser negativa
-     * @throws IllegalArgumentException si la duracion es negativa
-     */
+    /** Define la duracion de la cancion. */
     public void setDuracionSegundos(int duracionSegundos) {
         if (duracionSegundos < 0) {
             throw new IllegalArgumentException("La duracion no puede ser negativa: " + duracionSegundos);
@@ -180,7 +123,6 @@ public class Cancion implements Comparable<Cancion> {
         return genero;
     }
 
-    /** @param genero nuevo genero; si es nulo o vacio se guarda {@value #TEXTO_DESCONOCIDO} */
     public void setGenero(String genero) {
         this.genero = normalizarTexto(genero);
     }
@@ -190,12 +132,7 @@ public class Cancion implements Comparable<Cancion> {
         return anio;
     }
 
-    /**
-     * Define el anio de lanzamiento.
-     *
-     * @param anio anio de lanzamiento; 0 significa desconocido
-     * @throws IllegalArgumentException si el anio es negativo
-     */
+    /** Define el anio de lanzamiento. */
     public void setAnio(int anio) {
         if (anio < 0) {
             throw new IllegalArgumentException("El anio no puede ser negativo: " + anio);
@@ -208,12 +145,7 @@ public class Cancion implements Comparable<Cancion> {
         return calificacion;
     }
 
-    /**
-     * Califica la cancion.
-     *
-     * @param calificacion valor entre {@value #CALIFICACION_MIN} y {@value #CALIFICACION_MAX}
-     * @throws IllegalArgumentException si el valor cae fuera del rango permitido
-     */
+    /** Califica la cancion. */
     public void setCalificacion(int calificacion) {
         if (calificacion < CALIFICACION_MIN || calificacion > CALIFICACION_MAX) {
             throw new IllegalArgumentException(
@@ -228,7 +160,6 @@ public class Cancion implements Comparable<Cancion> {
         return rutaArchivo;
     }
 
-    /** @param rutaArchivo ruta relativa al MP3/WAV dentro de {@code data/musica/}, admite {@code null} */
     public void setRutaArchivo(String rutaArchivo) {
         this.rutaArchivo = rutaArchivo;
     }
@@ -238,15 +169,7 @@ public class Cancion implements Comparable<Cancion> {
         return uriSpotify;
     }
 
-    /**
-     * Asocia la cancion a una pista de Spotify.
-     *
-     * <p>El formato esperado es {@code spotify:track:<id>}. Es el dato que consulta la fuente de
-     * audio de Spotify para decidir si sabe reproducir esta cancion; sin el, no hay forma de
-     * deducir a que pista del catalogo corresponde.</p>
-     *
-     * @param uriSpotify URI de la pista, admite {@code null}
-     */
+    /** Asocia la cancion a una pista de Spotify. */
     public void setUriSpotify(String uriSpotify) {
         this.uriSpotify = uriSpotify;
     }
@@ -261,7 +184,6 @@ public class Cancion implements Comparable<Cancion> {
         return rutaPortada;
     }
 
-    /** @param rutaPortada ruta relativa a la caratula dentro de {@code data/covers/}, admite {@code null} */
     public void setRutaPortada(String rutaPortada) {
         this.rutaPortada = rutaPortada;
     }
@@ -271,7 +193,6 @@ public class Cancion implements Comparable<Cancion> {
         return urlPortadaRemota;
     }
 
-    /** @param urlPortadaRemota URL de la caratula en alta resolucion, admite {@code null} */
     public void setUrlPortadaRemota(String urlPortadaRemota) {
         this.urlPortadaRemota = urlPortadaRemota;
     }
@@ -281,7 +202,6 @@ public class Cancion implements Comparable<Cancion> {
         return favorita;
     }
 
-    /** @param favorita nuevo estado de favorita */
     public void setFavorita(boolean favorita) {
         this.favorita = favorita;
     }
@@ -291,12 +211,7 @@ public class Cancion implements Comparable<Cancion> {
         return vecesReproducida;
     }
 
-    /**
-     * Define el contador de reproducciones.
-     *
-     * @param vecesReproducida numero de reproducciones, no puede ser negativo
-     * @throws IllegalArgumentException si el valor es negativo
-     */
+    /** Define el contador de reproducciones. */
     public void setVecesReproducida(int vecesReproducida) {
         if (vecesReproducida < 0) {
             throw new IllegalArgumentException(
@@ -305,11 +220,9 @@ public class Cancion implements Comparable<Cancion> {
         this.vecesReproducida = vecesReproducida;
     }
 
-    // ------------------------------------------------------------------
-    // Utilidades
-    // ------------------------------------------------------------------
+    // --- Utilidades ---
 
-    /** Suma uno al contador de reproducciones. Lo invoca el servicio de audio al iniciar una pista. */
+    /** Suma uno al contador de reproducciones. */
     public void registrarReproduccion() {
         vecesReproducida++;
     }
@@ -319,11 +232,7 @@ public class Cancion implements Comparable<Cancion> {
         favorita = !favorita;
     }
 
-    /**
-     * Formatea la duracion para mostrarla en la interfaz.
-     *
-     * @return la duracion en formato {@code m:ss}, por ejemplo {@code "5:55"}
-     */
+    /** Formatea la duracion para mostrarla en la interfaz. */
     public String duracionFormateada() {
         int minutos = duracionSegundos / SEGUNDOS_POR_MINUTO;
         int segundos = duracionSegundos % SEGUNDOS_POR_MINUTO;
@@ -339,22 +248,9 @@ public class Cancion implements Comparable<Cancion> {
         return (valor == null || valor.isBlank()) ? TEXTO_DESCONOCIDO : valor.trim();
     }
 
-    // ------------------------------------------------------------------
-    // Orden, igualdad y representacion
-    // ------------------------------------------------------------------
+    // --- Orden, igualdad y representacion ---
 
-    /**
-     * Ordena las canciones alfabeticamente por titulo segun las reglas del idioma espanol.
-     *
-     * <p>El desempate no es opcional: el Arbol Binario de Busqueda del modo alfabetico descarta
-     * cualquier elemento que compare igual a uno ya insertado. Si dos canciones distintas tuvieran
-     * el mismo titulo y este metodo devolviera 0, el arbol perderia una de las dos. Por eso, ante
-     * titulos iguales se desempata por artista y, si tambien coincide, por el id, que es unico
-     * por construccion y garantiza que el resultado nunca sea 0 para canciones diferentes.</p>
-     *
-     * @param otra la cancion contra la cual comparar
-     * @return negativo, cero o positivo segun esta cancion vaya antes, igual o despues que {@code otra}
-     */
+    /** Ordena las canciones alfabeticamente por titulo segun las reglas del idioma espanol. */
     @Override
     public int compareTo(Cancion otra) {
         int porTitulo = COLLATOR_ESPANOL.compare(this.titulo, otra.titulo);
@@ -368,12 +264,7 @@ public class Cancion implements Comparable<Cancion> {
         return this.id.compareTo(otra.id);
     }
 
-    /**
-     * Dos canciones son la misma si comparten identificador.
-     *
-     * <p>Se compara por id y no por titulo para que la biblioteca admita canciones homonimas
-     * (versiones en vivo, covers, remasterizaciones) sin que una desplace a la otra.</p>
-     */
+    /** Dos canciones son la misma si comparten identificador. */
     @Override
     public boolean equals(Object objeto) {
         if (this == objeto) {

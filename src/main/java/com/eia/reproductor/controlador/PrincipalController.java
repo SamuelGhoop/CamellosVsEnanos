@@ -83,18 +83,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
-/**
- * Controlador de la ventana principal.
- *
- * <p>Es la unica capa que conoce JavaFX. No implementa reglas de negocio: le pide los datos a
- * {@link BibliotecaService} y navega a traves de la interfaz {@link ModoReproduccion}, sin saber
- * nunca que estructura hay detras del modo activo. Cambiar de modo es reasignar una referencia.</p>
- *
- * <p>Tambien es un {@link ObservadorBiblioteca}: cuando la biblioteca cambia, el controlador se
- * entera y reenvia el aviso al modo activo para que su estructura siga sincronizada.</p>
- */
+/** Controlador de la ventana principal. */
 public class PrincipalController implements Initializable, ObservadorBiblioteca {
-
     /** Cantidad de bloques de la barra de progreso segmentada. */
     private static final int BLOQUES_PROGRESO = 28;
 
@@ -115,8 +105,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private static final String RUTA_INSIGNIA = "/imagenes/spidey/insignia-arania.png";
     private static final String RUTA_MARCO_INSIGNIA = "/imagenes/spidey/contenedor.png";
     private static final String RUTA_FONDO_ARANIA = "/imagenes/spidey/fondo-arania.png";
-    /** Titulo de la barra de la ventana de estadisticas, en un solo sitio porque se usa al abrirla
-     *  y al refrescarla si ya estaba abierta. */
+    /**
+     * Titulo de la barra de la ventana de estadisticas, en un solo sitio porque se usa al abrirla y
+     * al refrescarla si ya estaba abierta.
+     */
     private static final String TITULO_ESTADISTICAS = "ESTADÍSTICAS";
     private static final String CLASE_PESTANIA_ACTIVA = "activa";
     private static final String CLASE_TEMA_CLARO = "tema-claro";
@@ -134,9 +126,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private static final double PASO_MARQUESINA = 2;
     private static final Duration INTERVALO_MARQUESINA = Duration.millis(35);
 
-    // ------------------------------------------------------------------
-    // Nodos de la vista
-    // ------------------------------------------------------------------
+    // --- Nodos de la vista ---
 
     @FXML private HBox selectorModos;
     @FXML private HBox ranuraVolumen;
@@ -150,7 +140,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     @FXML private Button botonModoLlegada;
     @FXML private Button botonModoAlfabetico;
 
-    /** Buscador. Es editable: se puede escribir o desplegar los valores del campo elegido. */
+    /** Buscador. */
     @FXML private ComboBox<String> campoBusqueda;
 
     /** Sobre que campo se busca: TODO, TITULO, ARTISTA, ALBUM o GENERO. */
@@ -202,9 +192,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     @FXML private ImageView insigniaDerecha;
     @FXML private StackPane insigniaIzquierda;
 
-    // ------------------------------------------------------------------
-    // Estado y colaboradores
-    // ------------------------------------------------------------------
+    // --- Estado y colaboradores ---
 
     private final PersistenciaService persistencia = new PersistenciaService();
     private final BibliotecaService biblioteca = new BibliotecaService(persistencia);
@@ -236,30 +224,17 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private Image iconoPlay;
     private Image iconoPausa;
 
-    /**
-     * Fuente de audio. El controlador solo conoce la interfaz: no sabe si suena un MP3 local, el
-     * reloj simulado o (en la fase 7b) Spotify. Agregar una fuente no obliga a tocar este archivo.
-     */
+    /** Fuente de audio. */
     private final ReproductorAudio audio = FabricaAudio.crear();
 
     private final PlaylistService listas = new PlaylistService();
 
-    /**
-     * Coleccion que se esta reproduciendo y mostrando.
-     *
-     * <p>El controlador solo conoce la interfaz: no sabe si detras hay toda la biblioteca, las
-     * favoritas o una lista hecha a mano. Los tres modos reciben lo que esta devuelva.</p>
-     */
+    /** Coleccion que se esta reproduciendo y mostrando. */
     private ColeccionDeCanciones coleccionActiva;
 
     private Timeline animacionMarquesina;
     private Image portadaPorDefecto;
-    /**
-     * Evita que reconstruir el selector se confunda con que el usuario eligio otra coleccion.
-     *
-     * <p>Cambiar los elementos del {@code ComboBox} dispara su accion, y sin esta bandera cada
-     * refresco recargaria el modo y cortaria la reproduccion.</p>
-     */
+    /** Evita que reconstruir el selector se confunda con que el usuario eligio otra coleccion. */
     private boolean reconstruyendoSelector;
 
     /** Menu del clic derecho; se guarda para poder cerrarlo antes de abrir el siguiente. */
@@ -277,9 +252,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private double desplazamientoArrastreX;
     private double desplazamientoArrastreY;
 
-    // ------------------------------------------------------------------
-    // Arranque
-    // ------------------------------------------------------------------
+    // --- Arranque ---
 
     @Override
     public void initialize(URL ubicacion, ResourceBundle recursos) {
@@ -321,16 +294,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarTabla();
     }
 
-    /**
-     * Instala los atajos de teclado.
-     *
-     * <p>Se cuelgan de la escena, que no existe todavia cuando corre {@code initialize()}: por eso
-     * se espera a que el nodo tenga escena antes de registrarlos.</p>
-     *
-     * <p>Se usa un filtro y no un manejador normal para que las flechas lleguen aqui antes de que
-     * la tabla las consuma para mover la seleccion. Y por eso mismo hay que respetar los campos de
-     * texto: escribir un espacio en el buscador no puede pausar la musica.</p>
-     */
+    /** Instala los atajos de teclado. */
     private void instalarAtajos() {
         tablaBiblioteca.sceneProperty().addListener((observable, sinEscena, escena) -> {
             if (escena != null) {
@@ -339,15 +303,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Traduce una tecla a una accion del reproductor.
-     *
-     * @param evento tecla pulsada en cualquier punto de la ventana
-     */
+    /** Traduce una tecla a una accion del reproductor. */
     private void atenderTecla(KeyEvent evento) {
         // Mientras se escribe, el teclado es del campo de texto y de nadie mas. Los desplegables
         // tambien quedan fuera: en ellos el espacio abre la lista y las flechas mueven la
-        // seleccion, y no tendria sentido que ademas saltaran cinco segundos de la cancion.
         if (evento.getTarget() instanceof TextField
                 || evento.getTarget() instanceof ComboBox<?>) {
             return;
@@ -388,16 +347,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         evento.consume();
     }
 
-    /**
-     * Ata la interfaz al servicio de audio.
-     *
-     * <p>Es todo el contrato entre ambos: tres propiedades que se observan y un aviso de fin de
-     * pista. El controlador no consulta al audio en un bucle ni el audio conoce ningun control; la
-     * interfaz reacciona porque las propiedades cambian.</p>
-     *
-     * <p>Cuando una pista termina, quien decide cual sigue es el modo activo — o sea, la estructura
-     * de datos. La fuente de audio solo avisa que se acabo.</p>
-     */
+    /** Ata la interfaz al servicio de audio. */
     private void conectarAudio() {
         audio.posicionMsProperty().addListener((observable, anterior, actual) -> refrescarProgreso());
         audio.duracionMsProperty().addListener((observable, anterior, actual) -> refrescarProgreso());
@@ -421,13 +371,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         audio.setAlFallar(mensaje -> Platform.runLater(() -> mostrarAviso(mensaje)));
     }
 
-    /**
-     * Monta la cabecera ilustrada y la capa de animaciones.
-     *
-     * <p>Toda la logica de las animaciones vive en el paquete {@code animacion}. Aqui solo se
-     * cuelga la capa y se le dice desde donde nace la telarania; el controlador no sabe como se
-     * anima nada, y el paquete de animacion no sabe nada del reproductor.</p>
-     */
+    /** Monta la cabecera ilustrada y la capa de animaciones. */
     private void prepararAdornosSpidey() {
         cargarImagen(RUTA_TITULO).ifPresent(imagenTitulo::setImage);
         cargarImagen(RUTA_INSIGNIA).ifPresent(insigniaDerecha::setImage);
@@ -452,8 +396,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         capaSpidey.nodo().prefHeightProperty().bind(capaAnimaciones.heightProperty());
         // La telarania nace en el borde inferior de las pestanias de modo. No basta con la altura
         // de la cabecera: la capa de animacion cubre tambien el marco exterior, asi que esa altura
-        // no coincide con la posicion real de ese borde y la telarania salia bastante mas arriba.
-        // Convertir por coordenadas da el punto exacto y se recalcula solo al redimensionar.
         capaSpidey.origenTelaranaProperty().bind(Bindings.createDoubleBinding(
                 () -> {
                     Bounds enEscena = selectorModos.localToScene(selectorModos.getBoundsInLocal());
@@ -477,13 +419,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Carga unas canciones de muestra la primera vez que se abre la aplicacion.
-     *
-     * <p>Solo ocurre si {@code data/biblioteca.json} todavia no existe, para no repoblar la
-     * biblioteca de alguien que la vacio a proposito. Son canciones sin archivo de audio: sirven
-     * para ver los tres modos funcionando y se pueden borrar desde la interfaz.</p>
-     */
+    /** Carga unas canciones de muestra la primera vez que se abre la aplicacion. */
     private void sembrarCancionesDeEjemplo() {
         List<Cancion> ejemplos = List.of(
                 agregarEjemplo("Bohemian Rhapsody", "Queen", "A Night at the Opera", "Rock", 1975, 355, 98),
@@ -512,19 +448,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return cancion;
     }
 
-    /**
-     * Busca en la API la caratula de cada cancion y la descarga, sin bloquear la interfaz.
-     *
-     * <p>Se usa al sembrar los ejemplos, para que la biblioteca se vea poblada desde el primer
-     * arranque en vez de con siete veces la misma imagen de reemplazo.</p>
-     *
-     * <p>Todo el trabajo de red ocurre en un hilo aparte; lo unico que vuelve al hilo de la
-     * interfaz es guardar la ruta en la cancion, porque eso dispara a los observadores y refresca
-     * la pantalla. Si no hay internet no pasa nada: las canciones se quedan con la caratula de
-     * reemplazo y la aplicacion funciona igual.</p>
-     *
-     * @param canciones canciones a las que buscarles caratula
-     */
+    /** Busca en la API la caratula de cada cancion y la descarga, sin bloquear la interfaz. */
     private void buscarPortadasEnSegundoPlano(List<Cancion> canciones) {
         Task<Integer> tarea = new Task<>() {
             @Override
@@ -560,15 +484,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         hilo.start();
     }
 
-    /**
-     * Consulta la API por una cancion, descarga su caratula y la asocia.
-     *
-     * <p>Se ejecuta en un hilo de trabajo. La parte que toca el modelo se reenvia al hilo de la
-     * interfaz con {@link Platform#runLater(Runnable)}, porque modificar la biblioteca notifica a
-     * los observadores y esos si tocan la pantalla.</p>
-     *
-     * @return {@code true} si se consiguio y guardo una caratula
-     */
+    /** Consulta la API por una cancion, descarga su caratula y la asocia. */
     private boolean buscarYAplicarPortada(Cancion cancion) {
         List<ResultadoBusquedaApi> resultados =
                 api.buscar(cancion.getArtista() + " " + cancion.getTitulo());
@@ -600,12 +516,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return true;
     }
 
-    /**
-     * Elige el resultado cuyo titulo coincide exactamente, si lo hay.
-     *
-     * <p>Sin esto, una busqueda de "Bohemian Rhapsody" puede devolver primero una version en vivo
-     * y quedarse con la caratula equivocada.</p>
-     */
+    /** Elige el resultado cuyo titulo coincide exactamente, si lo hay. */
     private static ResultadoBusquedaApi mejorCoincidencia(List<ResultadoBusquedaApi> resultados,
                                                           String tituloBuscado) {
         for (ResultadoBusquedaApi candidato : resultados) {
@@ -618,9 +529,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return resultados.get(0);
     }
 
-    // ------------------------------------------------------------------
-    // Configuracion de los controles
-    // ------------------------------------------------------------------
+    // --- Configuracion de los controles ---
 
     private void configurarTabla() {
         configurarColumnaDePortada();
@@ -658,12 +567,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         actualizarBotonesDeSeleccion();
     }
 
-    /**
-     * Cambia el campo sobre el que se filtra y rellena el desplegable con sus valores reales.
-     *
-     * <p>Los valores salen de la biblioteca, no de una lista fija: si se agrega una cancion de un
-     * genero que no existia, aparece sola en el desplegable la proxima vez que se elija GÉNERO.</p>
-     */
+    /** Cambia el campo sobre el que se filtra y rellena el desplegable con sus valores reales. */
     @FXML
     private void cambiarCampoDeFiltro() {
         FiltroDeCampo campo = campoDeFiltro();
@@ -679,17 +583,10 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return FiltroDeCampo.porEtiqueta(selectorCampo.getValue());
     }
 
-    /**
-     * Prepara la columna de miniaturas de la tabla.
-     *
-     * <p>La celda recibe la cancion entera, no una cadena, porque necesita resolver su caratula.
-     * Las imagenes salen de {@link #portadaDe(Cancion)}, que las cachea en memoria: la tabla se
-     * redibuja constantemente y releer cada archivo del disco en cada pasada se notaria.</p>
-     */
+    /** Prepara la columna de miniaturas de la tabla. */
     private void configurarColumnaDePortada() {
         columnaPortada.setCellValueFactory(fila -> new SimpleObjectProperty<>(fila.getValue()));
         columnaPortada.setCellFactory(columna -> new TableCell<>() {
-
             private final ImageView miniatura = new ImageView();
 
             {
@@ -719,7 +616,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         // Cada fila lleva su caratula, el titulo y el artista en dos renglones: con una sola linea
         // de texto los titulos largos se cortaban y no se distinguia una cancion de otra.
         listaSiguientes.setCellFactory(vista -> new ListCell<>() {
-
             private final ImageView miniatura = new ImageView();
             private final Label numeroYTitulo = new Label();
             private final Label artista = new Label();
@@ -742,9 +638,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
                 // La celda se ata al ancho visible de la lista. Sin esto, un titulo largo hacia
                 // la celda mas ancha que la lista, aparecia una barra de desplazamiento
-                // horizontal y con ella el recuadrito muerto de la esquina inferior derecha.
-                // Restar la barra vertical y el borde evita que la celda la provoque justo al
-                // llegar al limite.
                 contenido.maxWidthProperty().bind(
                         listaSiguientes.widthProperty().subtract(ANCHO_BARRA_DESPLAZAMIENTO));
                 contenido.prefWidthProperty().bind(contenido.maxWidthProperty());
@@ -770,15 +663,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Crea los rectangulos de la barra de progreso y le da el comportamiento de arrastre.
-     *
-     * <p>La barra es un {@code HBox} de bloques, no un {@code Slider}: el pixel art no admite el
-     * pulgar redondeado del control estandar. Eso obliga a resolver a mano las tres partes del
-     * arrastre: presionar coloca el pulgar, mover lo sigue sin tocar el audio todavia, y soltar es
-     * lo unico que llama a {@code buscarPosicion}. Buscar en cada pixel del recorrido saturaria al
-     * reproductor con peticiones que va a descartar.</p>
-     */
+    /** Crea los rectangulos de la barra de progreso y le da el comportamiento de arrastre. */
     private void construirBarraDeProgreso() {
         for (int i = 0; i < BLOQUES_PROGRESO; i++) {
             Rectangle bloque = new Rectangle(ANCHO_BLOQUE, ALTO_BLOQUE);
@@ -814,12 +699,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Traduce una coordenada horizontal dentro de la barra a una fraccion de la pista.
-     *
-     * @param x posicion del raton relativa a la barra
-     * @return valor entre 0 y 1
-     */
+    /** Traduce una coordenada horizontal dentro de la barra a una fraccion de la pista. */
     private double fraccionEn(double x) {
         double ancho = barraProgreso.getWidth();
         if (ancho <= 0) {
@@ -860,9 +740,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         animacionMarquesina.play();
     }
 
-    // ------------------------------------------------------------------
-    // Selector de modo
-    // ------------------------------------------------------------------
+    // --- Selector de modo ---
 
     @FXML
     private void activarModoAleatorio() {
@@ -879,13 +757,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         activarModo(modoAlfabetico);
     }
 
-    /**
-     * Cambia el modo activo.
-     *
-     * <p>Aqui se ve el polimorfismo del proyecto: el controlador solo reasigna una referencia de
-     * tipo {@link ModoReproduccion} y reconstruye la estructura desde la biblioteca. No hay
-     * ningun {@code if} ni {@code switch} sobre el tipo concreto del modo.</p>
-     */
+    /** Cambia el modo activo. */
     private void activarModo(ModoReproduccion modo) {
         audio.detener();
         modoActivo = modo;
@@ -896,16 +768,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarReproductor();
     }
 
-    // ------------------------------------------------------------------
-    // Listas de reproduccion
-    // ------------------------------------------------------------------
+    // --- Listas de reproduccion ---
 
-    /**
-     * Enseña al selector a mostrar el nombre de cada coleccion y cuantas canciones tiene.
-     *
-     * <p>Sin esto el {@code ComboBox} pintaria el {@code toString()} del objeto. El contador ayuda
-     * a ver de un vistazo que una lista quedo vacia.</p>
-     */
+    /** Enseña al selector a mostrar el nombre de cada coleccion y cuantas canciones tiene. */
     private void configurarSelectorDeColecciones() {
         selectorColeccion.setConverter(new javafx.util.StringConverter<>() {
             @Override
@@ -923,12 +788,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Rellena el selector con la biblioteca, las favoritas y las listas del usuario.
-     *
-     * <p>Las tres primeras entradas son fijas y siempre estan; despues van las listas hechas a
-     * mano, en el orden en que se crearon.</p>
-     */
+    /** Rellena el selector con la biblioteca, las favoritas y las listas del usuario. */
     private void refrescarSelectorDeColecciones() {
         ColeccionDeCanciones elegida = coleccionActiva;
 
@@ -1040,28 +900,15 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarTabla();
     }
 
-    /**
-     * Pide un nombre al usuario.
-     *
-     * @param titulo   titulo de la ventana
-     * @param mensaje  texto de la pregunta
-     * @param inicial  valor con el que arranca el campo
-     * @return el nombre escrito, o vacio si cancelo o lo dejo en blanco
-     */
+    /** Pide un nombre al usuario. */
     private Optional<String> pedirNombre(String titulo, String mensaje, String inicial) {
         return DialogoTexto.pedir(ventana(), titulo, mensaje, inicial);
     }
 
-    /**
-     * Arma el menu que aparece al hacer clic derecho sobre una cancion de la tabla.
-     *
-     * <p>Se reconstruye cada vez que se abre porque las listas cambian: si se construyera una sola
-     * vez, una lista creada despues no apareceria nunca.</p>
-     */
+    /** Arma el menu que aparece al hacer clic derecho sobre una cancion de la tabla. */
     private void configurarMenuDeCanciones() {
         // Se construye entero en cada clic derecho, y NO con setContextMenu + setOnShowing:
         // JavaFX no llega a mostrar un menu que empieza vacio, asi que ese enganche no dispara
-        // nunca y el menu no aparece jamas.
         tablaBiblioteca.setOnContextMenuRequested(evento -> {
             if (menuDeCanciones != null) {
                 menuDeCanciones.hide();
@@ -1075,12 +922,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Arma el menu del clic derecho para una cancion.
-     *
-     * @param cancion cancion seleccionada, puede ser {@code null}
-     * @return el menu ya poblado
-     */
+    /** Arma el menu del clic derecho para una cancion. */
     private ContextMenu construirMenuPara(Cancion cancion) {
         ContextMenu menu = new ContextMenu();
         if (cancion == null) {
@@ -1158,13 +1000,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Ejecuta la accion propia del modo activo: volver a mezclar o recargar la cola.
-     *
-     * <p>Es el unico punto donde el controlador distingue modos concretos, y lo hace porque son
-     * acciones que <i>solo existen</i> en esas estructuras: barajar no significa nada en un arbol
-     * ordenado, y recargar no significa nada en una lista circular que nunca se agota.</p>
-     */
+    /** Ejecuta la accion propia del modo activo: volver a mezclar o recargar la cola. */
     @FXML
     private void ejecutarAccionDelModo() {
         if (modoActivo == modoAleatorio) {
@@ -1179,16 +1015,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarReproductor();
     }
 
-    // ------------------------------------------------------------------
-    // Transporte
-    // ------------------------------------------------------------------
+    // --- Transporte ---
 
-    /**
-     * Unico boton de reproduccion: arranca si esta detenido y pausa si esta sonando.
-     *
-     * <p>Antes eran dos botones separados. Con uno solo el icono comunica la accion disponible
-     * (triangulo para arrancar, dos barras para pausar) y no hay un boton apagado ocupando sitio.</p>
-     */
+    /** Unico boton de reproduccion: arranca si esta detenido y pausa si esta sonando. */
     @FXML
     private void alternarReproduccion() {
         if (estaSonando()) {
@@ -1213,15 +1042,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return audio.reproduciendoProperty().get();
     }
 
-    /**
-     * Abre la ventana que dibuja la estructura de datos del modo activo.
-     *
-     * <p>Va en ventana aparte y no dentro del reproductor por dos razones: el alto del panel ya
-     * esta muy justo, y en la sustentacion conviene poder dejarla abierta al lado mientras se
-     * maneja el reproductor.</p>
-     *
-     * <p>Se repinta con cada cambio de cancion o de modo mientras este abierta.</p>
-     */
+    /** Abre la ventana que dibuja la estructura de datos del modo activo. */
     @FXML
     private void verEstructura() {
         if (ventanaEstructura != null && ventanaEstructura.isShowing()) {
@@ -1238,21 +1059,13 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
         // Se pinta ANTES de mostrar. Al reves —que es como estaba— show() dimensiona la ventana
         // con el lienzo todavia en su tamanio por defecto, y el arbol, que es mas alto, quedaba
-        // cortado por abajo nada mas abrirla.
         if (modoActivo != null) {
             visualizador.mostrar(modoActivo.estructuraVisual());
         }
         ventanaEstructura.show();
     }
 
-    /**
-     * Abre la ventana con el resumen de lo mas escuchado.
-     *
-     * <p>Las cuentas se rehacen cada vez que se abre, y tambien si ya estaba abierta: asi el
-     * resumen nunca queda desfasado respecto a lo que acaba de sonar. Se calculan sobre la
-     * biblioteca entera, no sobre la coleccion seleccionada, porque lo que interesa es cuanto se ha
-     * escuchado cada cancion, no en que lista esta.</p>
-     */
+    /** Abre la ventana con el resumen de lo mas escuchado. */
     @FXML
     private void verEstadisticas() {
         EstadisticasBiblioteca resumen = EstadisticasBiblioteca.de(biblioteca.todas());
@@ -1273,14 +1086,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         ventanaEstadisticas.show();
     }
 
-    /**
-     * Repinta la estructura, si la ventana esta abierta.
-     *
-     * <p>Se reajusta el tamanio despues de pintar porque al cambiar de modo cambia la estructura, y
-     * un arbol no ocupa lo mismo que una cola: sin esto, pasar de cola a arbol con la ventana
-     * abierta lo dejaba cortado. Dentro de un mismo modo el dibujo no cambia de tamanio, asi que
-     * la llamada no mueve nada.</p>
-     */
+    /** Repinta la estructura, si la ventana esta abierta. */
     private void refrescarVisualizador() {
         if (ventanaEstructura != null && ventanaEstructura.isShowing() && modoActivo != null) {
             visualizador.mostrar(modoActivo.estructuraVisual());
@@ -1288,13 +1094,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Alterna entre usar cualquier fuente y quedarse solo con las que funcionan sin conexion.
-     *
-     * <p>El controlador no nombra ninguna fuente: solo dice "evitá la red" y el enrutador decide a
-     * quien deja fuera. Existe para la sustentacion, donde la red del salon puede fallar y no hay
-     * tiempo de reiniciar la aplicacion.</p>
-     */
+    /** Alterna entre usar cualquier fuente y quedarse solo con las que funcionan sin conexion. */
     @FXML
     private void alternarFuenteDeAudio() {
         boolean soloLocal = "AUTO".equals(etiquetaFuenteAudio.getText());
@@ -1326,13 +1126,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         iniciarPista();
     }
 
-    /**
-     * Manda a sonar la cancion que el modo acaba de seleccionar.
-     *
-     * <p>El controlador no elige la fuente: le pasa la cancion al enrutador y este decide si va por
-     * el archivo local, por Spotify o por el reloj simulado. Aqui esta el limite entre "quien manda
-     * el orden" (las estructuras de datos) y "quien hace ruido" (la fuente de audio).</p>
-     */
+    /** Manda a sonar la cancion que el modo acaba de seleccionar. */
     private void iniciarPista() {
         limpiarAviso();
         Cancion pista = modoActivo.actual();
@@ -1342,7 +1136,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
         // El historial cambio de contenido, asi que hay que rearmar las filas; en cualquier otra
         // coleccion las filas son las mismas y basta con repintarlas para que la columna REPR.
-        // muestre el contador recien subido, sin perder la seleccion ni el desplazamiento.
         if (coleccionActiva instanceof ColeccionHistorial) {
             refrescarTabla();
         } else {
@@ -1350,15 +1143,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Suma uno al contador de reproducciones de la cancion.
-     *
-     * <p>Pasa por {@code biblioteca.editar} y no por el setter directo para que el cambio se
-     * guarde en disco: si no, el contador se perderia al cerrar y las estadisticas arrancarian
-     * en cero cada vez.</p>
-     *
-     * @param cancion cancion que empieza a sonar; admite {@code null}
-     */
+    /** Suma uno al contador de reproducciones de la cancion. */
     private void contarReproduccion(Cancion cancion) {
         if (cancion == null) {
             return;
@@ -1382,9 +1167,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return actual.getDuracionSegundos();
     }
 
-    // ------------------------------------------------------------------
-    // Biblioteca (CRUD)
-    // ------------------------------------------------------------------
+    // --- Biblioteca (CRUD) ---
 
     @FXML
     private void agregarCancion() {
@@ -1395,7 +1178,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
             // Si se estaba viendo una lista, la cancion entra tambien en ella: es lo que espera
             // quien abre "Mi lista" y pulsa AGREGAR. En la biblioteca entera no hay nada que
-            // hacer, porque ya la contiene.
             if (coleccionActiva instanceof ColeccionPlaylist mostrada) {
                 listas.agregarCancion(mostrada.playlist(), nueva);
                 activarModo(modoActivo);
@@ -1425,13 +1207,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         });
     }
 
-    /**
-     * Baja la caratula de una cancion sin bloquear la interfaz.
-     *
-     * <p>La descarga es una operacion de red, asi que va en un {@link Task}. Cuando termina, se
-     * guarda la ruta local en la cancion (a traves de la biblioteca, para que quede persistida) y
-     * se refresca la pantalla si esa era la cancion que suena.</p>
-     */
+    /** Baja la caratula de una cancion sin bloquear la interfaz. */
     private void descargarPortadaEnSegundoPlano(Cancion cancion) {
         if (cancion.getUrlPortadaRemota() == null || cancion.getUrlPortadaRemota().isBlank()) {
             return;
@@ -1473,13 +1249,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Alterna entre el tema oscuro y el claro.
-     *
-     * <p>Lo unico que cambia es una clase en la raiz de la escena: la hoja de estilos redefine
-     * ahi las variables de color y todas las reglas se recalculan solas. No hay una segunda hoja
-     * de estilos ni reglas duplicadas que mantener en paralelo.</p>
-     */
+    /** Alterna entre el tema oscuro y el claro. */
     @FXML
     private void alternarTema() {
         var raiz = tablaBiblioteca.getScene().getRoot();
@@ -1495,7 +1265,6 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
 
         // Las ventanas que se pueden quedar abiertas mientras se cambia el tema. Los diálogos
         // modales no hacen falta: mientras están abiertos no se puede pulsar el botón del tema, y
-        // al abrirse heredan el tema de esta ventana.
         VentanaPixel.aplicarTema(ventanaEstructura, pasandoAClaro);
         VentanaPixel.aplicarTema(ventanaEstadisticas, pasandoAClaro);
         // El visualizador pinta sobre un lienzo, donde el CSS no llega: hay que repintarlo para
@@ -1503,17 +1272,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarVisualizador();
     }
 
-    // ------------------------------------------------------------------
-    // Barra de titulo propia
-    // ------------------------------------------------------------------
+    // --- Barra de titulo propia ---
 
-    /**
-     * Habilita arrastrar la ventana desde la barra de titulo.
-     *
-     * <p>Al quitar la decoracion del sistema tambien se pierde el arrastre, asi que hay que
-     * reimplementarlo: se guarda el desplazamiento entre el puntero y la esquina de la ventana al
-     * presionar, y se mantiene mientras se arrastra.</p>
-     */
+    /** Habilita arrastrar la ventana desde la barra de titulo. */
     private void prepararBarraTitulo() {
         barraTitulo.setOnMousePressed(evento -> {
             desplazamientoArrastreX = evento.getSceneX();
@@ -1543,15 +1304,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Agranda la ventana a la pantalla util, o la devuelve a su tamanio anterior.
-     *
-     * <p><b>Por que no se usa {@code setMaximized}.</b> En una ventana sin decoracion, Windows la
-     * estira sobre <i>toda</i> la pantalla y tapa la barra de tareas; y encima, una ventana
-     * marcada como maximizada no se deja redimensionar por los bordes. Colocandola a mano sobre
-     * {@code getVisualBounds()} —que descuenta la barra de tareas— se consigue el mismo efecto
-     * util sin ninguno de los dos problemas.</p>
-     */
+    /** Agranda la ventana a la pantalla util, o la devuelve a su tamanio anterior. */
     @FXML
     private void alternarMaximizar() {
         Stage ventana = ventanaPrincipal();
@@ -1600,13 +1353,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarTabla();
     }
 
-    /**
-     * Deja el buscador como estaba: sin texto y sin restringir a ningun campo.
-     *
-     * <p>Se limpian las dos cosas y no solo el texto: si se hubiera filtrado por GÉNERO, borrar el
-     * texto dejaria el selector marcando un campo que ya no filtra nada, y da la impresion de que
-     * el boton no funciono del todo.</p>
-     */
+    /** Deja el buscador como estaba: sin texto y sin restringir a ningun campo. */
     @FXML
     private void limpiarBusqueda() {
         // Primero el value y luego el editor: al poner el value en null, JavaFX vacia el editor por
@@ -1616,9 +1363,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         selectorCampo.setValue(FiltroDeCampo.TODO.etiqueta());
     }
 
-    // ------------------------------------------------------------------
-    // ObservadorBiblioteca: mantiene el modo activo en sincronia
-    // ------------------------------------------------------------------
+    // --- ObservadorBiblioteca: mantiene el modo activo en sincronia ---
 
     @Override
     public void cancionAgregada(Cancion cancion) {
@@ -1666,16 +1411,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarReproductor();
     }
 
-    // ------------------------------------------------------------------
-    // Refresco de la vista
-    // ------------------------------------------------------------------
+    // --- Refresco de la vista ---
 
-    /**
-     * Repinta la tabla con la coleccion elegida, filtrada por lo que haya en el buscador.
-     *
-     * <p>La tabla muestra lo mismo que va a sonar. Que fuera siempre la biblioteca entera mientras
-     * suena otra cosa seria confuso: el usuario elige una lista para verla, no solo para oirla.</p>
-     */
+    /** Repinta la tabla con la coleccion elegida, filtrada por lo que haya en el buscador. */
     private void refrescarTabla() {
         Cancion seleccionada = tablaBiblioteca.getSelectionModel().getSelectedItem();
 
@@ -1697,13 +1435,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         actualizarBotonesDeSeleccion();
     }
 
-    /**
-     * Explica que hacer cuando la tabla queda vacia.
-     *
-     * <p>Sin esto hay un callejon sin salida: al crear una lista, la tabla se queda en blanco y no
-     * hay ninguna cancion sobre la que hacer clic derecho para agregarla. El mensaje dice
-     * exactamente por donde salir, y cambia segun la coleccion que este elegida.</p>
-     */
+    /** Explica que hacer cuando la tabla queda vacia. */
     private void explicarTablaVacia() {
         String mensaje;
         if (coleccionActiva instanceof ColeccionPlaylist) {
@@ -1755,17 +1487,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         refrescarVisualizador();
     }
 
-    /**
-     * Pinta la barra segmentada segun el avance real de la reproduccion.
-     *
-     * <p>Mientras se arrastra el pulgar la barra deja de mirar la posicion de la fuente y sigue al
-     * dedo: si no, cada aviso del audio empujaria el pulgar de vuelta y el arrastre pelearia contra
-     * la reproduccion.</p>
-     *
-     * <p>Los dos rotulos de tiempo se escriben aqui y no al cambiar de cancion, porque un MP3 no
-     * publica su duracion hasta que carga la cabecera: si el total se escribiera una sola vez, se
-     * quedaria con la duracion de la metadata aunque el archivo dure otra cosa.</p>
-     */
+    /** Pinta la barra segmentada segun el avance real de la reproduccion. */
     private void refrescarProgreso() {
         int total = duracionDeLaPista();
         boolean hayPista = modoActivo != null && modoActivo.actual() != null;
@@ -1850,17 +1572,9 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         etiquetaMarquesina.setText(texto);
     }
 
-    // ------------------------------------------------------------------
-    // Utilidades
-    // ------------------------------------------------------------------
+    // --- Utilidades ---
 
-    /**
-     * Devuelve la caratula que debe mostrarse para una cancion.
-     *
-     * <p>Se lee del archivo cacheado en {@code data/covers} y se guarda en memoria, para no
-     * releer la imagen del disco en cada refresco de la pantalla. Si no hay caratula, se usa el
-     * reemplazo pixel-art del proyecto.</p>
-     */
+    /** Devuelve la caratula que debe mostrarse para una cancion. */
     private Image portadaDe(Cancion cancion) {
         if (cancion == null) {
             return portadaPorDefecto;
@@ -1884,13 +1598,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         return portadaPorDefecto;
     }
 
-    /**
-     * Arma el texto de detalle de la cancion en curso.
-     *
-     * <p>Incluye la fuente de audio activa. No es adorno: es la prueba visible de que el mismo
-     * boton de play acaba en implementaciones distintas segun la cancion, y sirve para explicarlo
-     * en la sustentacion sin abrir el codigo.</p>
-     */
+    /** Arma el texto de detalle de la cancion en curso. */
     private String detalleDe(Cancion cancion) {
         StringBuilder detalle = new StringBuilder(cancion.getAlbum().toUpperCase());
         if (cancion.getAnio() > 0) {
@@ -1946,11 +1654,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         }
     }
 
-    /**
-     * Guarda la biblioteca antes de cerrar la aplicacion.
-     *
-     * <p>Lo llama {@code App} desde el evento de cierre de la ventana.</p>
-     */
+    /** Guarda la biblioteca antes de cerrar la aplicacion. */
     public void alCerrar() {
         // Detener el audio es obligatorio, no cortesia: un MediaPlayer vivo retiene un hilo nativo
         // que puede dejar el proceso colgado despues de cerrar la ventana.

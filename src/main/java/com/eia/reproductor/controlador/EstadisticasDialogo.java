@@ -15,16 +15,8 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Ventana con el resumen de lo mas escuchado.
- *
- * <p>Solo coloca en pantalla lo que ya calculo {@link EstadisticasBiblioteca}: aqui no se suma ni
- * se ordena nada. Se arma desde codigo y no desde un FXML porque el contenido depende de cuantas
- * canciones hayan sonado —el podio puede tener de cero a cinco filas— y un FXML con cinco filas
- * fijas que a veces se ocultan es mas dificil de seguir que este metodo.</p>
- */
+/** Ventana con el resumen de lo mas escuchado. */
 public final class EstadisticasDialogo {
-
     /** La insignia verde, que hasta ahora estaba en el proyecto sin que nadie la mostrara. */
     private static final String RUTA_INSIGNIA = "/imagenes/spidey/insignia-verde.png";
 
@@ -33,12 +25,7 @@ public final class EstadisticasDialogo {
     private EstadisticasDialogo() {
     }
 
-    /**
-     * Arma el contenido de la ventana.
-     *
-     * @param resumen las cuentas ya hechas
-     * @return el nodo listo para pasarselo a {@link VentanaPixel#montar}
-     */
+    /** Arma el contenido de la ventana. */
     public static VBox construir(EstadisticasBiblioteca resumen) {
         VBox cuerpo = new VBox(14);
         cuerpo.getStyleClass().add("cuerpo-dialogo");
@@ -66,12 +53,7 @@ public final class EstadisticasDialogo {
         return cuerpo;
     }
 
-    /**
-     * La insignia que corona la ventana.
-     *
-     * <p>Devuelve vacio si el archivo no esta en el classpath, en vez de reventar: una ventana de
-     * estadisticas sin adorno sigue sirviendo, y una excepcion al abrirla no.</p>
-     */
+    /** La insignia que corona la ventana. */
     private static Optional<ImageView> insignia() {
         try (InputStream archivo = EstadisticasDialogo.class.getResourceAsStream(RUTA_INSIGNIA)) {
             if (archivo == null) {

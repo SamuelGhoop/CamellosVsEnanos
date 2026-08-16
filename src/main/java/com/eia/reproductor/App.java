@@ -20,21 +20,8 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Objects;
 
-/**
- * Aplicacion JavaFX del reproductor.
- *
- * <p>Su unica responsabilidad es levantar la ventana principal: registrar la tipografia de pixeles,
- * cargar la vista declarativa {@code principal.fxml} y aplicarle la hoja de estilos. Toda la logica
- * del reproductor vive en los paquetes {@code estructuras}, {@code modos} y {@code servicios}, que
- * no conocen a JavaFX.</p>
- *
- * <p><b>Esta clase no se ejecuta directamente.</b> No tiene {@code main} a proposito: el arranque
- * se hace desde {@link Lanzador}, que explica en su documentacion por que es necesario.</p>
- *
- * @see Lanzador
- */
+/** Aplicacion JavaFX del reproductor. */
 public class App extends Application {
-
     /** Ruta de la vista principal dentro de {@code src/main/resources}. */
     private static final String RUTA_VISTA_PRINCIPAL = "/vista/principal.fxml";
 
@@ -67,7 +54,6 @@ public class App extends Application {
     public void start(Stage escenarioPrincipal) {
         // La fuente debe registrarse ANTES de construir la escena: si el CSS pide una familia
         // que todavia no esta cargada, JavaFX cae silenciosamente a la fuente por defecto. Y
-        // tambien antes de la pantalla de carga, que la usa.
         cargarFuentePixel();
 
         PantallaDeCarga carga = new PantallaDeCarga();
@@ -75,7 +61,6 @@ public class App extends Application {
 
         // El trabajo pesado ocurre en este mismo hilo, asi que si empezara ahora mismo la
         // pantalla de carga saldria en blanco: no le habria dado tiempo a pintarse. Con una
-        // pausa minima el entorno alcanza a dibujar un fotograma antes de bloquearse.
         PauseTransition respiro = new PauseTransition(Duration.millis(80));
         respiro.setOnFinished(evento -> {
             try {
@@ -90,13 +75,7 @@ public class App extends Application {
         respiro.play();
     }
 
-    /**
-     * Monta y muestra la ventana principal.
-     *
-     * @param escenarioPrincipal ventana que entrega JavaFX
-     * @param carga              pantalla de bienvenida, para ir informando del avance
-     * @throws IOException si no se puede leer la vista
-     */
+    /** Monta y muestra la ventana principal. */
     private void construirVentanaPrincipal(Stage escenarioPrincipal, PantallaDeCarga carga)
             throws IOException {
         carga.informar("Cargando la interfaz");
@@ -135,25 +114,12 @@ public class App extends Application {
         acomodarEnPantalla(escenarioPrincipal);
     }
 
-
-    /**
-     * Deja la ventana con un tamanio comodo y centrada, sin taparlo todo.
-     *
-     * <p><b>Por que no se maximiza al arrancar.</b> Una ventana sin decoracion que se maximiza en
-     * Windows se estira sobre <i>toda</i> la pantalla, barra de tareas incluida, y ademas una
-     * ventana maximizada no se puede redimensionar arrastrando los bordes. El resultado parecia
-     * pantalla completa y sin salida.</p>
-     *
-     * <p>Se usa {@code getVisualBounds()} y no {@code getBounds()}: el primero descuenta la barra
-     * de tareas, que es justo lo que hay que respetar.</p>
-     */
+    /** Deja la ventana con un tamanio comodo y centrada, sin taparlo todo. */
     private static void acomodarEnPantalla(Stage escenario) {
         Rectangle2D util = Screen.getPrimary().getVisualBounds();
 
         // Se aprovecha casi todo el alto disponible. El panel del reproductor lleva caratula,
         // datos, progreso, transporte y la lista de proximas: con 800 px se desbordaba por abajo y
-        // tapaba la marquesina. El margen es el justo para que se vea que es una ventana y se
-        // pueda agarrar de los bordes, sin robarle sitio al contenido.
         double ancho = Math.min(ANCHO_INICIAL, util.getWidth() - MARGEN_PANTALLA * 2);
         double alto = Math.max(ALTO_MINIMO, util.getHeight() - MARGEN_PANTALLA);
 
@@ -163,12 +129,7 @@ public class App extends Application {
         escenario.setY(util.getMinY() + (util.getHeight() - alto) / 2);
     }
 
-    /**
-     * Pone el logo en la barra de tareas y en el conmutador de ventanas.
-     *
-     * <p>Sin esto Windows muestra el icono generico de Java, que rompe la identidad visual del
-     * reproductor justo donde mas se ve.</p>
-     */
+    /** Pone el logo en la barra de tareas y en el conmutador de ventanas. */
     private static void ponerIconoDeLaBarraDeTareas(Stage escenario) {
         try (InputStream flujo = App.class.getResourceAsStream(RUTA_LOGO)) {
             if (flujo != null) {
@@ -180,17 +141,7 @@ public class App extends Application {
         }
     }
 
-    /**
-     * Registra la tipografia de pixeles en el motor de fuentes de JavaFX.
-     *
-     * <p>Es publica y estatica porque toda ventana que se abra necesita la fuente ya registrada, y
-     * no todas pasan por {@link #start(Stage)}: un dialogo que se muestre desde una prueba o desde
-     * otro punto de entrada se veria con la tipografia del sistema. Cualquiera puede llamarla sin
-     * miedo, porque solo hace el trabajo la primera vez.</p>
-     *
-     * <p>Si el archivo no esta disponible la aplicacion no se detiene: se avisa por consola y el
-     * CSS usa la fuente monoespaciada de respaldo declarada en {@code estilos.css}.</p>
-     */
+    /** Registra la tipografia de pixeles en el motor de fuentes de JavaFX. */
     public static synchronized void cargarFuentePixel() {
         if (fuenteRegistrada) {
             return;

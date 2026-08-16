@@ -19,27 +19,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-/**
- * Fuente de audio que reproduce por Spotify, usando librespot como dispositivo.
- *
- * <p>Es la pieza que cierra la fase 7b, y la prueba de que el diseno aguanto: para sumarla no hubo
- * que tocar el controlador, ni la interfaz grafica, ni las estructuras de datos. Se registra en
- * {@link com.eia.reproductor.servicios.FabricaAudio} y el resto de la aplicacion la usa a traves de
- * {@link ReproductorAudio} sin enterarse de que existe.</p>
- *
- * <p><b>Arranque perezoso y silencioso.</b> Levantar librespot tarda varios segundos, asi que se
- * hace en un hilo aparte y la fuente se declara no disponible hasta que este lista. Y no se intenta
- * siquiera si falta la configuracion, la sesion guardada o la cache de credenciales de librespot:
- * en ese caso la aplicacion arranca normal con audio local, sin abrir ninguna ventana del navegador
- * que el usuario no pidio.</p>
- *
- * <p><b>Hilos.</b> El sondeo y el arranque corren fuera del hilo de la interfaz porque bloquean en
- * la red. Todo lo que toca las propiedades observables pasa por {@link Platform#runLater}, porque
- * la interfaz esta atada a ellas y modificarlas desde otro hilo la romperia.</p>
- */
+/** Fuente de audio que reproduce por Spotify, usando librespot como dispositivo. */
 public class AudioSpotifyService implements ReproductorAudio {
-
-    /** Cada cuanto se le pregunta a Spotify por la posicion. No hay avisos: solo sondeo. */
+    /** Cada cuanto se le pregunta a Spotify por la posicion. */
     private static final long INTERVALO_SONDEO_MS = 1_000;
 
     /** Cuanto se espera a que el usuario suelte la barra antes de mandar el volumen. */
@@ -71,15 +53,7 @@ public class AudioSpotifyService implements ReproductorAudio {
     private final ReadOnlyLongWrapper duracionMs = new ReadOnlyLongWrapper(0);
     private final BooleanProperty reproduciendo = new SimpleBooleanProperty(false);
 
-    /**
-     * Hilo unico por el que pasan todas las ordenes a Spotify.
-     *
-     * <p><b>Por que uno solo.</b> Antes cada orden abria un hilo nuevo. Arrastrar la barra de
-     * volumen dispara decenas de eventos por segundo, o sea decenas de hilos y decenas de
-     * peticiones simultaneas: Spotify responde 429 por exceso, el volumen deja de obedecer y la
-     * pausa se queda esperando detras de la cola. Con un solo hilo las ordenes van una tras otra y
-     * en el orden en que se pidieron.</p>
-     */
+    /** Hilo unico por el que pasan todas las ordenes a Spotify. */
     private final ScheduledExecutorService ordenes = Executors.newSingleThreadScheduledExecutor(
             tarea -> {
                 Thread hilo = new Thread(tarea, "ordenes-spotify");
@@ -93,13 +67,7 @@ public class AudioSpotifyService implements ReproductorAudio {
     /** Envio de volumen pendiente, para cancelarlo si llega otro antes. */
     private ScheduledFuture<?> envioDeVolumen;
 
-    /**
-     * Hasta cuando ignorar lo que diga el sondeo sobre si esta sonando.
-     *
-     * <p>Tras pausar o reanudar, la API tarda un momento en enterarse y sigue contestando el
-     * estado anterior. Sin esta ventana, el sondeo revertia el boton y parecia que la pausa no
-     * habia funcionado.</p>
-     */
+    /** Hasta cuando ignorar lo que diga el sondeo sobre si esta sonando. */
     private volatile long ignorarEstadoHasta;
 
     /** Posicion a la que se acaba de saltar, o -1 si no hay salto pendiente de confirmar. */
@@ -117,14 +85,7 @@ public class AudioSpotifyService implements ReproductorAudio {
     private Runnable alTerminarPista;
     private Consumer<String> alFallar;
 
-    /**
-     * Crea la fuente si la maquina esta lista para usarla, sin molestar al usuario.
-     *
-     * <p>Este es el unico punto de entrada que usa la fabrica. Devuelve vacio —y la aplicacion
-     * sigue con audio local— cuando falta cualquier requisito.</p>
-     *
-     * @return la fuente ya arrancando en segundo plano, o vacio
-     */
+    /** Crea la fuente si la maquina esta lista para usarla, sin molestar al usuario. */
     public static Optional<AudioSpotifyService> crearSiEstaConfigurado() {
         Optional<ConfiguracionSpotify> configuracion = ConfiguracionSpotify.cargar();
         if (configuracion.isEmpty()) {
@@ -152,14 +113,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         return Optional.of(servicio);
     }
 
-    /**
-     * Construye la fuente con sus colaboradores.
-     *
-     * @param configuracion datos de {@code config/spotify.properties}
-     * @param autenticacion sesion de la Web API
-     * @param api           cliente de la Web API
-     * @param librespot     proceso que reproduce
-     */
+    /** Construye la fuente con sus colaboradores. */
     public AudioSpotifyService(ConfiguracionSpotify configuracion,
                                AutenticacionSpotify autenticacion,
                                ClienteWebApiSpotify api,
@@ -170,9 +124,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         this.librespot = librespot;
     }
 
-    // ------------------------------------------------------------------
-    // Preparacion
-    // ------------------------------------------------------------------
+    // --- Preparacion ---
 
     /** Lanza librespot y le transfiere la reproduccion, sin bloquear a quien llama. */
     public void prepararEnSegundoPlano() {
@@ -181,13 +133,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         arranque.start();
     }
 
-    /**
-     * Deja el dispositivo listo para recibir ordenes.
-     *
-     * <p>El orden importa: primero que Spotify vea a librespot, despues transferirle la
-     * reproduccion, y solo entonces apagar repeticion y aleatorio. Transferir antes de que el
-     * dispositivo exista falla con un 404 que no dice nada.</p>
-     */
+    /** Deja el dispositivo listo para recibir ordenes. */
     private void preparar() {
         if (!librespot.iniciar()) {
             avisar(librespot.ultimoAviso().orElse("No se pudo iniciar Spotify."));
@@ -214,9 +160,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         dispositivoListo = true;
     }
 
-    // ------------------------------------------------------------------
-    // ReproductorAudio
-    // ------------------------------------------------------------------
+    // --- ReproductorAudio ---
 
     @Override
     public void reproducir(Cancion cancion) {
@@ -242,12 +186,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         });
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>El boton cambia de inmediato y la peticion viaja despues. Esperar la respuesta de la red
-     * para mover el icono hacia sentir que la aplicacion se habia colgado.</p>
-     */
+    /** {@inheritDoc} El boton cambia de inmediato y la peticion viaja despues. */
     @Override
     public void pausar() {
         enInterfaz(() -> reproduciendo.set(false));
@@ -287,14 +226,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         });
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>La barra salta al instante y la peticion viaja despues. Ademas se apunta a donde se
-     * quiso ir: hasta que un sondeo confirme que Spotify llego ahi, se descartan las posiciones
-     * que devuelva. Sin eso la barra hacia un feo baile —marcaba el destino, volvia al punto
-     * viejo que aun reportaba la API, y recien despues saltaba de verdad—.</p>
-     */
+    /** {@inheritDoc} La barra salta al instante y la peticion viaja despues. */
     @Override
     public void buscarPosicion(long milisegundos) {
         long limitada = Math.max(0, milisegundos);
@@ -304,12 +236,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         enSegundoPlano(() -> ordenarDespertando(() -> api.buscarPosicion(idDispositivo(), limitada)));
     }
 
-    /**
-     * Decide si hay que creerle la posicion a un sondeo.
-     *
-     * @param posicionReportada lo que dice la API
-     * @return {@code true} si se puede mostrar
-     */
+    /** Decide si hay que creerle la posicion a un sondeo. */
     private boolean posicionEsCreible(long posicionReportada) {
         if (objetivoDelSalto < 0) {
             return true;
@@ -349,11 +276,8 @@ public class AudioSpotifyService implements ReproductorAudio {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Refleja el estado vivo, no la configuracion: hacen falta las tres cosas a la vez —proceso
-     * arriba, sesion valida y dispositivo ya transferido—. Que la cancion tenga URI no basta, y por
-     * eso esta separado de {@link #puedeReproducir}.</p>
+     * {@inheritDoc} Refleja el estado vivo, no la configuracion: hacen falta las tres cosas a la
+     * vez —proceso arriba, sesion valida y dispositivo ya transferido—.
      */
     @Override
     public boolean disponible() {
@@ -380,24 +304,19 @@ public class AudioSpotifyService implements ReproductorAudio {
         this.alFallar = callback;
     }
 
-    /** {@inheritDoc} <p>Sin conexion esta fuente no sirve para nada.</p> */
+    /** {@inheritDoc} Sin conexion esta fuente no sirve para nada. */
     @Override
     public boolean requiereRed() {
         return true;
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Va por la Web API y por tanto por la red, asi que se manda en segundo plano: arrastrar la
-     * barra de volumen no puede congelar la interfaz mientras viaja la peticion.</p>
+     * {@inheritDoc} Va por la Web API y por tanto por la red, asi que se manda en segundo plano:
+     * arrastrar la barra de volumen no puede congelar la interfaz mientras viaja la peticion.
      */
     /**
-     * {@inheritDoc}
-     *
-     * <p>Los cambios se agrupan: arrastrar la barra genera decenas de valores por segundo y solo
-     * interesa el ultimo. Se espera un instante a que el usuario suelte y se manda una sola
-     * peticion, en vez de inundar la API con estados que quedan obsoletos al momento.</p>
+     * {@inheritDoc} Los cambios se agrupan: arrastrar la barra genera decenas de valores por
+     * segundo y solo interesa el ultimo.
      */
     @Override
     public synchronized void setVolumen(int porcentaje) {
@@ -424,9 +343,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         dispositivoListo = false;
     }
 
-    // ------------------------------------------------------------------
-    // Sondeo
-    // ------------------------------------------------------------------
+    // --- Sondeo ---
 
     private synchronized void arrancarSondeo() {
         if (sondeo != null) {
@@ -450,13 +367,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         }
     }
 
-    /**
-     * Una vuelta del sondeo: lee el estado, refresca la interfaz y comprueba el fin de pista.
-     *
-     * <p>Se traga cualquier excepcion a proposito: si una vuelta revienta,
-     * {@code scheduleWithFixedDelay} cancelaria la tarea en silencio y el reproductor se quedaria
-     * congelado sin que nadie sepa por que.</p>
-     */
+    /** Una vuelta del sondeo: lee el estado, refresca la interfaz y comprueba el fin de pista. */
     private void sondear() {
         try {
             EstadoReproductorSpotify estado = api.estadoDelReproductor().orElse(null);
@@ -505,27 +416,14 @@ public class AudioSpotifyService implements ReproductorAudio {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Hilos
-    // ------------------------------------------------------------------
+    // --- Hilos ---
 
     /** Lanza una tarea de red fuera del hilo de la interfaz, que no debe bloquearse jamas. */
     private void enSegundoPlano(Runnable tarea) {
         ordenes.execute(tarea);
     }
 
-    /**
-     * Ejecuta una orden del reproductor, despertando el dispositivo si se habia dormido.
-     *
-     * <p><b>El problema que resuelve.</b> Spotify desactiva el dispositivo tras un rato sin
-     * reproducir —en el registro de librespot aparece como {@code device became inactive}— y a
-     * partir de ahi toda orden responde {@code 404}. Eso se notaba de dos formas: un aviso de que
-     * no hay ningun dispositivo, y una pausa que no pausaba nada mientras el boton ya decia lo
-     * contrario. Ante un 404 se le devuelve el foco al dispositivo y se reintenta una vez.</p>
-     *
-     * @param orden peticion a la Web API, que devuelve si funciono
-     * @return {@code true} si la orden acabo surtiendo efecto
-     */
+    /** Ejecuta una orden del reproductor, despertando el dispositivo si se habia dormido. */
     private boolean ordenarDespertando(BooleanSupplier orden) {
         if (orden.getAsBoolean()) {
             return true;
@@ -540,12 +438,7 @@ public class AudioSpotifyService implements ReproductorAudio {
         return orden.getAsBoolean();
     }
 
-    /**
-     * Ejecuta en el hilo de la interfaz lo que toque las propiedades observables.
-     *
-     * <p>Si el entorno grafico no esta levantado —en las pruebas— se ejecuta en el acto, que es lo
-     * correcto ahi: no hay ninguna interfaz que proteger.</p>
-     */
+    /** Ejecuta en el hilo de la interfaz lo que toque las propiedades observables. */
     private static void enInterfaz(Runnable tarea) {
         try {
             if (Platform.isFxApplicationThread()) {

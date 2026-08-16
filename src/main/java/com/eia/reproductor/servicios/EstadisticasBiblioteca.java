@@ -8,20 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Resumen de lo que mas se ha escuchado, calculado a partir del contador de cada cancion.
- *
- * <p>Es solo calculo: no sabe nada de ventanas ni de JavaFX. Asi la ventana de estadisticas se
- * limita a colocar textos, y estas cuentas —que son las que se pueden equivocar— se pueden probar
- * en un test normal.</p>
- *
- * @param totalReproducciones suma de todas las veces que ha sonado cualquier cancion
- * @param distintasSonadas    cuantas canciones han sonado al menos una vez
- * @param minutosEscuchados   duracion acumulada de todo lo reproducido, en minutos
- * @param masEscuchadas       las mas repetidas, de mayor a menor (como mucho cinco)
- * @param artistaTop          artista con mas reproducciones sumadas, o {@code null} si no hay
- * @param generoTop           genero con mas reproducciones sumadas, o {@code null} si no hay
- */
+/** Resumen de lo que mas se ha escuchado, calculado a partir del contador de cada cancion. */
 public record EstadisticasBiblioteca(
         int totalReproducciones,
         int distintasSonadas,
@@ -29,8 +16,7 @@ public record EstadisticasBiblioteca(
         List<Cancion> masEscuchadas,
         String artistaTop,
         String generoTop) {
-
-    /** Cuantas entran en el podio. Mas de cinco no cabe en la ventana sin tener que desplazarse. */
+    /** Cuantas entran en el podio. */
     private static final int CUANTAS_EN_EL_PODIO = 5;
 
     /** Copia defensiva: el podio se entrega de solo lectura. */
@@ -38,12 +24,7 @@ public record EstadisticasBiblioteca(
         masEscuchadas = List.copyOf(masEscuchadas);
     }
 
-    /**
-     * Calcula el resumen de una biblioteca.
-     *
-     * @param canciones las canciones a resumir; puede venir vacia
-     * @return el resumen, con ceros y {@code null} si todavia no ha sonado nada
-     */
+    /** Calcula el resumen de una biblioteca. */
     public static EstadisticasBiblioteca de(List<Cancion> canciones) {
         int total = 0;
         int distintas = 0;
@@ -81,14 +62,7 @@ public record EstadisticasBiblioteca(
                 elMasRepetido(porArtista), elMasRepetido(porGenero));
     }
 
-    /**
-     * Acumula, ignorando lo que venga en blanco.
-     *
-     * <p>No sobra aunque {@code Cancion} prometa que el artista nunca es nulo: al cargar de disco,
-     * Gson escribe los campos por reflexion y se salta los setters, asi que un JSON con
-     * {@code "artista": null} deja el campo nulo. Sin este filtro acabaria en las estadisticas un
-     * artista llamado "null".</p>
-     */
+    /** Acumula, ignorando lo que venga en blanco. */
     private static void sumar(Map<String, Integer> cuenta, String clave, int veces) {
         if (clave == null || clave.isBlank()) {
             return;

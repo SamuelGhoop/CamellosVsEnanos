@@ -7,21 +7,9 @@ import com.google.gson.JsonObject;
 import java.text.Collator;
 import java.util.Locale;
 
-/**
- * Un resultado de busqueda en el catalogo de Spotify.
- *
- * @param uri        identificador {@code spotify:track:...}
- * @param titulo     titulo segun Spotify
- * @param artista    interprete principal segun Spotify
- * @param duracionMs duracion segun Spotify
- */
+/** Un resultado de busqueda en el catalogo de Spotify. */
 public record PistaSpotify(String uri, String titulo, String artista, long duracionMs) {
-
-    /**
-     * Comparador que ignora tildes y mayusculas, igual que el que ordena la biblioteca.
-     *
-     * <p>Sin esto, "Se sabia" y "Sé sabía" no coincidirian y se descartarian resultados buenos.</p>
-     */
+    /** Comparador que ignora tildes y mayusculas, igual que el que ordena la biblioteca. */
     private static final Collator COLLATOR = crearCollator();
 
     private static Collator crearCollator() {
@@ -30,12 +18,7 @@ public record PistaSpotify(String uri, String titulo, String artista, long durac
         return collator;
     }
 
-    /**
-     * Lee un elemento del arreglo {@code tracks.items} de la busqueda.
-     *
-     * @param objeto elemento a leer
-     * @return la pista leida
-     */
+    /** Lee un elemento del arreglo {@code tracks.items} de la busqueda. */
     static PistaSpotify desdeJson(JsonObject objeto) {
         return new PistaSpotify(
                 texto(objeto, "uri"),
@@ -44,37 +27,18 @@ public record PistaSpotify(String uri, String titulo, String artista, long durac
                 objeto.has("duration_ms") ? objeto.get("duration_ms").getAsLong() : 0);
     }
 
-    /**
-     * Decide si este resultado corresponde de verdad a lo que se buscaba.
-     *
-     * <p><b>Por que hace falta.</b> La busqueda de Spotify siempre devuelve <i>algo</i>: si se pide
-     * una cancion que no esta en el catalogo, contesta con lo que mas se le parezca. Guardar eso
-     * sin comprobar llenaria la biblioteca de canciones equivocadas, y peor aun, sonarian sin que
-     * el usuario entienda por que. Ante la duda, es mejor no guardar nada.</p>
-     *
-     * @param tituloBuscado  titulo de la cancion de la biblioteca
-     * @param artistaBuscado interprete de la cancion de la biblioteca
-     * @return {@code true} si el titulo y el interprete concuerdan
-     */
+    /** Decide si este resultado corresponde de verdad a lo que se buscaba. */
     public boolean concuerdaCon(String tituloBuscado, String artistaBuscado) {
         return coincide(titulo, tituloBuscado) && coincide(artista, artistaBuscado);
     }
 
-    /**
-     * Compara dos textos con tolerancia.
-     *
-     * <p>Se acepta que uno contenga al otro porque Spotify agrega coletillas como
-     * "- Remastered 2011" o "(feat. Alguien)" que la biblioteca no tiene.</p>
-     */
+    /** Compara dos textos con tolerancia. */
     private static boolean coincide(String deSpotify, String deLaBiblioteca) {
         if (deSpotify == null || deLaBiblioteca == null) {
             return false;
         }
         // Se usa la version estricta —sin tildes ni signos— y no la de la busqueda: quitar las
         // tildes aqui es imprescindible y no un adorno, porque la comparacion por contencion
-        // trabaja con String.contains, que si distingue acentos. Sin esto, "Ángel" no encontraria
-        // a "Angels" aunque el Collator las considere iguales: dos criterios distintos dentro del
-        // mismo metodo.
         String uno = Texto.soloLetrasYNumeros(deSpotify);
         String otro = Texto.soloLetrasYNumeros(deLaBiblioteca);
         if (uno.isEmpty() || otro.isEmpty()) {

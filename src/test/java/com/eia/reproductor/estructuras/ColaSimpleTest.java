@@ -15,15 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la {@link ColaSimple}.
- *
- * <p>El foco esta en dos cosas: que el orden sea estrictamente FIFO y que {@code desencolar()}
- * saque el elemento de la estructura en vez de limitarse a mover un indice.</p>
- */
+/** Pruebas de la {@link ColaSimple}. */
 @DisplayName("Cola simple FIFO")
 class ColaSimpleTest {
-
     private ColaSimple<String> cola;
 
     @BeforeEach
@@ -48,7 +42,6 @@ class ColaSimpleTest {
     @Nested
     @DisplayName("Estado inicial")
     class EstadoInicial {
-
         @Test
         @DisplayName("una cola recien creada esta vacia")
         void colaNuevaEstaVacia() {
@@ -74,7 +67,6 @@ class ColaSimpleTest {
     @Nested
     @DisplayName("Principio FIFO")
     class PrincipioFifo {
-
         @Test
         @DisplayName("se desencola exactamente en el orden en que se encolo")
         void ordenEstrictamenteFifo() {
@@ -115,7 +107,6 @@ class ColaSimpleTest {
     @Nested
     @DisplayName("Desencolar retira de verdad")
     class DesencolarRetira {
-
         @Test
         @DisplayName("desencolar reduce el tamanio")
         void desencolarReduceTamanio() {
@@ -158,7 +149,6 @@ class ColaSimpleTest {
         void reutilizarColaTrasVaciarla() {
             // Este caso caza el error clasico: al vaciar la cola, si no se pone 'fin' en null,
             // el proximo encolar se engancha detras de un nodo que ya salio y el elemento
-            // nuevo queda inalcanzable desde el frente.
             cargar("A");
             cola.desencolar();
             assertTrue(cola.estaVacia());
@@ -186,7 +176,6 @@ class ColaSimpleTest {
     @Nested
     @DisplayName("Consultas y limpieza")
     class ConsultasYLimpieza {
-
         @Test
         @DisplayName("buscar encuentra lo que esta y no lo que no esta")
         void buscar() {
@@ -225,7 +214,6 @@ class ColaSimpleTest {
     @Nested
     @DisplayName("Genericos")
     class Genericos {
-
         @Test
         @DisplayName("la misma cola sirve para cualquier tipo")
         void colaDeEnteros() {

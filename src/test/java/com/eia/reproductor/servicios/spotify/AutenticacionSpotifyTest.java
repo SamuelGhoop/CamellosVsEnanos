@@ -14,15 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la parte criptografica de PKCE.
- *
- * <p>Es la parte que se puede comprobar sin red y sin cuenta: que el verificador cumple la
- * especificacion y que el desafio es de verdad su SHA-256. Si esto estuviera mal, Spotify
- * rechazaria el canje del codigo con un mensaje generico y seria dificil de diagnosticar.</p>
- */
+/** Pruebas de la parte criptografica de PKCE. */
 class AutenticacionSpotifyTest {
-
     /** Caracteres que RFC 7636 permite en el verificador. */
     private static final Pattern PERMITIDOS = Pattern.compile("[A-Za-z0-9\\-._~]+");
 

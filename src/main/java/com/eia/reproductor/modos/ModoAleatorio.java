@@ -9,20 +9,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
-/**
- * Modo 1: reproduccion aleatoria sobre una {@link ListaCircularDoble}.
- *
- * <p>Al cargarse, la coleccion se baraja con Fisher-Yates y queda encadenada en un anillo. A partir
- * de ahi el modo navega con un cursor que avanza y retrocede en O(1).</p>
- *
- * <p><b>Por que una lista circular doble.</b> El enunciado pide moverse en las dos direcciones
- * indefinidamente y que despues de la ultima cancion venga la primera. Con esta estructura eso sale
- * gratis: como el ultimo nodo apunta al primero, el codigo que avanza nunca necesita preguntar "y
- * si llegue al final?". No hay ningun caso especial que programar, la vuelta la da la estructura.
- * Y como los enlaces van en ambos sentidos, retroceder cuesta lo mismo que avanzar.</p>
- */
+/** Modo 1: reproduccion aleatoria sobre una {@link ListaCircularDoble}. */
 public class ModoAleatorio extends ModoBase {
-
     private static final String NOMBRE = "Aleatorio";
     private static final String ESTRUCTURA = "Lista Ligada Circular Doble";
 
@@ -35,14 +23,7 @@ public class ModoAleatorio extends ModoBase {
         this(new Random());
     }
 
-    /**
-     * Crea el modo con una fuente de aleatoriedad concreta.
-     *
-     * <p>Existe para que las pruebas puedan sembrar el generador y obtener barajados
-     * reproducibles.</p>
-     *
-     * @param aleatorio generador de numeros aleatorios, no puede ser {@code null}
-     */
+    /** Crea el modo con una fuente de aleatoriedad concreta. */
     public ModoAleatorio(Random aleatorio) {
         this.aleatorio = Objects.requireNonNull(aleatorio, "El generador aleatorio no puede ser nulo.");
     }
@@ -85,15 +66,7 @@ public class ModoAleatorio extends ModoBase {
         }
     }
 
-    /**
-     * Vuelve a barajar la coleccion sin interrumpir lo que suena.
-     *
-     * <p>Es la accion del boton "Volver a mezclar". La cancion en curso se mantiene: como
-     * {@code mezclar()} reordena los nodos en lugar de mover los datos entre ellos, el cursor sigue
-     * parado sobre la misma cancion y lo que cambia es lo que viene despues.</p>
-     *
-     * <p><b>Complejidad:</b> O(n).</p>
-     */
+    /** Vuelve a barajar la coleccion sin interrumpir lo que suena. O(n). */
     public void volverAMezclar() {
         if (lista.tamanio() < 2) {
             return;
@@ -174,10 +147,8 @@ public class ModoAleatorio extends ModoBase {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>El anillo en el orden en que quedaron enlazados los nodos tras la mezcla, con la posicion
-     * del cursor. Es lo que hace visible que despues del ultimo viene el primero.</p>
+     * {@inheritDoc} El anillo en el orden en que quedaron enlazados los nodos tras la mezcla, con
+     * la posicion del cursor.
      */
     @Override
     public EstructuraVisual estructuraVisual() {

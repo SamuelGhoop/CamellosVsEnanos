@@ -12,20 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del resumen de reproducciones.
- *
- * <p>Son las cuentas que salen en la ventana de estadisticas. Si estuvieran mal, nadie lo notaria
- * mirando la pantalla —los numeros parecerian plausibles igual— asi que se comprueban aqui.</p>
- */
+/** Pruebas del resumen de reproducciones. */
 class EstadisticasBibliotecaTest {
-
-    /**
-     * Cancion con todo lo que mira el resumen.
-     *
-     * @param duracion en segundos
-     * @param veces    cuantas veces se ha reproducido
-     */
+    /** Cancion con todo lo que mira el resumen. */
     private static Cancion cancion(String titulo, String artista, String genero,
                                    int duracion, int veces) {
         Cancion cancion = new Cancion(titulo);

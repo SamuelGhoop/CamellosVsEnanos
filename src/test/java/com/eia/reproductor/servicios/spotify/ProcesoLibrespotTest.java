@@ -13,15 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del barrido de procesos huerfanos.
- *
- * <p>Es la unica defensa cuando matan la aplicacion a la fuerza y el gancho de cierre no llega a
- * ejecutarse. Se apoya en un archivo con el identificador del proceso porque en Windows
- * {@code ProcessHandle.Info} no expone los argumentos de la linea de comandos.</p>
- */
+/** Pruebas del barrido de procesos huerfanos. */
 class ProcesoLibrespotTest {
-
     @TempDir
     Path carpeta;
 

@@ -13,15 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la descripcion que cada modo hace de su estructura.
- *
- * <p>Es lo que dibuja el visualizador. Si describiera mal, el panel mostraria algo que no
- * corresponde con el codigo — y eso, en una sustentacion donde hay que explicar la estructura, es
- * peor que no tener panel.</p>
- */
+/** Pruebas de la descripcion que cada modo hace de su estructura. */
 class EstructuraVisualTest {
-
     private static Cancion cancion(String titulo) {
         return new Cancion(titulo);
     }
@@ -33,7 +26,6 @@ class EstructuraVisualTest {
     @Nested
     @DisplayName("Modo aleatorio → anillo")
     class Anillo {
-
         @Test
         @DisplayName("Describe todas las canciones cargadas")
         void describeTodas() {
@@ -85,7 +77,6 @@ class EstructuraVisualTest {
     @Nested
     @DisplayName("Modo orden de llegada → cola")
     class Cola {
-
         @Test
         @DisplayName("Muestra lo pendiente en orden de llegada")
         void pendientesEnOrden() {
@@ -117,7 +108,6 @@ class EstructuraVisualTest {
     @Nested
     @DisplayName("Modo alfabético → árbol")
     class Arbol {
-
         @Test
         @DisplayName("Un árbol vacío se describe sin raíz")
         void arbolVacio() {

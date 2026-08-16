@@ -6,15 +6,8 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-/**
- * Pruebas de la traduccion del enlace de Spotify a URI.
- *
- * <p>Importa porque lo que el usuario copia desde Spotify es una direccion web, y lo que la API
- * necesita es una URI. Si la traduccion falla, la cancion se guarda con un valor que Spotify
- * rechaza y la fuente no la reproduce nunca.</p>
- */
+/** Pruebas de la traduccion del enlace de Spotify a URI. */
 class NormalizarUriSpotifyTest {
-
     private static final String URI = "spotify:track:0GCaWksDZM7PV7mjdodhTT";
 
     @Test

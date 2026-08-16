@@ -13,14 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del guardado del token en disco.
- *
- * <p>Todas trabajan en una carpeta temporal: nunca tocan el {@code config/token-spotify.json} real,
- * que contiene credenciales vivas.</p>
- */
+/** Pruebas del guardado del token en disco. */
 class AlmacenTokenSpotifyTest {
-
     @TempDir
     Path carpeta;
 

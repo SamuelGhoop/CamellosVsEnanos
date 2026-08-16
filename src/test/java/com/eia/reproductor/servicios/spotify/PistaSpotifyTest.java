@@ -7,15 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del emparejamiento entre la biblioteca y el catalogo de Spotify.
- *
- * <p>Es la red de seguridad de {@code EnriquecerConSpotify}: la busqueda de Spotify siempre
- * devuelve algo, asi que si esto acepta de mas, la biblioteca se llena de canciones equivocadas que
- * ademas suenan sin que el usuario entienda por que.</p>
- */
+/** Pruebas del emparejamiento entre la biblioteca y el catalogo de Spotify. */
 class PistaSpotifyTest {
-
     private static PistaSpotify deSpotify(String titulo, String artista) {
         return new PistaSpotify("spotify:track:xyz", titulo, artista, 200_000);
     }

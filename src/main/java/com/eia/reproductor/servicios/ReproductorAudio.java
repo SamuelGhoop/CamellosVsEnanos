@@ -6,31 +6,9 @@ import javafx.beans.property.ReadOnlyLongProperty;
 
 import java.util.function.Consumer;
 
-/**
- * Contrato de toda fuente de audio del reproductor.
- *
- * <p>Es el ejemplo mas fuerte de polimorfismo del proyecto: el controlador guarda una referencia
- * de este tipo y jamas sabe si detras hay un MP3 local, un reloj simulado o Spotify. Cambiar de
- * fuente no requiere tocar ni la interfaz grafica ni las estructuras de datos.</p>
- *
- * <p><b>Sobre las dependencias de JavaFX.</b> Este paquete tiene prohibido importar
- * {@code javafx.scene.*}, y se respeta: aqui solo se usan propiedades observables
- * ({@code javafx.beans.property}), que son un mecanismo de notificacion, no interfaz grafica.
- * Gracias a ellas la barra de progreso se ata al avance de la reproduccion sin que la fuente de
- * audio sepa que existe una barra. La unica clase que rompe la regla es la implementacion local,
- * porque {@code MediaPlayer} vive en {@code javafx.scene.media} y no hay alternativa.</p>
- *
- * @see AudioLocalService
- * @see AudioSimuladoService
- * @see AudioRuteado
- */
+/** Contrato de toda fuente de audio del reproductor. */
 public interface ReproductorAudio {
-
-    /**
-     * Empieza a reproducir una cancion desde el principio.
-     *
-     * @param cancion cancion a reproducir
-     */
+    /** Empieza a reproducir una cancion desde el principio. */
     void reproducir(Cancion cancion);
 
     /** Detiene la reproduccion conservando la posicion. */
@@ -42,18 +20,10 @@ public interface ReproductorAudio {
     /** Detiene la reproduccion y suelta los recursos de la pista actual. */
     void detener();
 
-    /**
-     * Salta a una posicion absoluta.
-     *
-     * @param milisegundos posicion desde el inicio de la pista
-     */
+    /** Salta a una posicion absoluta. */
     void buscarPosicion(long milisegundos);
 
-    /**
-     * Salta hacia adelante o hacia atras desde la posicion actual.
-     *
-     * @param milisegundos desplazamiento; negativo para retroceder
-     */
+    /** Salta hacia adelante o hacia atras desde la posicion actual. */
     void avanzarRelativo(long milisegundos);
 
     /** @return posicion actual dentro de la pista, en milisegundos */
@@ -65,86 +35,29 @@ public interface ReproductorAudio {
     /** @return si hay audio sonando en este momento */
     BooleanProperty reproduciendoProperty();
 
-    /**
-     * Indica si esta fuente se puede usar.
-     *
-     * <p>Para el audio local siempre es cierto; para Spotify dependera de que el proceso externo
-     * haya arrancado y las credenciales existan.</p>
-     *
-     * @return {@code true} si la fuente esta operativa
-     */
+    /** Indica si esta fuente se puede usar. */
     boolean disponible();
 
-    /**
-     * Indica si esta fuente sabe reproducir una cancion concreta.
-     *
-     * <p>Esta consulta es la que permite que agregar una fuente nueva no obligue a tocar el
-     * controlador: {@link AudioRuteado} pregunta a cada fuente y elige la primera que sepa. Sin
-     * ella, el controlador tendria que conocer los tipos concretos y decidir el mismo.</p>
-     *
-     * @param cancion cancion candidata
-     * @return {@code true} si puede reproducirla
-     */
+    /** Indica si esta fuente sabe reproducir una cancion concreta. */
     boolean puedeReproducir(Cancion cancion);
 
     /** @return nombre de la fuente, para mostrarlo en la interfaz */
     String nombreFuente();
 
-    /**
-     * Define que hacer cuando una pista llega al final.
-     *
-     * <p>Lo usa el controlador para encadenar con {@code siguiente()} del modo activo: las
-     * estructuras de datos siguen mandando el orden y la fuente de audio solo avisa que termino.</p>
-     *
-     * @param callback accion a ejecutar al terminar la pista
-     */
+    /** Define que hacer cuando una pista llega al final. */
     void setAlTerminarPista(Runnable callback);
 
-    /**
-     * Define a donde mandar los problemas de reproduccion.
-     *
-     * <p>Es un aviso, no una excepcion, porque los fallos de audio llegan tarde y en otro hilo: un
-     * MP3 corrupto no revienta al abrirlo sino cuando el decodificador se atraganta. Lanzar una
-     * excepcion en ese momento no la podria capturar nadie.</p>
-     *
-     * <p>Por defecto no hace nada: una fuente que no puede fallar no tiene nada que avisar.</p>
-     *
-     * @param callback recibe el mensaje para mostrar al usuario
-     */
+    /** Define a donde mandar los problemas de reproduccion. */
     default void setAlFallar(Consumer<String> callback) {
         // Sin implementacion a proposito.
     }
 
-    /**
-     * Ajusta el volumen de la fuente.
-     *
-     * <p>Es el volumen <i>de la aplicacion</i>, no el del sistema: en cero la aplicacion se calla
-     * pero el resto del equipo sigue sonando.</p>
-     *
-     * <p>Por defecto no hace nada, porque una fuente que no produce sonido —la simulada— no tiene
-     * volumen que ajustar.</p>
-     *
-     * @param porcentaje nivel de 0 a 100
-     */
+    /** Ajusta el volumen de la fuente. */
     default void setVolumen(int porcentaje) {
         // Sin implementacion a proposito.
     }
 
-    /**
-     * Pide que se avise del espectro de la musica mientras suena.
-     *
-     * <p>El oyente recibe un nivel por banda, de 0 a 1, varias veces por segundo. Sirve para que
-     * el ecualizador de la interfaz se mueva con la musica de verdad y no con una animacion
-     * inventada.</p>
-     *
-     * <p><b>No todas las fuentes pueden.</b> Solo la que decodifica el audio dentro de esta
-     * aplicacion tiene acceso a las muestras. Cuando el sonido lo produce un programa externo,
-     * como pasa con Spotify, nunca pasa por aqui y no hay nada que analizar; por eso el metodo no
-     * hace nada por defecto y {@link #analizaEspectro()} avisa de si vale la pena escuchar.</p>
-     *
-     * @param oyente recibe los niveles por banda
-     * @param bandas cuantas bandas se quieren
-     */
+    /** Pide que se avise del espectro de la musica mientras suena. */
     default void setAlAnalizarEspectro(Consumer<double[]> oyente, int bandas) {
         // Sin implementacion a proposito.
     }
@@ -154,27 +67,12 @@ public interface ReproductorAudio {
         return false;
     }
 
-    /**
-     * Indica si la fuente necesita conexion a internet para sonar.
-     *
-     * <p>Lo usa el enrutador para poder descartarlas en bloque cuando la red no acompana, sin
-     * tener que conocer ninguna fuente por su nombre.</p>
-     *
-     * @return {@code true} si depende de la red
-     */
+    /** Indica si la fuente necesita conexion a internet para sonar. */
     default boolean requiereRed() {
         return false;
     }
 
-    /**
-     * Pide que se eviten las fuentes que dependen de la red.
-     *
-     * <p>Una fuente suelta no tiene nada que decidir y lo ignora; quien le da sentido es
-     * {@link AudioRuteado}, que lo aplica como politica al elegir. Esta en la interfaz para que el
-     * controlador pueda accionar el interruptor sin conocer la clase concreta del enrutador.</p>
-     *
-     * @param evitar {@code true} para quedarse solo con las fuentes que funcionan sin conexion
-     */
+    /** Pide que se eviten las fuentes que dependen de la red. */
     default void setEvitarRed(boolean evitar) {
         // Sin implementacion a proposito.
     }

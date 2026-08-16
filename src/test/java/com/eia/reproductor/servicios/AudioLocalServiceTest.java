@@ -15,15 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la fuente de audio local.
- *
- * <p>Se prueba la decision de si un archivo sirve o no, que es lo que el enrutador consulta para
- * elegir fuente. Reproducir de verdad exige el entorno grafico de JavaFX y un archivo de audio
- * real, asi que esa parte se verifica ejecutando la aplicacion, no aqui.</p>
- */
+/** Pruebas de la fuente de audio local. */
 class AudioLocalServiceTest {
-
     private final AudioLocalService servicio = new AudioLocalService();
 
     private static Cancion conRuta(String ruta) {

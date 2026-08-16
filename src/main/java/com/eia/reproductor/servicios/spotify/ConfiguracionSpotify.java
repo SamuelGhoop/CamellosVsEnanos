@@ -7,43 +7,18 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
 
-/**
- * Lee {@code config/spotify.properties}, el archivo que queda fuera del repositorio.
- *
- * <p><b>Por que un archivo y no constantes en el codigo.</b> El repositorio se entrega y se
- * comparte con el grupo; cualquier identificador que viva en un {@code .java} termina en el
- * historial de git para siempre, y de ahi no se borra. Manteniendolo en un archivo ignorado, el
- * codigo se puede publicar sin arrastrar nada de la cuenta de nadie.</p>
- *
- * <p>Si el archivo no existe, {@link #cargar()} devuelve vacio y la fuente de Spotify se declara no
- * disponible. La aplicacion arranca igual, con audio local y simulado, sin avisos ni ventanas
- * emergentes: para quien no configuro Spotify, la funcionalidad sencillamente no existe.</p>
- *
- * <p>No se guarda ningun <i>client secret</i>. El flujo PKCE existe justamente para no necesitarlo
- * en aplicaciones de escritorio, donde no hay forma de esconder un secreto del usuario.</p>
- */
+/** Lee {@code config/spotify.properties}, el archivo que queda fuera del repositorio. */
 public final class ConfiguracionSpotify {
-
     /** Ubicacion del archivo, relativa a la carpeta desde donde se ejecuta la aplicacion. */
     public static final Path RUTA_POR_DEFECTO = Path.of("config", "spotify.properties");
 
-    /** Calidad por defecto del flujo de librespot. 320 exige cuenta Premium. */
+    /** Calidad por defecto del flujo de librespot. */
     private static final int BITRATE_POR_DEFECTO = 160;
 
-    /**
-     * Puerto donde librespot recibe su propia autorizacion.
-     *
-     * <p>Se fija explicitamente porque, sin el, librespot arma la direccion de retorno sin puerto y
-     * termina intentando escuchar en el 80, que en Windows suele estar reservado.</p>
-     */
+    /** Puerto donde librespot recibe su propia autorizacion. */
     private static final int PUERTO_OAUTH_LIBRESPOT_POR_DEFECTO = 5588;
 
-    /**
-     * Volumen con el que arranca librespot, de 0 a 100.
-     *
-     * <p>Al maximo a proposito: librespot arranca al 50 % con curva logaritmica, que suena a
-     * susurro. El volumen audible lo sigue controlando el del sistema operativo.</p>
-     */
+    /** Volumen con el que arranca librespot, de 0 a 100. */
     private static final int VOLUMEN_POR_DEFECTO = 100;
 
     private final String clientId;
@@ -63,21 +38,12 @@ public final class ConfiguracionSpotify {
         this.volumenInicial = volumenInicial;
     }
 
-    /**
-     * Carga la configuracion desde la ubicacion por defecto.
-     *
-     * @return la configuracion, o vacio si el archivo falta o esta incompleto
-     */
+    /** Carga la configuracion desde la ubicacion por defecto. */
     public static Optional<ConfiguracionSpotify> cargar() {
         return cargar(RUTA_POR_DEFECTO);
     }
 
-    /**
-     * Carga la configuracion desde una ruta concreta.
-     *
-     * @param ruta archivo de propiedades a leer
-     * @return la configuracion, o vacio si el archivo falta o esta incompleto
-     */
+    /** Carga la configuracion desde una ruta concreta. */
     public static Optional<ConfiguracionSpotify> cargar(Path ruta) {
         if (ruta == null || !Files.isRegularFile(ruta)) {
             return Optional.empty();
@@ -122,11 +88,7 @@ public final class ConfiguracionSpotify {
         return nombreDispositivo;
     }
 
-    /**
-     * Extrae el puerto del {@code redirectUri} para levantar ahi el servidor del callback.
-     *
-     * @return el puerto declarado, o 8888 si la direccion no lo dice
-     */
+    /** Extrae el puerto del {@code redirectUri} para levantar ahi el servidor del callback. */
     public int puertoDeRetorno() {
         try {
             int puerto = java.net.URI.create(redirectUri).getPort();
@@ -136,11 +98,7 @@ public final class ConfiguracionSpotify {
         }
     }
 
-    /**
-     * Extrae la ruta del {@code redirectUri} para registrar ahi el manejador del callback.
-     *
-     * @return la ruta declarada, o {@code /callback} si la direccion no la dice
-     */
+    /** Extrae la ruta del {@code redirectUri} para registrar ahi el manejador del callback. */
     public String rutaDeRetorno() {
         try {
             String ruta = java.net.URI.create(redirectUri).getPath();
@@ -165,12 +123,7 @@ public final class ConfiguracionSpotify {
         return volumenInicial;
     }
 
-    /**
-     * Lee un entero opcional del archivo.
-     *
-     * <p>Un valor mal escrito no tumba la aplicacion: se usa el valor por defecto, porque una
-     * errata en un ajuste secundario no justifica dejar sin audio al usuario.</p>
-     */
+    /** Lee un entero opcional del archivo. */
     private static int entero(Properties propiedades, String clave, int porDefecto) {
         String valor = limpio(propiedades.getProperty(clave));
         if (valor == null) {

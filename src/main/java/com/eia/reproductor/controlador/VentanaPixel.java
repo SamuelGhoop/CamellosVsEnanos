@@ -15,19 +15,8 @@ import javafx.stage.Window;
 
 import java.net.URL;
 
-/**
- * Convierte una ventana cualquiera en una ventana con la estetica del reproductor.
- *
- * <p><b>Que arregla.</b> Los dialogos salian con la barra de titulo blanca de Windows encima del
- * marco pixel, y el contraste dejaba en evidencia que la estetica era solo una capa de pintura.
- * Aqui se quita esa barra y se dibuja una propia, igual que en la ventana principal.</p>
- *
- * <p>Se aplica desde codigo y no desde cada FXML para no repetir la misma barra en cada vista: la
- * ventana que la necesite llama a {@link #montar}, y si manana cambia el estilo, cambia en un solo
- * sitio.</p>
- */
+/** Convierte una ventana cualquiera en una ventana con la estetica del reproductor. */
 public final class VentanaPixel {
-
     private static final String RUTA_ESTILOS = "/vista/estilos.css";
 
     /** La misma clase que usa la ventana principal; la hoja de estilos hace el resto. */
@@ -36,14 +25,7 @@ public final class VentanaPixel {
     private VentanaPixel() {
     }
 
-    /**
-     * Monta el contenido dentro de un marco pixel con barra de titulo propia.
-     *
-     * @param escenario ventana a vestir; se le quita la decoracion del sistema
-     * @param titulo    texto de la barra
-     * @param contenido vista ya cargada
-     * @return la escena creada, por si hay que retocarla
-     */
+    /** Monta el contenido dentro de un marco pixel con barra de titulo propia. */
     public static Scene montar(Stage escenario, String titulo, Parent contenido) {
         escenario.initStyle(StageStyle.TRANSPARENT);
 
@@ -60,14 +42,7 @@ public final class VentanaPixel {
         return escena;
     }
 
-    /**
-     * Copia el tema de la ventana que abre el dialogo.
-     *
-     * <p><b>Por que hace falta.</b> El tema es una clase en la raiz de la escena, y cada dialogo
-     * tiene su propia escena: sin esto, la ventana principal se ponia en modo claro y los dialogos
-     * seguian saliendo oscuros. Se mira la ventana duenia en vez de guardar el tema en una variable
-     * global, asi no hay dos sitios que puedan quedar desincronizados.</p>
-     */
+    /** Copia el tema de la ventana que abre el dialogo. */
     private static void heredarTema(Stage escenario, Scene escena) {
         Window duenio = escenario.getOwner();
         if (duenio == null || duenio.getScene() == null) {
@@ -78,12 +53,7 @@ public final class VentanaPixel {
         }
     }
 
-    /**
-     * Pone o quita el tema claro en una ventana ya abierta.
-     *
-     * @param escenario ventana a retocar; admite {@code null} y ventanas ya cerradas
-     * @param claro     {@code true} para el tema claro
-     */
+    /** Pone o quita el tema claro en una ventana ya abierta. */
     public static void aplicarTema(Stage escenario, boolean claro) {
         if (escenario == null || escenario.getScene() == null) {
             return;
@@ -98,18 +68,7 @@ public final class VentanaPixel {
         }
     }
 
-    /**
-     * Arma el marco con su barra, sin tocar la escena.
-     *
-     * <p>Existe aparte de {@link #montar} para poder cambiarle el contenido a una ventana que ya
-     * esta abierta: {@code montar} le pondria una escena nueva, y a un {@code Stage} visible no se
-     * le puede cambiar el estilo ni conviene reemplazarle la escena entera.</p>
-     *
-     * @param escenario ventana a la que pertenece la barra, para cerrarla y arrastrarla
-     * @param titulo    texto de la barra
-     * @param contenido vista ya cargada
-     * @return el marco listo para ser raiz de una escena
-     */
+    /** Arma el marco con su barra, sin tocar la escena. */
     public static Parent marco(Stage escenario, String titulo, Parent contenido) {
         VBox marco = new VBox(barraDeTitulo(escenario, titulo), contenido);
         marco.getStyleClass().add("marco-ventana");
@@ -117,12 +76,7 @@ public final class VentanaPixel {
         return marco;
     }
 
-    /**
-     * Arma la barra superior: titulo a la izquierda y boton de cerrar a la derecha.
-     *
-     * <p>Tambien es el asa para mover la ventana, porque al quitar la decoracion del sistema se
-     * pierde la unica zona por la que se podia arrastrar.</p>
-     */
+    /** Arma la barra superior: titulo a la izquierda y boton de cerrar a la derecha. */
     private static HBox barraDeTitulo(Stage escenario, String titulo) {
         Label texto = new Label(titulo.toUpperCase(java.util.Locale.ROOT));
         texto.getStyleClass().add("barra-titulo-texto");

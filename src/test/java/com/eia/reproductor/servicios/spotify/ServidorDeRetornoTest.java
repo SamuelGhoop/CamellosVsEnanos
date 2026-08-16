@@ -19,15 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas del servidor que recibe el retorno del navegador.
- *
- * <p>Se ejercita de verdad: se levanta en un puerto libre y se le hacen peticiones HTTP reales,
- * simulando lo que haria el navegador. No hace falta ni Spotify ni internet, porque lo que se
- * comprueba es como reacciona a cada forma de respuesta.</p>
- */
+/** Pruebas del servidor que recibe el retorno del navegador. */
 class ServidorDeRetornoTest {
-
     private static final Duration ESPERA_CORTA = Duration.ofSeconds(5);
     private static final String ESTADO = "estado-de-esta-sesion";
 

@@ -2,31 +2,10 @@ package com.eia.reproductor.servicios.spotify;
 
 import com.google.gson.JsonObject;
 
-/**
- * Instantanea del reproductor de Spotify, tal como la devuelve {@code GET /v1/me/player}.
- *
- * <p>Es la unica fuente de posicion que hay: Spotify no empuja avisos, hay que preguntarle. Por eso
- * la barra de progreso se resincroniza con cada respuesta en vez de llevar un reloj propio.</p>
- *
- * @param uriPista      identificador de la pista en curso, o {@code null} si no hay ninguna
- * @param posicionMs    milisegundos transcurridos
- * @param duracionMs    duracion total de la pista
- * @param reproduciendo si esta sonando en este momento
- * @param nombrePista   titulo, util para diagnosticos
- */
+/** Instantanea del reproductor de Spotify, tal como la devuelve {@code GET /v1/me/player}. */
 public record EstadoReproductorSpotify(String uriPista, long posicionMs, long duracionMs,
                                        boolean reproduciendo, String nombrePista) {
-
-    /**
-     * Lee el estado del JSON de la API.
-     *
-     * <p>El campo {@code item} puede venir nulo aunque la respuesta sea correcta: pasa entre pista
-     * y pista, y cuando la reproduccion es de un tipo que la API no describe. Se tolera devolviendo
-     * un estado sin pista en vez de reventar.</p>
-     *
-     * @param objeto cuerpo de la respuesta
-     * @return el estado leido
-     */
+    /** Lee el estado del JSON de la API. */
     static EstadoReproductorSpotify desdeJson(JsonObject objeto) {
         boolean sonando = objeto.has("is_playing")
                 && !objeto.get("is_playing").isJsonNull()

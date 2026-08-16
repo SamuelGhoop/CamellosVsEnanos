@@ -9,23 +9,8 @@ import com.google.gson.JsonParseException;
 
 import java.lang.reflect.Type;
 
-/**
- * Convierte un objeto JSON en una {@link Cancion}.
- *
- * <p><b>Por que no se deja que Gson lo haga solo.</b> Si Gson construye la cancion por reflexion,
- * se salta el constructor y con el todas las validaciones y valores por defecto: un JSON al que le
- * falte el campo {@code artista} produce una cancion con {@code artista == null} en vez de
- * "Desconocido", y una calificacion de 500 entraria sin que nadie la frene. Como el archivo
- * {@code biblioteca.json} es texto plano que cualquiera puede abrir y editar a mano, hay que leerlo
- * con desconfianza.</p>
- *
- * <p>Este deserializador construye la cancion por su constructor publico y le pasa cada valor por
- * los setters, con lo que toda la validacion del modelo se aplica igual que si la cancion se
- * hubiera creado desde la interfaz. Los campos que falten toman su valor por defecto y los que
- * vengan fuera de rango se corrigen en vez de reventar la carga entera.</p>
- */
+/** Convierte un objeto JSON en una {@link Cancion}. */
 class DeserializadorCancion implements JsonDeserializer<Cancion> {
-
     @Override
     public Cancion deserialize(JsonElement elemento, Type tipo, JsonDeserializationContext contexto) {
         if (!elemento.isJsonObject()) {

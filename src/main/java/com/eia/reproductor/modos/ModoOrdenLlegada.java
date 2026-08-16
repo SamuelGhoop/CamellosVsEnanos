@@ -8,25 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Modo 2: reproduccion por orden de llegada sobre una {@link ColaSimple}.
- *
- * <p>Las canciones se encolan en el mismo orden en que fueron agregadas a la biblioteca y se
- * reproducen respetando el principio FIFO. Cada {@link #siguiente()} hace un {@code desencolar()}
- * real: la cancion <b>sale de la cola</b> y no se puede volver a ella.</p>
- *
- * <p><b>Por que una cola simple.</b> El enunciado describe exactamente el comportamiento de una
- * cola: se atiende primero al que llego primero, no se puede retroceder y lo ya atendido se va. La
- * estructura no es una decoracion, es la que <i>impone</i> esa regla: como el nodo de la cola solo
- * apunta hacia adelante, retroceder no es que este prohibido por una validacion, es que
- * fisicamente no hay por donde volver. Por eso {@link #permiteAnterior()} devuelve {@code false} y
- * la interfaz deshabilita el boton "Anterior".</p>
- *
- * <p>Cuando la cola se agota, {@link #hayMas()} pasa a {@code false} y la unica forma de volver a
- * escuchar algo es recargarla desde la biblioteca con {@link #cargar(Iterable)}.</p>
- */
+/** Modo 2: reproduccion por orden de llegada sobre una {@link ColaSimple}. */
 public class ModoOrdenLlegada extends ModoBase {
-
     private static final String NOMBRE = "Orden de llegada";
     private static final String ESTRUCTURA = "Cola Simple (FIFO)";
 
@@ -81,7 +64,6 @@ public class ModoOrdenLlegada extends ModoBase {
         }
         // Sacar un elemento del medio no es una operacion de cola, asi que en lugar de agregarle a
         // ColaSimple un metodo ajeno a su contrato, se reconstruye usando solo encolar y
-        // desencolar. Cuesta O(n) y deja intacta la pureza FIFO de la estructura.
         ColaSimple<Cancion> reconstruida = new ColaSimple<>();
         while (!cola.estaVacia()) {
             Cancion actual = cola.desencolar();
@@ -114,10 +96,7 @@ public class ModoOrdenLlegada extends ModoBase {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * <p>Lo que queda en la cola, con el frente a la izquierda, y cuantas ya salieron. Ese contador
-     * es la prueba de que la cola se vacia de verdad en vez de mover un indice.</p>
+     * {@inheritDoc} Lo que queda en la cola, con el frente a la izquierda, y cuantas ya salieron.
      */
     @Override
     public EstructuraVisual estructuraVisual() {
