@@ -1,5 +1,6 @@
 package com.eia.reproductor.animacion;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.image.Image;
@@ -16,14 +17,26 @@ import java.util.function.IntConsumer;
 
 /** Control de volumen dibujado con los sprites del reproductor. */
 public class BarraVolumen {
-    /** Alto en pantalla: los sprites miden 104 px y se muestran a un cuarto. */
-    private static final double ALTO = 24;
+    /**
+     * Divisor unico para todos los sprites de la barra.
+     *
+     * <p>Tiene que ser el mismo para el alto y para las tapas, y entero. Antes el alto iba a 24
+     * (104/4,33) y las tapas a 6 (28/4,67): al no coincidir las rejillas de pixeles, en la union
+     * entre el tramo central y la tapa derecha aparecia una costura.</p>
+     */
+    private static final int DIVISOR_SPRITE = 4;
 
-    /** Ancho de las tapas: proporcional a los 28 px del sprite. */
-    private static final double ANCHO_TAPA = 6;
+    /** Alto en pantalla: los sprites miden 104 px. */
+    private static final double ALTO = 104 / DIVISOR_SPRITE;
 
-    /** Ancho del tramo central; el total de la barra son estos mas las dos tapas. */
-    private static final double ANCHO_CENTRO = 96;
+    /** Ancho de las tapas: los sprites miden 28 px. */
+    private static final double ANCHO_TAPA = 28 / DIVISOR_SPRITE;
+
+    /** Ancho del tramo central; con las dos tapas la barra suma 108, que es lo que cabe. */
+    private static final double ANCHO_CENTRO = 94;
+
+    /** Margen invisible alrededor de la barra, solo para agrandar la zona de clic. */
+    private static final double MARGEN_CLIC = 7;
 
     /** Tamano del icono de altavoz, en proporcion al sprite de 66x42. */
     private static final double ANCHO_ICONO = 24;
@@ -68,9 +81,7 @@ public class BarraVolumen {
         icono.setFitWidth(ANCHO_ICONO);
         icono.setFitHeight(ALTO_ICONO);
         icono.setSmooth(false);
-        icono.setCursor(Cursor.HAND);
-        // Pulsar el altavoz calla y devuelve el sonido, el gesto de siempre.
-        icono.setOnMouseClicked(evento -> alternarMudo());
+        icono.setMouseTransparent(true);
 
         // Los dos tramos centrales se apilan a la izquierda: el lleno crece por encima del vacio.
         StackPane centro = new StackPane(centroVacio, centroLleno);
@@ -79,13 +90,22 @@ public class BarraVolumen {
 
         HBox barra = new HBox(tapaIzquierda, centro, tapaDerecha);
         barra.setAlignment(Pos.CENTER);
-        barra.setCursor(Cursor.HAND);
         // Que no crezca de alto con la fila: la referencia es el sprite, no los botones.
         barra.setMaxHeight(ALTO);
+        barra.setMouseTransparent(true);
+
+        // La barra mide 26 px de alto: apuntarle es incomodo. Se envuelve en una zona con margen
+        // invisible que recibe los clics por ella. setPickOnBounds hace que cuente todo el
+        // rectangulo, incluido el margen, y no solo donde hay algo pintado.
+        StackPane zonaClic = new StackPane(barra);
+        zonaClic.setPadding(new Insets(MARGEN_CLIC, MARGEN_CLIC / 2, MARGEN_CLIC, MARGEN_CLIC / 2));
+        zonaClic.setPickOnBounds(true);
+        zonaClic.setCursor(Cursor.HAND);
         // Se convierte desde coordenadas de pantalla y no se usa evento.getX(): en un evento que
-        // burbujea desde un hijo, getX() viene referido al hijo que se pulso, no a la barra. Como
-        barra.setOnMousePressed(evento -> ajustarDesde(evento, barra));
-        barra.setOnMouseDragged(evento -> ajustarDesde(evento, barra));
+        // burbujea desde un hijo, getX() viene referido al hijo que se pulso, no a la barra.
+        // Pulsar en el margen da una x fuera de rango, y ajustarDesde la recorta a 0 o a 100.
+        zonaClic.setOnMousePressed(evento -> ajustarDesde(evento, barra));
+        zonaClic.setOnMouseDragged(evento -> ajustarDesde(evento, barra));
 
         // El sprite del altavoz es negro sobre transparente y sobre el panel negro no se veia.
         // Se le pone detras el mismo recuadro azul de los botones de transporte: es la solucion
@@ -95,10 +115,17 @@ public class BarraVolumen {
         recuadroIcono.setMinSize(LADO_CAJA_ICONO, LADO_CAJA_ICONO);
         recuadroIcono.setPrefSize(LADO_CAJA_ICONO, LADO_CAJA_ICONO);
         recuadroIcono.setMaxSize(LADO_CAJA_ICONO, LADO_CAJA_ICONO);
+        // El clic lo atiende el recuadro entero, no el dibujo. Un ImageView solo recibe el raton
+        // donde el sprite tiene pixeles opacos, y el altavoz es una figura pequenia rodeada de
+        // transparencia: habia que acertarle al dibujo para que el boton respondiera.
+        recuadroIcono.setPickOnBounds(true);
+        recuadroIcono.setCursor(Cursor.HAND);
+        // Pulsar el altavoz calla y devuelve el sonido, el gesto de siempre.
+        recuadroIcono.setOnMouseClicked(evento -> alternarMudo());
 
         Region aire = new Region();
         aire.setPrefWidth(8);
-        nodo.getChildren().addAll(recuadroIcono, aire, barra);
+        nodo.getChildren().addAll(recuadroIcono, aire, zonaClic);
         nodo.setAlignment(Pos.CENTER);
 
         repintar();
@@ -169,7 +196,9 @@ public class BarraVolumen {
 
         centroVacio.setFill(medioApagada);
         centroLleno.setFill(medioActiva);
-        centroLleno.setWidth(ANCHO_CENTRO * volumen / 100.0);
+        // Redondeado a pixel entero: con un ancho fraccionario, JavaFX suaviza el borde derecho
+        // del relleno y ese difuminado se ve como una raya en mitad de la barra.
+        centroLleno.setWidth(Math.round(ANCHO_CENTRO * volumen / 100.0));
     }
 
     /** Envuelve un sprite en un patron que cubre el rectangulo entero. */
