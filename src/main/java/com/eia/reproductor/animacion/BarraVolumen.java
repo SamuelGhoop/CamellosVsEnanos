@@ -35,7 +35,7 @@ public class BarraVolumen {
     /** Ancho del tramo central; con las dos tapas la barra suma 108, que es lo que cabe. */
     private static final double ANCHO_CENTRO = 94;
 
-    /** Margen invisible alrededor de la barra, solo para agrandar la zona de clic. */
+    /** Margen invisible arriba y abajo de la barra, solo para agrandar la zona de clic. */
     private static final double MARGEN_CLIC = 7;
 
     /** Tamano del icono de altavoz, en proporcion al sprite de 66x42. */
@@ -98,7 +98,10 @@ public class BarraVolumen {
         // invisible que recibe los clics por ella. setPickOnBounds hace que cuente todo el
         // rectangulo, incluido el margen, y no solo donde hay algo pintado.
         StackPane zonaClic = new StackPane(barra);
-        zonaClic.setPadding(new Insets(MARGEN_CLIC, MARGEN_CLIC / 2, MARGEN_CLIC, MARGEN_CLIC / 2));
+        // El margen es solo arriba y abajo. A los lados sobra —la barra ya mide 108 px de ancho y
+        // acertarle nunca fue el problema— y ademas correria la barra dejando un hueco a la
+        // derecha.
+        zonaClic.setPadding(new Insets(MARGEN_CLIC, 0, MARGEN_CLIC, 0));
         zonaClic.setPickOnBounds(true);
         zonaClic.setCursor(Cursor.HAND);
         // Se convierte desde coordenadas de pantalla y no se usa evento.getX(): en un evento que
