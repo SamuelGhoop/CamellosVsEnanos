@@ -50,6 +50,7 @@ class IntroDeArranqueTest {
             IntroDeArranque intro = new IntroDeArranque();
             intro.alTerminar(termino::countDown);
             intro.mostrar();
+            intro.permitirArranque();
         });
 
         assertTrue(termino.await(ESPERA_SEGUNDOS, TimeUnit.SECONDS),
@@ -71,6 +72,7 @@ class IntroDeArranqueTest {
                 termino.countDown();
             });
             intro.mostrar();
+            intro.permitirArranque();
             intro.saltar();
             // Dos veces seguidas: un clic mientras se cierra no puede abrir dos ventanas.
             intro.saltar();
@@ -93,6 +95,7 @@ class IntroDeArranqueTest {
             App.cargarFuentePixel();
             IntroDeArranque intro = new IntroDeArranque();
             intro.mostrar();
+            intro.permitirArranque();
             intro.saltar();
             intro.alTerminar(termino::countDown);
         });

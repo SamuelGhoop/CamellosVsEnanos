@@ -59,28 +59,74 @@ public class App extends Application {
         IntroDeArranque intro = new IntroDeArranque();
         intro.mostrar();
 
-        // La ventana principal se muestra cuando la presentacion termina, no antes. Si el usuario
-        // la salta con un clic, entra en ese momento: alTerminar dispara enseguida si ya acabo.
-        intro.alTerminar(() -> {
+        // La ventana solo se muestra cuando se cumplen LAS DOS condiciones, venga antes la que
+        // venga: que este montada y que la presentacion haya terminado.
+        Compuerta compuerta = new Compuerta(() -> {
             escenarioPrincipal.show();
             // Se coloca DESPUES de mostrarla. Al mostrarse, JavaFX ajusta la ventana al tamanio
             // preferido de la escena —aqui 1086 px de alto— y pisaba cualquier medida puesta antes.
             acomodarEnPantalla(escenarioPrincipal);
         });
+        intro.alTerminar(compuerta::presentacionTerminada);
 
-        // El montaje bloquea el hilo grafico casi un segundo, asi que se hace pronto: en la primera
-        // fase solo hay un fundido lento y el tiron no se nota. Sin este respiro previo, la
-        // presentacion saldria en blanco porque no le habria dado tiempo a pintar un fotograma.
+        // El montaje bloquea el hilo grafico 773 ms medidos, asi que se hace ANTES de que la
+        // presentacion empiece a moverse: mientras tanto en pantalla hay un televisor apagado, que
+        // es negro y quieto, y el tiron no se ve. Colocarlo despues de arrancar congelaba el
+        // encendido del tubo entero. El respiro previo es solo para que la ventana negra alcance a
+        // pintarse antes del bloqueo.
         PauseTransition respiro = new PauseTransition(Duration.millis(120));
         respiro.setOnFinished(evento -> {
             try {
                 construirVentanaPrincipal(escenarioPrincipal, intro);
+                compuerta.ventanaMontada();
+                // Recien ahora la presentacion puede correr: por delante ya no queda nada pesado.
+                intro.permitirArranque();
             } catch (IOException fallo) {
                 intro.saltar();
                 throw new IllegalStateException("No se pudo construir la ventana principal.", fallo);
             }
         });
         respiro.play();
+    }
+
+    /**
+     * Deja pasar cuando se cumplen las dos condiciones del arranque.
+     *
+     * <p><b>Que arregla.</b> Antes la ventana se mostraba en cuanto acababa la presentacion, sin
+     * mirar si ya estaba montada. Saltando la intro con un clic en los primeros instantes se
+     * llamaba a {@code show()} sobre un escenario todavia sin escena, y peor: el montaje posterior
+     * hacia {@code initStyle}, que sobre un escenario ya visible lanza
+     * {@code IllegalStateException: Cannot set style once stage has been set visible}. La
+     * aplicacion quedaba a medio abrir. Cuanto mas corta la paciencia del usuario, mas seguro el
+     * fallo.</p>
+     */
+    private static final class Compuerta {
+        private final Runnable alAbrirse;
+        private boolean montada;
+        private boolean presentada;
+        private boolean abierta;
+
+        Compuerta(Runnable alAbrirse) {
+            this.alAbrirse = alAbrirse;
+        }
+
+        void ventanaMontada() {
+            montada = true;
+            intentarAbrir();
+        }
+
+        void presentacionTerminada() {
+            presentada = true;
+            intentarAbrir();
+        }
+
+        /** Se abre una sola vez: dos avisos repetidos no pueden mostrar la ventana dos veces. */
+        private void intentarAbrir() {
+            if (montada && presentada && !abierta) {
+                abierta = true;
+                alAbrirse.run();
+            }
+        }
     }
 
     /** Monta la ventana principal y la deja lista; quien la muestra es la presentacion. */

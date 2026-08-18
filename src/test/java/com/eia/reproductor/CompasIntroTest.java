@@ -29,6 +29,12 @@ class CompasIntroTest {
     /** El tope inferior de la duracion, tomado de la clase. */
     private static final double MINIMO_SEGUNDOS = IntroDeArranque.MIN_SEGUNDOS;
 
+    /** El tope superior, tambien tomado de la clase. */
+    private static final double MAXIMO_SEGUNDOS = IntroDeArranque.MAX_SEGUNDOS;
+
+    /** Una duracion comoda dentro de los dos topes, para las pruebas que no los ejercitan. */
+    private static final double DENTRO_DE_TOPES = (MINIMO_SEGUNDOS + MAXIMO_SEGUNDOS) / 2;
+
     @Nested
     @DisplayName("Reparto de la duracion")
     class Reparto {
@@ -44,7 +50,8 @@ class CompasIntroTest {
         @Test
         @DisplayName("Con una pista dentro de los topes, dura exactamente lo que la pista")
         void duraLoQueLaPista() {
-            assertEquals(7, new Compas(Duration.seconds(7)).total().toSeconds(), 0.001);
+            assertEquals(DENTRO_DE_TOPES,
+                    new Compas(Duration.seconds(DENTRO_DE_TOPES)).total().toSeconds(), 0.001);
         }
 
         @Test
@@ -57,7 +64,8 @@ class CompasIntroTest {
         @Test
         @DisplayName("Una canción entera se recorta al máximo")
         void pistaLarga() {
-            assertEquals(10, new Compas(Duration.seconds(185)).total().toSeconds(), 0.001);
+            assertEquals(MAXIMO_SEGUNDOS,
+                    new Compas(Duration.seconds(185)).total().toSeconds(), 0.001);
         }
 
         @Test
@@ -69,7 +77,7 @@ class CompasIntroTest {
             // que el peso de cada acto sobre el total tiene que cambiar. Lo que no puede cambiar
             // es su peso dentro de lo que se reparte.
             double pesoEsperado = IntroDeArranque.BASE_ACTO_TRES / BASE;
-            for (double segundos : new double[] {4, 5.67, 7, 10}) {
+            for (double segundos : new double[] {MINIMO_SEGUNDOS, DENTRO_DE_TOPES, MAXIMO_SEGUNDOS}) {
                 Compas compas = new Compas(Duration.seconds(segundos));
                 double repartido = compas.total().toMillis() - IntroDeArranque.MS_ENCENDIDO;
                 double peso = compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis() / repartido;
@@ -80,7 +88,7 @@ class CompasIntroTest {
         @Test
         @DisplayName("Los cuatro actos y el desgarro suman el total, ni más ni menos")
         void losTramosSumanElTotal() {
-            Compas compas = new Compas(Duration.seconds(9));
+            Compas compas = new Compas(Duration.seconds(DENTRO_DE_TOPES));
             // Los cinco tramos del guion, en orden: acto 1, desgarro, actos 2, 3 y 4. Se toman de
             // la clase y no a mano: escritos a mano ya fallaron dos veces al retocar el ritmo.
             double suma = compas.de(IntroDeArranque.BASE_ACTO_UNO).toMillis()
@@ -100,8 +108,9 @@ class CompasIntroTest {
         void elEncendidoSeDescuenta() {
             // El tubo dura lo mismo siempre. Lo que se estira o encoge es lo que queda para los
             // actos, de modo que la presentación siga acabando cuando acaba la pista.
-            Compas compas = new Compas(Duration.seconds(8));
-            assertEquals(8000, compas.total().toMillis(), 0.001, "el total no puede crecer");
+            Compas compas = new Compas(Duration.seconds(DENTRO_DE_TOPES));
+            assertEquals(DENTRO_DE_TOPES * 1000, compas.total().toMillis(), 0.001,
+                    "el total no puede crecer");
 
             double actos = compas.de(IntroDeArranque.BASE_ACTO_UNO).toMillis()
                     + compas.de(IntroDeArranque.BASE_GLITCH).toMillis()
@@ -109,7 +118,7 @@ class CompasIntroTest {
                     + compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis()
                     + compas.de(IntroDeArranque.BASE_ACTO_CUATRO).toMillis();
 
-            assertEquals(8000 - IntroDeArranque.MS_ENCENDIDO, actos, 0.001,
+            assertEquals(DENTRO_DE_TOPES * 1000 - IntroDeArranque.MS_ENCENDIDO, actos, 0.001,
                     "a los actos les toca el total menos el tubo");
         }
 
@@ -140,13 +149,23 @@ class CompasIntroTest {
         @DisplayName("El desgarro es breve: menos de un cuarto de la presentación")
         void elDesgarroEsBreve() {
             // Por encima de un cuarto deja de leerse como un efecto y parece que se colgó.
-            for (double segundos : new double[] {4, 6.37, 10}) {
+            for (double segundos : new double[] {MINIMO_SEGUNDOS, DENTRO_DE_TOPES, MAXIMO_SEGUNDOS}) {
                 Compas compas = new Compas(Duration.seconds(segundos));
                 double peso = compas.de(IntroDeArranque.BASE_GLITCH).toMillis()
                         / compas.total().toMillis();
                 assertTrue(peso < 0.25, "el desgarro pesa " + peso + " con " + segundos + " s");
             }
         }
+    }
+
+    @Test
+    @DisplayName("El ritmo base cabe entre los dos topes")
+    void elRitmoBaseCabe() {
+        // Si el ritmo base quedara fuera, la cadencia de referencia seria inalcanzable y sin audio
+        // la presentación saldría recortada. Pasó al bajar el máximo a 6 s.
+        assertTrue(BASE / 1000 >= MINIMO_SEGUNDOS && BASE / 1000 <= MAXIMO_SEGUNDOS,
+                "el ritmo base son " + BASE / 1000 + " s y los topes van de "
+                        + MINIMO_SEGUNDOS + " a " + MAXIMO_SEGUNDOS);
     }
 
     @Nested

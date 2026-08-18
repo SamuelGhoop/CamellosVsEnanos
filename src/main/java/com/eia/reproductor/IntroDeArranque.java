@@ -185,12 +185,25 @@ public final class IntroDeArranque {
     /** Cuanto sube el brillo en el parpadeo de asentamiento. */
     private static final double BRILLO_ASENTAMIENTO = 0.15;
 
-    /** Topes de la duracion, para que ni una pista cortisima ni una larga arruinen la entrada. */
+    /**
+     * Topes de la duracion, para que ni una pista cortisima ni una larga arruinen la entrada.
+     *
+     * <p>El maximo bajo de 10 a 7 segundos. Con 10, el acto 3 se llevaba 4,1 s —el 41 % de la
+     * presentacion— y en ese acto lo unico que se mueve es la barra llenandose: cuatro segundos
+     * casi inmoviles justo despues de que la mascota termine de bajar. Se leia como que la
+     * aplicacion se habia quedado colgada.</p>
+     *
+     * <p>No baja mas porque el ritmo base ya son 6,04 s: un tope por debajo dejaria la propia
+     * cadencia de referencia fuera de alcance, y sin audio la presentacion saldria recortada.</p>
+     */
     static final double MIN_SEGUNDOS = 4;
-    private static final double MAX_SEGUNDOS = 10;
+    static final double MAX_SEGUNDOS = 7;
 
     /** Lo que se espera al Media antes de arrancar sin el; si tarda mas, se tira de proporciones. */
     private static final Duration ESPERA_MEDIA = Duration.millis(600);
+
+    /** Lo que se espera a que el llamador de via libre antes de arrancar por las malas. */
+    private static final Duration ESPERA_VIA_LIBRE = Duration.millis(1500);
 
     private static final String RUTA_MUSICA = "/audio/intro-8bit.mp3";
     private static final String RUTA_TITULO = "/imagenes/spidey/titulo.png";
@@ -324,6 +337,10 @@ public final class IntroDeArranque {
     private Compas compas;
     private Runnable alTerminar = () -> { };
     private boolean terminada;
+
+    /** Las dos condiciones para arrancar: saber cuanto dura la pista y que no haya nada pesado. */
+    private boolean ritmoListo;
+    private boolean viaLibre;
 
     /** Arma la escena; no la muestra hasta {@link #mostrar()}. */
     public IntroDeArranque() {
@@ -538,16 +555,43 @@ public final class IntroDeArranque {
         escenario.show();
         centrar();
 
-        musica.cuandoSepaLaDuracion(this::arrancarCon);
+        musica.cuandoSepaLaDuracion(duracionPista -> {
+            compas = new Compas(duracionPista);
+            ritmoListo = true;
+            intentarArrancar();
+        });
+
+        // Red de seguridad: si el llamador nunca da via libre —porque fallo montando la ventana o
+        // sencillamente se olvido— la presentacion arranca igual. Sin esto, el olvido se paga con
+        // una pantalla negra para siempre, que es el peor final posible para un arranque.
+        PauseTransition sinEsperarMas = new PauseTransition(ESPERA_VIA_LIBRE);
+        sinEsperarMas.setOnFinished(evento -> permitirArranque());
+        sinEsperarMas.play();
     }
 
-    /** Arma el guion al ritmo que marque la pista y lo lanza junto con la musica. */
-    private void arrancarCon(Duration duracionPista) {
-        if (guion != null || terminada) {
-            // Ya arrancó, o el usuario la saltó mientras se resolvia la duracion.
+    /**
+     * Da via libre para que la presentacion empiece a moverse.
+     *
+     * <p>La llama el arranque cuando ya monto la ventana principal. Ese montaje bloquea el hilo
+     * grafico casi un segundo, y si ocurriera con la presentacion en marcha se comeria el encendido
+     * del tubo de un tiron. Mientras tanto en pantalla hay un televisor apagado: negro y quieto, no
+     * se nota.</p>
+     */
+    public void permitirArranque() {
+        viaLibre = true;
+        intentarArrancar();
+    }
+
+    /**
+     * Arranca cuando se cumplen las dos condiciones: se sabe el ritmo y hay via libre.
+     *
+     * <p>Vienen en cualquier orden —la duracion la resuelve el Media por su cuenta y la via libre
+     * la da el arranque al terminar de montar— asi que gana la ultima en llegar.</p>
+     */
+    private void intentarArrancar() {
+        if (!ritmoListo || !viaLibre || guion != null || terminada) {
             return;
         }
-        compas = new Compas(duracionPista);
         guion = construirGuion(compas);
         guion.setOnFinished(evento -> cerrar());
         musica.arrancar();
