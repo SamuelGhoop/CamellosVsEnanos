@@ -56,36 +56,44 @@ public class App extends Application {
         // que todavia no esta cargada, JavaFX cae silenciosamente a la fuente por defecto. Y
         cargarFuentePixel();
 
-        PantallaDeCarga carga = new PantallaDeCarga();
-        carga.mostrar();
+        IntroDeArranque intro = new IntroDeArranque();
+        intro.mostrar();
 
-        // El trabajo pesado ocurre en este mismo hilo, asi que si empezara ahora mismo la
-        // pantalla de carga saldria en blanco: no le habria dado tiempo a pintarse. Con una
-        PauseTransition respiro = new PauseTransition(Duration.millis(80));
+        // La ventana principal se muestra cuando la presentacion termina, no antes. Si el usuario
+        // la salta con un clic, entra en ese momento: alTerminar dispara enseguida si ya acabo.
+        intro.alTerminar(() -> {
+            escenarioPrincipal.show();
+            // Se coloca DESPUES de mostrarla. Al mostrarse, JavaFX ajusta la ventana al tamanio
+            // preferido de la escena —aqui 1086 px de alto— y pisaba cualquier medida puesta antes.
+            acomodarEnPantalla(escenarioPrincipal);
+        });
+
+        // El montaje bloquea el hilo grafico casi un segundo, asi que se hace pronto: en la primera
+        // fase solo hay un fundido lento y el tiron no se nota. Sin este respiro previo, la
+        // presentacion saldria en blanco porque no le habria dado tiempo a pintar un fotograma.
+        PauseTransition respiro = new PauseTransition(Duration.millis(120));
         respiro.setOnFinished(evento -> {
             try {
-                construirVentanaPrincipal(escenarioPrincipal, carga);
+                construirVentanaPrincipal(escenarioPrincipal, intro);
             } catch (IOException fallo) {
-                carga.cerrar();
+                intro.saltar();
                 throw new IllegalStateException("No se pudo construir la ventana principal.", fallo);
-            } finally {
-                carga.cerrar();
             }
         });
         respiro.play();
     }
 
-    /** Monta y muestra la ventana principal. */
-    private void construirVentanaPrincipal(Stage escenarioPrincipal, PantallaDeCarga carga)
+    /** Monta la ventana principal y la deja lista; quien la muestra es la presentacion. */
+    private void construirVentanaPrincipal(Stage escenarioPrincipal, IntroDeArranque intro)
             throws IOException {
-        carga.informar("Cargando la interfaz");
+        intro.informar("Cargando la interfaz");
 
         URL urlVista = Objects.requireNonNull(
                 App.class.getResource(RUTA_VISTA_PRINCIPAL),
                 "No se encontro la vista " + RUTA_VISTA_PRINCIPAL + " en el classpath.");
         FXMLLoader cargador = new FXMLLoader(urlVista);
         // Aqui dentro el controlador lee la biblioteca y las listas del disco: es la parte lenta.
-        carga.informar("Leyendo la biblioteca");
+        intro.informar("Leyendo la biblioteca");
         Parent raiz = cargador.load();
         PrincipalController controlador = cargador.getController();
 
@@ -108,10 +116,7 @@ public class App extends Application {
         RedimensionadorVentana.instalar(escenarioPrincipal, (javafx.scene.layout.Region) raiz);
 
         ponerIconoDeLaBarraDeTareas(escenarioPrincipal);
-        escenarioPrincipal.show();
-        // Se coloca DESPUES de mostrarla. Al mostrarse, JavaFX ajusta la ventana al tamanio
-        // preferido de la escena —aqui 1086 px de alto— y pisaba cualquier medida puesta antes.
-        acomodarEnPantalla(escenarioPrincipal);
+        intro.informar("Todo listo");
     }
 
     /** Deja la ventana con un tamanio comodo y centrada, sin taparlo todo. */

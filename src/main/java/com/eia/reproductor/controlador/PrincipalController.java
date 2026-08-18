@@ -558,7 +558,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         tablaBiblioteca.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         tablaBiblioteca.getSelectionModel().selectedItemProperty()
                 .addListener((observable, anterior, actual) -> actualizarBotonesDeSeleccion());
-        tablaBiblioteca.setPlaceholder(new Label("LA BIBLIOTECA ESTA VACIA"));
+        tablaBiblioteca.setPlaceholder(new Label("LA BIBLIOTECA ESTÁ VACÍA"));
 
         // Se escucha el editor y no valueProperty: al escribir a mano el value no cambia hasta que
         // se pulsa Enter, y la tabla debe ir filtrando letra a letra como hacia antes.
@@ -573,7 +573,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         FiltroDeCampo campo = campoDeFiltro();
         campoBusqueda.getItems().setAll(campo.valoresEn(biblioteca.todas()));
         campoBusqueda.setPromptText(campo == FiltroDeCampo.TODO
-                ? "BUSCAR TITULO, ARTISTA O ALBUM"
+                ? "BUSCAR TÍTULO, ARTISTA O ÁLBUM"
                 : "FILTRAR POR " + campo.etiqueta());
         refrescarTabla();
     }
@@ -1439,16 +1439,16 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     private void explicarTablaVacia() {
         String mensaje;
         if (coleccionActiva instanceof ColeccionPlaylist) {
-            mensaje = "ESTA LISTA ESTA VACIA\n\n"
+            mensaje = "ESTA LISTA ESTÁ VACÍA\n\n"
                     + "1. Elegí TODA LA BIBLIOTECA en el selector de arriba\n"
                     + "2. Clic derecho sobre una canción\n"
                     + "3. \"Agregar a " + coleccionActiva.nombre() + "\"";
         } else if (coleccionActiva instanceof ColeccionHistorial) {
-            mensaje = "TODAVIA NO HAS REPRODUCIDO NADA\n\n"
+            mensaje = "TODAVÍA NO HAS REPRODUCIDO NADA\n\n"
                     + "Las canciones aparecen acá al reproducirlas,\n"
                     + "de la más reciente a la más antigua.";
         } else if (coleccionActiva instanceof ColeccionFavoritas) {
-            mensaje = "NO HAY FAVORITAS TODAVIA\n\n"
+            mensaje = "NO HAY FAVORITAS TODAVÍA\n\n"
                     + "Elegí TODA LA BIBLIOTECA y marcá canciones con\n"
                     + "clic derecho → Agregar a ★ FAVORITAS";
         } else {
@@ -1466,7 +1466,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
         Cancion actual = modoActivo.actual();
 
         if (actual == null) {
-            etiquetaTitulo.setText("SIN REPRODUCCION");
+            etiquetaTitulo.setText("SIN REPRODUCCIÓN");
             etiquetaArtista.setText("-");
             etiquetaDetalle.setText("MODO " + modoActivo.nombre().toUpperCase()
                     + "\n" + modoActivo.estructuraUsada().toUpperCase());
@@ -1567,7 +1567,7 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
                         + "  •  " + biblioteca.tamanio() + " CANCIONES EN BIBLIOTECA  •  "
                 : "AHORA SUENA  •  " + actual.getTitulo().toUpperCase()
                         + "  •  " + actual.getArtista().toUpperCase()
-                        + "  •  CALIFICACION " + actual.getCalificacion() + "/100"
+                        + "  •  CALIFICACIÓN " + actual.getCalificacion() + "/100"
                         + "  •  MODO " + modoActivo.nombre().toUpperCase() + "  •  ";
         etiquetaMarquesina.setText(texto);
     }

@@ -45,9 +45,9 @@
         </HBox>
 
         <!-- ===== Via B: busqueda en la API ===== -->
-        <Label styleClass="panel-encabezado-menor" text="• 2. BUSCAR METADATA EN LINEA" />
+        <Label styleClass="panel-encabezado-menor" text="• 2. BUSCAR METADATA EN LÍNEA" />
         <HBox styleClass="fila-via">
-            <TextField fx:id="campoConsulta" promptText="ARTISTA Y TITULO" HBox.hgrow="ALWAYS" />
+            <TextField fx:id="campoConsulta" promptText="ARTISTA Y TÍTULO" HBox.hgrow="ALWAYS" />
             <Button fx:id="botonBuscarApi" styleClass="boton-acento" text="BUSCAR"
                     onAction="#buscarEnLinea" />
         </HBox>
@@ -57,7 +57,7 @@
                   prefHeight="170" managed="false" visible="false" />
 
         <!-- ===== Via C: formulario, comun a las tres ===== -->
-        <Label styleClass="panel-encabezado-menor" text="• 3. DATOS DE LA CANCION" />
+        <Label styleClass="panel-encabezado-menor" text="• 3. DATOS DE LA CANCIÓN" />
         <HBox styleClass="fila-datos">
             <VBox styleClass="columna-portada">
                 <StackPane styleClass="marco-portada">
@@ -79,29 +79,29 @@
                     <ColumnConstraints minWidth="180" prefWidth="180" hgrow="ALWAYS" />
                 </columnConstraints>
 
-                <Label styleClass="etiqueta-campo" text="TITULO *"
+                <Label styleClass="etiqueta-campo" text="TÍTULO *"
                        GridPane.rowIndex="0" GridPane.columnIndex="0" />
-                <TextField fx:id="campoTitulo" promptText="NOMBRE DE LA CANCION"
+                <TextField fx:id="campoTitulo" promptText="NOMBRE DE LA CANCIÓN"
                            GridPane.rowIndex="0" GridPane.columnIndex="1" />
 
                 <Label styleClass="etiqueta-campo" text="ARTISTA"
                        GridPane.rowIndex="0" GridPane.columnIndex="2" />
                 <TextField fx:id="campoArtista" GridPane.rowIndex="0" GridPane.columnIndex="3" />
 
-                <Label styleClass="etiqueta-campo" text="ALBUM"
+                <Label styleClass="etiqueta-campo" text="ÁLBUM"
                        GridPane.rowIndex="1" GridPane.columnIndex="0" />
                 <TextField fx:id="campoAlbum" GridPane.rowIndex="1" GridPane.columnIndex="1" />
 
-                <Label styleClass="etiqueta-campo" text="GENERO"
+                <Label styleClass="etiqueta-campo" text="GÉNERO"
                        GridPane.rowIndex="1" GridPane.columnIndex="2" />
                 <TextField fx:id="campoGenero" GridPane.rowIndex="1" GridPane.columnIndex="3" />
 
-                <Label styleClass="etiqueta-campo" text="ANIO"
+                <Label styleClass="etiqueta-campo" text="AÑO"
                        GridPane.rowIndex="2" GridPane.columnIndex="0" />
                 <TextField fx:id="campoAnio" promptText="1975"
                            GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
-                <Label styleClass="etiqueta-campo" text="DURACION"
+                <Label styleClass="etiqueta-campo" text="DURACIÓN"
                        GridPane.rowIndex="2" GridPane.columnIndex="2" />
                 <TextField fx:id="campoDuracion" promptText="M:SS"
                            GridPane.rowIndex="2" GridPane.columnIndex="3" />
@@ -122,7 +122,7 @@
         <HBox styleClass="fila-datos">
             <VBox styleClass="bloque-calificacion" HBox.hgrow="ALWAYS">
                 <HBox styleClass="fila-titulo">
-                    <Label styleClass="etiqueta-campo" text="CALIFICACION" />
+                    <Label styleClass="etiqueta-campo" text="CALIFICACIÓN" />
                     <Region HBox.hgrow="ALWAYS" />
                     <Label fx:id="etiquetaCalificacion" styleClass="valor-calificacion"
                            text="0 / 100" />
@@ -130,7 +130,7 @@
                 <Slider fx:id="deslizadorCalificacion" min="0" max="100" value="0"
                         blockIncrement="5" />
                 <Label styleClass="texto-tenue" wrapText="true"
-                       text="ESTE VALOR NUNCA LO DA LA API: ES TU CALIFICACION PERSONAL" />
+                       text="ESTE VALOR NUNCA LO DA LA API: ES TU CALIFICACIÓN PERSONAL" />
             </VBox>
 
             <!-- La estrella reemplaza a la casilla: se apaga en gris y se enciende al pulsarla. -->

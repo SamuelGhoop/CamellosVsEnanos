@@ -722,6 +722,24 @@
     -fx-padding: 4 8 4 8;
 }
 
+/* El editor del buscador. Un ComboBox editable pone dentro un TextField, que hereda .text-field
+   con su borde de 3 px y sus 8 px de relleno: eso pide unos 33 px de alto y el combo solo le deja
+   22, asi que el texto que se escribia quedaba recortado fuera de la vista y el campo parecia
+   vacio. Se le quitan borde y relleno para que quepa; el marco ya lo pone el propio combo. */
+.combo-box .text-field {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0 2 0 2;
+    -fx-font-size: 12px;
+    -fx-text-fill: -blanco-hueso;
+    -fx-prompt-text-fill: -gris-apagado;
+}
+
+/* Mas especifica que .text-field:focused, que si no le devolveria el borde al enfocarlo. */
+.combo-box .text-field:focused {
+    -fx-border-width: 0;
+}
+
 /* La flechita por defecto es un triangulo suave que desentona con el pixel art. */
 .combo-box .arrow-button {
     -fx-background-color: -marco-azul-osc;

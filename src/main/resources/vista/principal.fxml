@@ -128,8 +128,8 @@
                         onAction="#activarModoAlfabetico" HBox.hgrow="ALWAYS" maxWidth="Infinity">
                     <graphic>
                         <VBox styleClass="pestania-contenido">
-                            <Label styleClass="pestania-nombre" text="MODO 3 • ALFABETICO" />
-                            <Label styleClass="pestania-estructura" text="ARBOL BINARIO DE BUSQUEDA" />
+                            <Label styleClass="pestania-nombre" text="MODO 3 • ALFABÉTICO" />
+                            <Label styleClass="pestania-estructura" text="ÁRBOL BINARIO DE BÚSQUEDA" />
                         </VBox>
                     </graphic>
                 </Button>
@@ -186,7 +186,7 @@
                     <ComboBox fx:id="selectorCampo" onAction="#cambiarCampoDeFiltro"
                               minWidth="-Infinity" />
                     <ComboBox fx:id="campoBusqueda" editable="true"
-                              promptText="BUSCAR TITULO, ARTISTA O ALBUM"
+                              promptText="BUSCAR TÍTULO, ARTISTA O ÁLBUM"
                               HBox.hgrow="ALWAYS" maxWidth="Infinity" />
                     <Button fx:id="botonBuscar" text="BUSCAR" minWidth="-Infinity"
                             onAction="#buscar" />
@@ -216,11 +216,11 @@
                                      maxWidth="44" resizable="false" sortable="false" />
                         <!-- Las columnas cortas llevan minWidth: al repartirse el ancho, sin el se
                              encogen hasta mostrar solo puntos suspensivos. -->
-                        <TableColumn fx:id="columnaTitulo" text="TITULO" prefWidth="200" minWidth="140" />
+                        <TableColumn fx:id="columnaTitulo" text="TÍTULO" prefWidth="200" minWidth="140" />
                         <TableColumn fx:id="columnaArtista" text="ARTISTA" prefWidth="140" minWidth="100" />
-                        <TableColumn fx:id="columnaAlbum" text="ALBUM" prefWidth="140" minWidth="100" />
-                        <TableColumn fx:id="columnaGenero" text="GENERO" prefWidth="100" minWidth="70" />
-                        <TableColumn fx:id="columnaAnio" text="ANIO" prefWidth="64" minWidth="64" />
+                        <TableColumn fx:id="columnaAlbum" text="ÁLBUM" prefWidth="140" minWidth="100" />
+                        <TableColumn fx:id="columnaGenero" text="GÉNERO" prefWidth="100" minWidth="70" />
+                        <TableColumn fx:id="columnaAnio" text="AÑO" prefWidth="64" minWidth="64" />
                         <TableColumn fx:id="columnaDuracion" text="DUR." prefWidth="64" minWidth="64" />
                         <TableColumn fx:id="columnaCalificacion" text="CAL." prefWidth="58" minWidth="58" />
                         <!-- Veces reproducida: la misma cifra con la que se arma la ventana de
@@ -275,7 +275,7 @@
                      alto las etiquetas se encogen a un renglon y el texto sale con puntos
                      suspensivos en vez de partirse en varias lineas. -->
                 <VBox styleClass="bloque-info">
-                    <Label fx:id="etiquetaTitulo" styleClass="info-titulo" text="SIN REPRODUCCION"
+                    <Label fx:id="etiquetaTitulo" styleClass="info-titulo" text="SIN REPRODUCCIÓN"
                            wrapText="true" minHeight="-Infinity" />
                     <Label fx:id="etiquetaArtista" styleClass="info-artista" text="-"
                            wrapText="true" minHeight="-Infinity" />
@@ -317,7 +317,7 @@
                 <Button fx:id="botonAccionModo" text="VOLVER A MEZCLAR" maxWidth="Infinity"
                         onAction="#ejecutarAccionDelModo" />
 
-                <Label styleClass="panel-encabezado-menor" text="• A CONTINUACION" />
+                <Label styleClass="panel-encabezado-menor" text="• A CONTINUACIÓN" />
                 <!-- Se le baja el minimo para hacerle sitio a la caratula grande sin empujar la
                      marquesina fuera de la ventana en pantallas bajas. -->
                 <!-- minHeight en 0: la lista es lo ultimo del panel, asi que si el alto no alcanza
