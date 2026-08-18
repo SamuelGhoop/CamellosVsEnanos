@@ -26,6 +26,9 @@ class CompasIntroTest {
      */
     private static final double BASE = IntroDeArranque.BASE_TOTAL;
 
+    /** El tope inferior de la duracion, tomado de la clase. */
+    private static final double MINIMO_SEGUNDOS = IntroDeArranque.MIN_SEGUNDOS;
+
     @Nested
     @DisplayName("Reparto de la duracion")
     class Reparto {
@@ -95,7 +98,7 @@ class CompasIntroTest {
         @Test
         @DisplayName("El encendido se descuenta del reparto, no alarga el total")
         void elEncendidoSeDescuenta() {
-            // Los 600 ms del tubo son fijos. Lo que se estira o encoge es lo que queda para los
+            // El tubo dura lo mismo siempre. Lo que se estira o encoge es lo que queda para los
             // actos, de modo que la presentación siga acabando cuando acaba la pista.
             Compas compas = new Compas(Duration.seconds(8));
             assertEquals(8000, compas.total().toMillis(), 0.001, "el total no puede crecer");
@@ -106,16 +109,31 @@ class CompasIntroTest {
                     + compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis()
                     + compas.de(IntroDeArranque.BASE_ACTO_CUATRO).toMillis();
 
-            assertEquals(8000 - 600, actos, 0.001, "a los actos les toca el total menos el tubo");
+            assertEquals(8000 - IntroDeArranque.MS_ENCENDIDO, actos, 0.001,
+                    "a los actos les toca el total menos el tubo");
         }
 
         @Test
         @DisplayName("Con la pista más corta posible, a los actos les queda tiempo de sobra")
         void elEncendidoNoSeComeLosActos() {
-            // Con el minimo de 4 s, tras descontar el tubo quedan 3,4 para los cinco tramos.
+            // Con el minimo, tras descontar el tubo tiene que quedar tiempo para los cinco tramos.
             Compas compas = new Compas(Duration.seconds(1));
             assertTrue(compas.de(IntroDeArranque.BASE_ACTO_UNO).toMillis() > 0,
                     "el acto 1 se quedó sin tiempo");
+        }
+
+        @Test
+        @DisplayName("Aun con la pista más corta, el acto 4 aloja el colapso del tubo")
+        void elActoCuatroAlojaElColapso() {
+            // El colapso dura lo mismo siempre. Si el acto 4 se quedara mas corto que el, la
+            // presentacion se pasaria de largo de la pista. Con el minimo de 4 s va justo, asi que
+            // conviene que esta prueba avise si alguien toca los topes o el ritmo.
+            Compas compas = new Compas(Duration.seconds(MINIMO_SEGUNDOS));
+            double actoCuatro = compas.de(IntroDeArranque.BASE_ACTO_CUATRO).toMillis();
+
+            assertTrue(actoCuatro >= IntroDeArranque.MS_ENCENDIDO,
+                    "el acto 4 dura " + actoCuatro + " ms y el colapso pide "
+                            + IntroDeArranque.MS_ENCENDIDO);
         }
 
         @Test

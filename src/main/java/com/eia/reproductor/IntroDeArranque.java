@@ -41,6 +41,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
@@ -158,19 +159,34 @@ public final class IntroDeArranque {
      * <p>Fijos, no proporcionales: el chasquido de un televisor encendiendose dura lo que dura, y
      * estirarlo al ritmo de la cancion lo convertiria en otra cosa.</p>
      */
-    private static final double MS_PUNTO = 120;
-    private static final double MS_APERTURA = 350;
-    private static final double MS_ASENTAMIENTO = 130;
+    private static final double MS_PUNTO = 80;
+    private static final double MS_APERTURA = 230;
+    private static final double MS_ASENTAMIENTO = 90;
     static final double MS_ENCENDIDO = MS_PUNTO + MS_APERTURA + MS_ASENTAMIENTO;
 
-    /** Grosor de la linea de barrido y del filo que se retira con cada persiana. */
+    /** Grosor de la linea de barrido del primer tiempo. */
     private static final double GROSOR_BARRIDO = 2;
+
+    /** Alto del resplandor que acompania a cada persiana; va a caballo de su canto. */
+    private static final double ALTO_RESPLANDOR = 18;
+
+    /** Cada cuantos pixeles se repite una linea de barrido, y cuanto se nota. */
+    private static final double PASO_SCANLINE = 2;
+    private static final double OPACIDAD_SCANLINE = 0.12;
+
+    /** Lo que tarda el patron de lineas en correrse un paso entero hacia arriba. */
+    private static final Duration CICLO_SCANLINE = Duration.seconds(8);
+
+    /** La franja de rodado: alto, cuanto se nota y cuanto tarda en cruzar la pantalla. */
+    private static final double ALTO_RODADO = 60;
+    private static final double OPACIDAD_RODADO = 0.06;
+    private static final Duration CICLO_RODADO = Duration.seconds(5);
 
     /** Cuanto sube el brillo en el parpadeo de asentamiento. */
     private static final double BRILLO_ASENTAMIENTO = 0.15;
 
     /** Topes de la duracion, para que ni una pista cortisima ni una larga arruinen la entrada. */
-    private static final double MIN_SEGUNDOS = 4;
+    static final double MIN_SEGUNDOS = 4;
     private static final double MAX_SEGUNDOS = 10;
 
     /** Lo que se espera al Media antes de arrancar sin el; si tarda mas, se tira de proporciones. */
@@ -183,6 +199,9 @@ public final class IntroDeArranque {
     private static final Color AZUL = Color.web("#4FC3E8");
     private static final Color ROJO = Color.web("#d3323f");
     private static final Color FONDO = Color.web("#07070C");
+
+    /** El blanco del fosforo. Es el mismo claro del resto de la interfaz, no un blanco puro. */
+    private static final Color CLARO = Color.web("#E6F5F8");
 
     /** Cuantos hilos de telarania se dibujan de fondo. */
     private static final int HILOS_DE_FONDO = 14;
@@ -213,6 +232,14 @@ public final class IntroDeArranque {
     /** Cual de las dos barras se muestra: por bloques o el degradado continuo. */
     private static final boolean BARRA_POR_BLOQUES = true;
 
+    /**
+     * Cual de las dos salidas se usa.
+     *
+     * <p>{@code true} colapsa la imagen como un tubo apagandose; {@code false} deja el fundido a
+     * negro de siempre. Las dos duran lo mismo, asi que el interruptor no altera el reparto.</p>
+     */
+    private static final boolean APAGADO_DE_TUBO = true;
+
     /** Area de animacion de esta ejecucion, ya ajustada a la pantalla. */
     private final double ancho;
     private final double alto;
@@ -228,8 +255,14 @@ public final class IntroDeArranque {
     /** Donde viven las bandas del desgarro; vacia salvo durante el efecto. */
     private final Pane capaGlitch = new Pane();
 
+    /** Scanlines, vinieta y barra de rodado: el tratamiento de tubo, sobre toda la ventana. */
+    private final Pane capaCrt = new Pane();
+
     /** Las persianas del encendido y del apagado, por encima de todo lo demas. */
     private final Pane capaEncendido = new Pane();
+
+    private Timeline desplazarScanlines;
+    private Timeline rodar;
 
     private final MarcoPixel marco = new MarcoPixel();
     private final Pane capaTelaranias = new Pane();
@@ -352,7 +385,7 @@ public final class IntroDeArranque {
         // lo unico que se ve es esa linea creciendo.
         barrido.setWidth(4);
         barrido.setHeight(GROSOR_BARRIDO);
-        barrido.setFill(Color.WHITE);
+        barrido.setFill(CLARO);
         barrido.setMouseTransparent(true);
         barrido.setY(mitadVentana - GROSOR_BARRIDO / 2);
         // Crece desde el centro hacia los dos lados: la x tiene que seguir al ancho, o el punto
@@ -366,8 +399,11 @@ public final class IntroDeArranque {
         capaEncendido.setPrefSize(anchoVentana, altoVentana);
         capaEncendido.setMaxSize(anchoVentana, altoVentana);
 
+        montarCapasCrt();
+        // De abajo arriba: contenido, tratamiento de tubo, marco, bandas del desgarro, fogonazo,
+        // velo y por ultimo las persianas. El fogonazo y el apagado tapan tambien al CRT.
         raiz.getChildren().addAll(
-                contenido, capaGlitch, marco.nodo(), fogonazo, velo, capaEncendido);
+                contenido, capaCrt, marco.nodo(), capaGlitch, fogonazo, velo, capaEncendido);
 
         Scene escena = new Scene(raiz);
         escena.setFill(Color.TRANSPARENT);
@@ -515,6 +551,8 @@ public final class IntroDeArranque {
         guion = construirGuion(compas);
         guion.setOnFinished(evento -> cerrar());
         musica.arrancar();
+        desplazarScanlines.play();
+        rodar.play();
         guion.play();
     }
 
@@ -700,6 +738,96 @@ public final class IntroDeArranque {
     }
 
     /**
+     * Las tres capas que hacen que la ventana parezca un televisor viejo.
+     *
+     * <p>Van sobre toda la ventana, por debajo de las persianas del encendido: asi aparecen junto
+     * con el contenido y no encima de la pantalla apagada.</p>
+     *
+     * <p>No se intenta curvar la imagen —eso pide un shader y no compensa— ni correr los canales de
+     * color, que se pelearia con el resto de la paleta.</p>
+     */
+    private void montarCapasCrt() {
+        capaCrt.setMouseTransparent(true);
+        capaCrt.setMinSize(anchoVentana, altoVentana);
+        capaCrt.setPrefSize(anchoVentana, altoVentana);
+        capaCrt.setMaxSize(anchoVentana, altoVentana);
+        capaCrt.getChildren().addAll(lineasDeBarrido(), vinieta(), barraDeRodado());
+    }
+
+    /**
+     * Lineas horizontales oscuras cada {@value #PASO_SCANLINE} px, subiendo lentisimo.
+     *
+     * <p>Se dibujan una sola vez en una imagen de dos pixeles de alto y se repite como azulejo:
+     * pintar trescientas y pico de lineas como nodos sueltos costaria mucho mas y se veria igual.
+     * El desplazamiento es de un solo paso, en bucle: como el patron se repite, correrlo dos
+     * pixeles y volver a empezar es indistinguible de un desplazamiento infinito.</p>
+     */
+    private Region lineasDeBarrido() {
+        WritableImage patron = new WritableImage((int) PASO_SCANLINE, (int) PASO_SCANLINE);
+        for (int x = 0; x < PASO_SCANLINE; x++) {
+            patron.getPixelWriter().setColor(x, 0, Color.BLACK);
+            for (int y = 1; y < PASO_SCANLINE; y++) {
+                patron.getPixelWriter().setColor(x, y, Color.TRANSPARENT);
+            }
+        }
+
+        Region lineas = new Region();
+        lineas.setBackground(new Background(new BackgroundImage(patron,
+                BackgroundRepeat.REPEAT, BackgroundRepeat.REPEAT,
+                BackgroundPosition.DEFAULT, BackgroundSize.DEFAULT)));
+        lineas.setOpacity(OPACIDAD_SCANLINE);
+        lineas.setPrefSize(anchoVentana, altoVentana + PASO_SCANLINE);
+        lineas.setMouseTransparent(true);
+
+        desplazarScanlines = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(lineas.translateYProperty(), 0)),
+                new KeyFrame(CICLO_SCANLINE,
+                        new KeyValue(lineas.translateYProperty(), -PASO_SCANLINE,
+                                Interpolator.LINEAR)));
+        desplazarScanlines.setCycleCount(Timeline.INDEFINITE);
+        return lineas;
+    }
+
+    /** Bordes oscurecidos, como el vidrio curvo de un tubo. */
+    private Rectangle vinieta() {
+        Rectangle sombra = new Rectangle(anchoVentana, altoVentana);
+        sombra.setMouseTransparent(true);
+        // El radio pasa de 1: el degradado tiene que seguir oscureciendo mas alla de la esquina,
+        // si no el centro queda limpio pero el oscurecimiento se corta de golpe en el borde.
+        sombra.setFill(new RadialGradient(0, 0, 0.5, 0.5, 0.78, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.TRANSPARENT),
+                new Stop(0.55, Color.TRANSPARENT),
+                new Stop(1, Color.web("#000000", 0.55))));
+        return sombra;
+    }
+
+    /**
+     * La franja clara que baja en bucle, como la barra de rodado de una tele desincronizada.
+     *
+     * <p>Muy tenue a proposito: a {@value #OPACIDAD_RODADO} apenas se intuye al pasar, que es lo
+     * que se busca. Mas marcada distraeria del contenido y, sobre todo, un pulso claro recorriendo
+     * la pantalla entera es justo el tipo de cosa que conviene mantener discreta.</p>
+     */
+    private Rectangle barraDeRodado() {
+        Rectangle franja = new Rectangle(anchoVentana, ALTO_RODADO);
+        franja.setMouseTransparent(true);
+        franja.setFill(new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.TRANSPARENT),
+                new Stop(0.5, CLARO),
+                new Stop(1, Color.TRANSPARENT)));
+        franja.setOpacity(OPACIDAD_RODADO);
+
+        rodar = new Timeline(
+                new KeyFrame(Duration.ZERO,
+                        new KeyValue(franja.translateYProperty(), -ALTO_RODADO)),
+                new KeyFrame(CICLO_RODADO,
+                        new KeyValue(franja.translateYProperty(), altoVentana,
+                                Interpolator.LINEAR)));
+        rodar.setCycleCount(Timeline.INDEFINITE);
+        return franja;
+    }
+
+    /**
      * El tubo encendiendose: punto, linea, apertura y asentamiento.
      *
      * <p><b>No se anima una linea que crece.</b> Lo que se abre es el hueco entre dos persianas
@@ -726,7 +854,12 @@ public final class IntroDeArranque {
                         new KeyValue(hojaArriba.translateYProperty(), -mitadVentana,
                                 Interpolator.EASE_BOTH),
                         new KeyValue(hojaAbajo.translateYProperty(), altoVentana - mitadVentana,
-                                Interpolator.EASE_BOTH)));
+                                Interpolator.EASE_BOTH),
+                        // El resplandor se va disipando segun se abre: es intenso cuando el hueco
+                        // es una rendija y casi no queda al final. Aguantando a tope todo el
+                        // recorrido era cuando parecian dos persianas con una raya pintada.
+                        new KeyValue(filoArriba.opacityProperty(), 0.25),
+                        new KeyValue(filoAbajo.opacityProperty(), 0.25)));
 
         // 3. El fogonazo hace de subida de brillo: es el mismo rectangulo blanco a pantalla
         //    completa que usa el golpe del logo, aqui a una fraccion de su intensidad.
@@ -749,13 +882,22 @@ public final class IntroDeArranque {
         panel.setFill(FONDO);
         panel.setY(0);
 
+        // El filo no es una raya: es un resplandor. Una linea blanca de canto duro a todo lo ancho
+        // se lee como una regla dibujada encima, no como el fosforo de un tubo. Aqui es una franja
+        // de ALTO_RESPLANDOR px con un degradado que va de transparente a claro y vuelve a
+        // transparente, colocada a caballo del canto: la mitad cae sobre el panel negro y la otra
+        // mitad sobre lo que se esta descubriendo, asi que el brillo sangra hacia los dos lados.
         Rectangle filo = esLaDeArriba ? filoArriba : filoAbajo;
         filo.setWidth(anchoVentana);
-        filo.setHeight(GROSOR_BARRIDO);
-        filo.setFill(Color.WHITE);
+        filo.setHeight(ALTO_RESPLANDOR);
+        filo.setFill(new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.TRANSPARENT),
+                new Stop(0.42, CLARO.deriveColor(0, 1, 1, 0.55)),
+                new Stop(0.5, CLARO),
+                new Stop(0.58, CLARO.deriveColor(0, 1, 1, 0.55)),
+                new Stop(1, Color.TRANSPARENT)));
         filo.setOpacity(0);
-        // El filo va pegado al canto que mira al centro de la pantalla.
-        filo.setY(esLaDeArriba ? altoPanel - GROSOR_BARRIDO : 0);
+        filo.setY(esLaDeArriba ? altoPanel - ALTO_RESPLANDOR / 2 : -ALTO_RESPLANDOR / 2);
 
         Pane hoja = new Pane(panel, filo);
         hoja.setMouseTransparent(true);
@@ -916,14 +1058,77 @@ public final class IntroDeArranque {
         return new ParallelTransition(verBarra, llenar);
     }
 
-    /** Acto 4: se apaga todo y la musica se va con el. */
+    /**
+     * Acto 4: se apaga todo y la musica se va con el.
+     *
+     * <p>Hay dos salidas y {@link #APAGADO_DE_TUBO} elige cual. Duran lo mismo, asi que cambiar de
+     * una a otra no toca el reparto de tiempos.</p>
+     */
     private ParallelTransition actoCuatro(Compas compas) {
-        Duration apagado = compas.de(700);
-        Timeline apagar = new Timeline(
-                new KeyFrame(apagado, new KeyValue(velo.opacityProperty(), 1)));
+        Duration apagado = compas.de(BASE_ACTO_CUATRO);
         // El desvanecido del audio no puede escribirse suelto en este metodo: se disparaba al
         // CONSTRUIR el guion y la cancion se iba a cero en el primer instante de la intro.
-        return new ParallelTransition(alEmpezar(() -> musica.desvanecer(apagado)), apagar);
+        return new ParallelTransition(
+                alEmpezar(() -> musica.desvanecer(apagado)),
+                APAGADO_DE_TUBO ? colapsoDeTubo(apagado) : fundidoANegro(apagado));
+    }
+
+    /** La salida de siempre: un velo negro que sube hasta taparlo todo. */
+    private Timeline fundidoANegro(Duration apagado) {
+        return new Timeline(new KeyFrame(apagado, new KeyValue(velo.opacityProperty(), 1)));
+    }
+
+    /**
+     * La salida de tubo: la imagen se colapsa a una linea, la linea a un punto y el punto se apaga.
+     *
+     * <p>Es el encendido al reves y con las mismas piezas: las persianas vuelven del borde al
+     * centro con su resplandor, y el barrido —que en la entrada se estiraba— aqui se contrae. Nada
+     * de nodos nuevos.</p>
+     *
+     * <p>Los tres tiempos se reparten el acto en la misma proporcion que en el encendido, de modo
+     * que entrada y salida se sienten simetricas aunque la salida dure lo que le toque del reparto
+     * y la entrada sea fija.</p>
+     */
+    private SequentialTransition colapsoDeTubo(Duration apagado) {
+        // Los mismos tiempos que el encendido, no una fraccion del acto: atado al reparto, el
+        // cierre duraba casi el doble que la apertura y se sentia pesado. Ahora los dos son
+        // {@value #MS_ENCENDIDO} ms y la entrada y la salida se responden.
+        Duration colapso = Duration.millis(MS_APERTURA);
+        Duration contraccion = Duration.millis(MS_PUNTO);
+        Duration extincion = Duration.millis(MS_ASENTAMIENTO);
+
+        // 1. Las persianas vuelven al centro. Lo ultimo que queda es una franja con los dos
+        //    resplandores encima: eso es la imagen colapsando a una linea.
+        Timeline cerrar = new Timeline(
+                new KeyFrame(Duration.ONE,
+                        new KeyValue(filoArriba.opacityProperty(), 0.25),
+                        new KeyValue(filoAbajo.opacityProperty(), 0.25)),
+                new KeyFrame(colapso,
+                        new KeyValue(hojaArriba.translateYProperty(), 0, Interpolator.EASE_IN),
+                        new KeyValue(hojaAbajo.translateYProperty(), 0, Interpolator.EASE_IN),
+                        new KeyValue(filoArriba.opacityProperty(), 1),
+                        new KeyValue(filoAbajo.opacityProperty(), 1)));
+
+        // 2. La linea se contrae hacia el centro hasta ser un punto.
+        Timeline contraer = new Timeline(
+                new KeyFrame(Duration.ONE,
+                        new KeyValue(barrido.opacityProperty(), 1),
+                        new KeyValue(filoArriba.opacityProperty(), 0),
+                        new KeyValue(filoAbajo.opacityProperty(), 0)),
+                new KeyFrame(contraccion,
+                        new KeyValue(barrido.widthProperty(), 4, Interpolator.EASE_IN)));
+
+        // 3. El punto se apaga.
+        Timeline apagarPunto = new Timeline(
+                new KeyFrame(extincion, new KeyValue(barrido.opacityProperty(), 0)));
+
+        // Lo que sobre del acto se queda en negro mientras la musica termina de irse: apagado el
+        // tubo, ese silencio en negro es lo que separa la presentacion de la aplicacion.
+        Duration sobra = apagado.subtract(Duration.millis(MS_ENCENDIDO));
+        PauseTransition enNegro = new PauseTransition(
+                sobra.lessThan(Duration.ZERO) ? Duration.ONE : sobra);
+
+        return new SequentialTransition(cerrar, contraer, apagarPunto, enNegro);
     }
 
     // --- Cierre ---
@@ -966,6 +1171,12 @@ public final class IntroDeArranque {
         terminada = true;
         repararSenial();
         colgante.detener();
+        if (desplazarScanlines != null) {
+            desplazarScanlines.stop();
+        }
+        if (rodar != null) {
+            rodar.stop();
+        }
         if (vaiven != null) {
             vaiven.stop();
         }
