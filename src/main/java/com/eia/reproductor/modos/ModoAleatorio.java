@@ -66,17 +66,27 @@ public class ModoAleatorio extends ModoBase {
         }
     }
 
-    /** Vuelve a barajar la coleccion sin interrumpir lo que suena. O(n). */
-    public void volverAMezclar() {
+    /**
+     * Vuelve a barajar la coleccion y deja la reproduccion al principio del orden nuevo. O(n).
+     *
+     * <p><b>Por que no conserva la cancion en curso.</b> Antes si lo hacia: rebarajaba el anillo y
+     * dejaba el cursor sobre lo que estaba sonando. El problema es que el panel de proximas
+     * muestra el anillo desde su cabeza, asi que tras mezclar la pantalla ensenaba un orden nuevo
+     * mientras los parlantes seguian con una cancion de la mezcla anterior. Lista y sonido decian
+     * cosas distintas. Ahora mezclar empieza de cero, como hacen los otros dos modos con su propia
+     * accion.</p>
+     *
+     * @return {@code true} si de verdad se mezclo; con menos de dos canciones no hay nada que hacer
+     */
+    public boolean volverAMezclar() {
         if (lista.tamanio() < 2) {
-            return;
+            return false;
         }
-        Cancion enCurso = actual();
         lista.mezclar(aleatorio);
         cursor = lista.nuevoCursor();
-        if (enCurso != null) {
-            cursor.posicionarEn(enCurso);
-        }
+        // Sin cancion actual, la proxima llamada a siguiente() devuelve la primera del orden nuevo.
+        establecerActual(null);
+        return true;
     }
 
     @Override

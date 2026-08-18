@@ -1,9 +1,15 @@
 package com.eia.reproductor.servicios.spotify;
 
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -11,6 +17,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,6 +95,111 @@ class AutenticacionSpotifyTest {
 
         assertEquals("grant_type=authorization_code"
                 + "&redirect_uri=http%3A%2F%2F127.0.0.1%3A8888%2Fcallback", cuerpo);
+    }
+
+    /**
+     * Pruebas de cuando se tira la sesion guardada y cuando no.
+     *
+     * <p><b>Por que existen.</b> {@code renovar()} borraba el token ante cualquier respuesta
+     * vacia, y {@code pedirToken()} devuelve vacio tanto si Spotify repudia la credencial como si
+     * no hubo forma de preguntarle. Resultado: un corte de red de un segundo, o cerrar la
+     * aplicacion a media renovacion, borraba la sesion y obligaba a autorizar en el navegador otra
+     * vez. Le paso al usuario en mitad de una sesion de trabajo: la aplicacion volvio al audio
+     * simulado sin decir nada, porque sin token ni siquiera se lanza librespot.</p>
+     */
+    @Nested
+    @DisplayName("Al renovar el token")
+    class AlRenovar {
+
+        /** Levanta un servidor local que siempre responde lo mismo. */
+        private HttpServer servidorQueResponde(int codigo, String cuerpo) throws IOException {
+            HttpServer servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+            servidor.createContext("/token", intercambio -> {
+                byte[] datos = cuerpo.getBytes(StandardCharsets.UTF_8);
+                intercambio.sendResponseHeaders(codigo, datos.length);
+                try (var salida = intercambio.getResponseBody()) {
+                    salida.write(datos);
+                }
+            });
+            servidor.start();
+            return servidor;
+        }
+
+        /** Deja un token caducado pero renovable, que es lo que dispara renovar(). */
+        private Path archivoConTokenRenovable() throws IOException {
+            Path archivo = Files.createTempFile("token", ".json");
+            archivo.toFile().deleteOnExit();
+            new AlmacenTokenSpotify(archivo).guardar(
+                    new TokenSpotify("acceso-viejo", "refresco", System.currentTimeMillis() - 1));
+            return archivo;
+        }
+
+        private ConfiguracionSpotify configuracion() throws IOException {
+            Path archivo = Files.createTempFile("spotify", ".properties");
+            Files.writeString(archivo, """
+                    client.id=abc123
+                    redirect.uri=http://127.0.0.1:8888/callback
+                    device.name=Camellos vs Enanos
+                    """);
+            archivo.toFile().deleteOnExit();
+            return ConfiguracionSpotify.cargar(archivo).orElseThrow();
+        }
+
+        private boolean renovarContra(HttpServer servidor, Path tokenGuardado) throws IOException {
+            String url = "http://127.0.0.1:" + servidor.getAddress().getPort() + "/token";
+            return new AutenticacionSpotify(
+                    configuracion(), new AlmacenTokenSpotify(tokenGuardado), url)
+                    .renovarParaPruebas();
+        }
+
+        @Test
+        @DisplayName("Un 400 sí tira la sesión: esa credencial ya no sirve")
+        void elRechazoTiraLaSesion() throws IOException {
+            Path guardado = archivoConTokenRenovable();
+            HttpServer servidor = servidorQueResponde(400,
+                    "{\"error\":\"invalid_grant\",\"error_description\":\"Refresh token revoked\"}");
+
+            try {
+                assertFalse(renovarContra(servidor, guardado));
+                assertFalse(Files.exists(guardado),
+                        "un refresh token revocado no se recupera: hay que autorizar de nuevo");
+            } finally {
+                servidor.stop(0);
+            }
+        }
+
+        @Test
+        @DisplayName("Un 503 NO tira la sesión: Spotify tuvo un mal rato, la credencial sirve")
+        void elFalloPasajeroConservaLaSesion() throws IOException {
+            Path guardado = archivoConTokenRenovable();
+            HttpServer servidor = servidorQueResponde(503, "{\"error\":\"server_error\"}");
+
+            try {
+                assertFalse(renovarContra(servidor, guardado), "la renovación no salió");
+                assertTrue(Files.exists(guardado),
+                        "se borró la sesión por una caída pasajera: al reabrir pediría el navegador");
+            } finally {
+                servidor.stop(0);
+            }
+        }
+
+        @Test
+        @DisplayName("Sin poder contactar a Spotify tampoco se tira la sesión")
+        void sinRedConservaLaSesion() throws IOException {
+            Path guardado = archivoConTokenRenovable();
+            // Se levanta y se apaga: el puerto queda muerto, que es lo mismo que estar sin red.
+            HttpServer servidor = servidorQueResponde(200, "{}");
+            int puerto = servidor.getAddress().getPort();
+            servidor.stop(0);
+
+            String url = "http://127.0.0.1:" + puerto + "/token";
+            boolean renovado = new AutenticacionSpotify(
+                    configuracion(), new AlmacenTokenSpotify(guardado), url).renovarParaPruebas();
+
+            assertFalse(renovado);
+            assertTrue(Files.exists(guardado),
+                    "sin conexión el token no se toca: sigue sirviendo cuando vuelva la red");
+        }
     }
 
     @Test

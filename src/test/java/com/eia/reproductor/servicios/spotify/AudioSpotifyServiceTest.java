@@ -23,12 +23,50 @@ class AudioSpotifyServiceTest {
             super(configuracion, null);
         }
 
+        /** Se da por arrancado sin lanzar el proceso: "mvn test" no puede abrir librespot. */
+        @Override public synchronized boolean iniciar() {
+            return vivo;
+        }
+
         @Override public boolean activo() {
             return vivo;
         }
 
         @Override public Optional<DispositivoSpotify> dispositivo() {
             return Optional.ofNullable(dispositivo);
+        }
+    }
+
+    /** Cliente de mentira: responde sin tocar la red y anota que se le pidio. */
+    private static final class ClienteFalso extends ClienteWebApiSpotify {
+        private final AutenticacionSpotify autenticacion;
+        private boolean transferenciaFunciona;
+        private int transferencias;
+        private int pausas;
+        private int ajustesDeVolumen;
+
+        ClienteFalso(AutenticacionSpotify autenticacion) {
+            super(autenticacion);
+            this.autenticacion = autenticacion;
+        }
+
+        @Override public boolean transferirA(String idDispositivo) {
+            transferencias++;
+            return transferenciaFunciona;
+        }
+
+        @Override public boolean silenciarRepeticionYAleatorio(String idDispositivo) {
+            return true;
+        }
+
+        @Override public boolean ajustarVolumen(String idDispositivo, int porcentaje) {
+            ajustesDeVolumen++;
+            return true;
+        }
+
+        @Override public boolean pausar(String idDispositivo) {
+            pausas++;
+            return true;
         }
     }
 
@@ -52,12 +90,37 @@ class AudioSpotifyServiceTest {
         }
     }
 
+    /** Autenticacion de mentira: dice que hay sesion sin token ni red. */
+    private static final class AutenticacionFalsa extends AutenticacionSpotify {
+        AutenticacionFalsa(ConfiguracionSpotify configuracion) {
+            super(configuracion, new AlmacenTokenSpotify(Path.of("no-existe-a-proposito.json")));
+        }
+
+        @Override public boolean haySesion() {
+            return true;
+        }
+    }
+
     private static AudioSpotifyService servicioCon(LibrespotFalso librespot) {
         ConfiguracionSpotify config = configuracion();
         AutenticacionSpotify autenticacion = new AutenticacionSpotify(
                 config, new AlmacenTokenSpotify(Path.of("no-existe-a-proposito.json")));
         return new AudioSpotifyService(
                 config, autenticacion, new ClienteWebApiSpotify(autenticacion), librespot);
+    }
+
+    /** Monta el servicio con todos los colaboradores falsos, listo para ejercitar preparar(). */
+    private static AudioSpotifyService servicioCon(LibrespotFalso librespot, ClienteFalso cliente) {
+        return new AudioSpotifyService(configuracion(), cliente.autenticacion, cliente, librespot);
+    }
+
+    /** Deja un librespot vivo y con dispositivo, que es el punto de partida de preparar(). */
+    private static LibrespotFalso librespotListo() {
+        LibrespotFalso librespot = new LibrespotFalso(configuracion());
+        librespot.vivo = true;
+        librespot.dispositivo =
+                new DispositivoSpotify("id-libre", "Camellos vs Enanos", false, "Computer");
+        return librespot;
     }
 
     private static Cancion conUri(String uri) {
@@ -83,8 +146,58 @@ class AudioSpotifyServiceTest {
         LibrespotFalso librespot = new LibrespotFalso(configuracion());
         librespot.vivo = true;
 
-        // Arrancar librespot no basta: falta transferirle la reproduccion.
+        // Arrancar librespot no basta: falta que preparar() deje el dispositivo listo.
         assertFalse(servicioCon(librespot).disponible());
+    }
+
+    @Test
+    @DisplayName("Queda disponible aunque la transferencia falle")
+    void disponibleSinTransferencia() {
+        // El caso real que dejo la aplicacion muda: abrirla sin ninguna sesion de Spotify abierta.
+        // Spotify devuelve 500 al transferir —no hay contexto que mover— y antes preparar() se
+        // rendia ahi, dejando el audio en el simulado hasta reiniciar. Reproducir con device_id
+        // activa el dispositivo igual, asi que la transferencia no puede ser un requisito.
+        ClienteFalso cliente = new ClienteFalso(new AutenticacionFalsa(configuracion()));
+        cliente.transferenciaFunciona = false;
+        AudioSpotifyService servicio = servicioCon(librespotListo(), cliente);
+
+        servicio.preparar();
+
+        assertTrue(servicio.disponible(),
+                "sin transferencia el audio se iría al simulado y no sonaría nada");
+        assertEquals(1, cliente.transferencias, "se intenta transferir igual, por si funciona");
+        assertEquals(0, cliente.pausas,
+                "sin transferencia no hay nada sonando en el dispositivo que haya que pausar");
+    }
+
+    @Test
+    @DisplayName("Con la transferencia buena, pausa lo que la cuenta viniera sonando")
+    void conTransferenciaPausa() {
+        ClienteFalso cliente = new ClienteFalso(new AutenticacionFalsa(configuracion()));
+        cliente.transferenciaFunciona = true;
+        AudioSpotifyService servicio = servicioCon(librespotListo(), cliente);
+
+        servicio.preparar();
+
+        assertTrue(servicio.disponible());
+        assertEquals(1, cliente.pausas, "transferir no silencia: la cuenta seguiría sonando");
+    }
+
+    @Test
+    @DisplayName("Sin librespot arriba no queda listo, transferencia aparte")
+    void sinProcesoNoQuedaListo() {
+        // El proceso caido es un fallo de verdad y sigue abortando: no hay dispositivo al que
+        // mandarle nada.
+        ClienteFalso cliente = new ClienteFalso(new AutenticacionFalsa(configuracion()));
+        cliente.transferenciaFunciona = true;
+        LibrespotFalso muerto = new LibrespotFalso(configuracion());
+        muerto.vivo = false;
+        AudioSpotifyService servicio = servicioCon(muerto, cliente);
+
+        servicio.preparar();
+
+        assertFalse(servicio.disponible());
+        assertEquals(0, cliente.transferencias, "ni se intenta: no hay a quien");
     }
 
     @Test

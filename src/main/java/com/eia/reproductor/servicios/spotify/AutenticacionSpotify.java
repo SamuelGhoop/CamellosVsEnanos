@@ -35,15 +35,42 @@ public class AutenticacionSpotify {
     private final AlmacenTokenSpotify almacen;
     private final HttpClient http;
 
+    /** A donde se piden los tokens; las pruebas lo apuntan a un servidor local. */
+    private final String urlToken;
+
+    /** Codigos con los que Spotify dice que la credencial ya no vale y no volvera a valer. */
+    private static final int HTTP_PETICION_INVALIDA = 400;
+    private static final int HTTP_NO_AUTORIZADO = 401;
+
     private TokenSpotify token;
     private String ultimoAviso;
 
+    /**
+     * Si el ultimo fallo al pedir token fue un rechazo definitivo del servidor.
+     *
+     * <p>Distingue "Spotify dice que esta credencial no sirve" de "no se pudo preguntar". Lo
+     * primero se resuelve autorizando de nuevo; lo segundo se resuelve solo.</p>
+     */
+    private boolean ultimoFalloFueRechazo;
+
     /** Crea el autenticador. */
     public AutenticacionSpotify(ConfiguracionSpotify configuracion, AlmacenTokenSpotify almacen) {
+        this(configuracion, almacen, URL_TOKEN);
+    }
+
+    /** Variante para pruebas: permite pedir los tokens a un servidor local. */
+    AutenticacionSpotify(ConfiguracionSpotify configuracion, AlmacenTokenSpotify almacen,
+                         String urlToken) {
         this.configuracion = configuracion;
         this.almacen = almacen;
+        this.urlToken = urlToken;
         this.http = HttpClient.newBuilder().connectTimeout(TIEMPO_LIMITE_HTTP).build();
         this.token = almacen.cargar().orElse(null);
+    }
+
+    /** Fuerza una renovacion y devuelve si la sesion sobrevivio; existe para las pruebas. */
+    boolean renovarParaPruebas() {
+        return renovar();
     }
 
     /** Indica si hay una sesion utilizable sin intervencion del usuario. */
@@ -107,8 +134,13 @@ public class AutenticacionSpotify {
         Optional<JsonObject> respuesta = pedirToken(parametros);
         if (respuesta.isEmpty()) {
             // Un refresh token rechazado no se recupera: se borra para no reintentar en cada
-            // arranque contra una credencial que el servidor ya repudio.
-            cerrarSesion();
+            // arranque contra una credencial que el servidor ya repudio. Pero SOLO si hubo
+            // rechazo: antes se borraba tambien cuando fallaba la red o se cerraba la aplicacion
+            // a media renovacion, y una caida de un segundo obligaba a autorizar en el navegador
+            // otra vez. Sin conexion el token no se toca; sigue ahi para el proximo arranque.
+            if (ultimoFalloFueRechazo) {
+                cerrarSesion();
+            }
             return false;
         }
         return guardarDesde(respuesta.get(), token.refreshToken());
@@ -182,15 +214,20 @@ public class AutenticacionSpotify {
     // --- Llamada al servidor de tokens ---
 
     private Optional<JsonObject> pedirToken(Map<String, String> parametros) {
-        HttpRequest peticion = HttpRequest.newBuilder(URI.create(URL_TOKEN))
+        HttpRequest peticion = HttpRequest.newBuilder(URI.create(urlToken))
                 .timeout(TIEMPO_LIMITE_HTTP)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(comoFormulario(parametros)))
                 .build();
+        ultimoFalloFueRechazo = false;
         try {
             HttpResponse<String> respuesta = http.send(peticion, HttpResponse.BodyHandlers.ofString());
             JsonObject cuerpo = JsonParser.parseString(respuesta.body()).getAsJsonObject();
             if (respuesta.statusCode() != 200) {
+                // Solo 400 y 401 significan "esta credencial no vale". Un 429 o un 5xx son la
+                // nube teniendo un mal dia y se arreglan solos en el siguiente intento.
+                ultimoFalloFueRechazo = respuesta.statusCode() == HTTP_PETICION_INVALIDA
+                        || respuesta.statusCode() == HTTP_NO_AUTORIZADO;
                 ultimoAviso = "Spotify rechazó la petición (HTTP " + respuesta.statusCode() + "): "
                         + (cuerpo.has("error_description")
                                 ? cuerpo.get("error_description").getAsString()

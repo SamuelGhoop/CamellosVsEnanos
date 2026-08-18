@@ -80,6 +80,9 @@ public class AudioSpotifyService implements ReproductorAudio {
     private volatile boolean dispositivoListo;
     private volatile String uriEnCurso;
 
+    /** Si el volumen del arranque hay que repetirlo cuando el dispositivo ya este activo. */
+    private volatile boolean volumenPorConfirmar;
+
     /** Volumen pedido por la interfaz; se aplica en cuanto el dispositivo esta listo. */
     private volatile int volumen = 100;
     private Runnable alTerminarPista;
@@ -133,8 +136,19 @@ public class AudioSpotifyService implements ReproductorAudio {
         arranque.start();
     }
 
-    /** Deja el dispositivo listo para recibir ordenes. */
-    private void preparar() {
+    /**
+     * Deja el dispositivo listo para recibir ordenes.
+     *
+     * <p><b>Por que no exige transferir.</b> Transferir la reproduccion solo funciona si la cuenta
+     * ya tenia algo sonando en alguna parte: sin contexto que mover, Spotify responde 500 y
+     * librespot anota {@code transfer context had no uri}. Cuando eso era requisito, abrir la
+     * aplicacion sin una sesion previa dejaba {@code dispositivoListo} en false para siempre
+     * —esto corre una sola vez, nadie lo reintenta—, {@code disponible()} devolvia false y el
+     * audio caia al simulado: la barra avanzaba y no se oia nada. Reproducir con {@code device_id}
+     * activa el dispositivo por si solo, asi que la transferencia pasa a ser un extra: si sale,
+     * deja el estado a punto; si no, se sigue igual.</p>
+     */
+    void preparar() {
         if (!librespot.iniciar()) {
             avisar(librespot.ultimoAviso().orElse("No se pudo iniciar Spotify."));
             return;
@@ -145,19 +159,36 @@ public class AudioSpotifyService implements ReproductorAudio {
             return;
         }
         String id = dispositivo.get().id();
-        if (!api.transferirA(id)) {
-            avisar(api.ultimoAviso().orElse("No se pudo transferir la reproducción a Spotify."));
-            return;
-        }
+        boolean transferido = api.transferirA(id);
+
         // La cuenta puede traer repeticion o aleatorio de otra sesion. Si se dejan, Spotify
         // decide el orden en vez de las estructuras de datos.
         api.silenciarRepeticionYAleatorio(id);
         // El volumen guardado en la cache de librespot le gana al de arranque, asi que se fija
         // aqui tambien; si no, se oye a la mitad y en curva logaritmica, o sea muy bajo.
         api.ajustarVolumen(id, volumen);
-        // Transferir no significa silencio: si la cuenta venia sonando, sigue sonando.
-        api.pausar(id);
+        if (transferido) {
+            // Transferir no significa silencio: si la cuenta venia sonando, sigue sonando.
+            api.pausar(id);
+        } else {
+            // El ajuste de arriba viajo a un dispositivo que todavia no esta activo y Spotify
+            // puede haberlo descartado. Se repite en cuanto suene la primera cancion.
+            volumenPorConfirmar = true;
+        }
         dispositivoListo = true;
+    }
+
+    /**
+     * Reaplica el volumen la primera vez que suena algo, si el arranque no pudo transferir.
+     *
+     * <p>Con el dispositivo ya activo el valor si pega. Se hace una sola vez por sesion.</p>
+     */
+    private void confirmarVolumenSiHaceFalta() {
+        if (!volumenPorConfirmar) {
+            return;
+        }
+        volumenPorConfirmar = false;
+        api.ajustarVolumen(idDispositivo(), volumen);
     }
 
     // --- ReproductorAudio ---
@@ -174,6 +205,7 @@ public class AudioSpotifyService implements ReproductorAudio {
                 return;
             }
             uriEnCurso = uri;
+            confirmarVolumenSiHaceFalta();
             // Un salto pendiente de la cancion anterior bloquearia las posiciones de esta.
             objetivoDelSalto = -1;
             detector.vigilar(uri);
@@ -277,7 +309,7 @@ public class AudioSpotifyService implements ReproductorAudio {
 
     /**
      * {@inheritDoc} Refleja el estado vivo, no la configuracion: hacen falta las tres cosas a la
-     * vez —proceso arriba, sesion valida y dispositivo ya transferido—.
+     * vez —proceso arriba, sesion valida y dispositivo registrado en la cuenta—.
      */
     @Override
     public boolean disponible() {

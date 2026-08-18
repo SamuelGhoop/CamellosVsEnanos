@@ -1004,7 +1004,14 @@ public class PrincipalController implements Initializable, ObservadorBiblioteca 
     @FXML
     private void ejecutarAccionDelModo() {
         if (modoActivo == modoAleatorio) {
-            modoAleatorio.volverAMezclar();
+            // Si venia sonando algo, la mezcla nueva toma el relevo desde su primera cancion. Si
+            // no, se rebaraja en silencio y ya sonara cuando el usuario le de a reproducir.
+            boolean sonaba = estaSonando();
+            if (modoAleatorio.volverAMezclar() && sonaba) {
+                modoAleatorio.siguiente();
+                iniciarPista();
+                return;
+            }
         } else if (modoActivo == modoOrdenLlegada) {
             modoOrdenLlegada.cargar(coleccionActiva.canciones());
             audio.detener();

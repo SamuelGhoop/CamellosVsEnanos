@@ -124,7 +124,7 @@ class ModoAleatorioTest {
     }
 
     @Test
-    @DisplayName("volver a mezclar cambia el orden pero no interrumpe lo que suena")
+    @DisplayName("volver a mezclar cambia el orden y empieza por el principio del nuevo")
     void volverAMezclar() {
         for (int i = 0; i < 20; i++) {
             biblioteca.add(new Cancion("Extra " + i));
@@ -132,14 +132,42 @@ class ModoAleatorioTest {
         modo.cargar(biblioteca);
         modo.siguiente();
         modo.siguiente();
-        Cancion sonando = modo.actual();
         List<Cancion> ordenAnterior = modo.listaReproduccion();
+
+        assertTrue(modo.volverAMezclar());
+
+        assertFalse(ordenAnterior.equals(modo.listaReproduccion()), "el orden deberia haber cambiado");
+        assertEquals(ordenAnterior.size(), modo.listaReproduccion().size());
+        // Se conservaba la cancion en curso, y entonces la lista de proximas mostraba un orden y
+        // los parlantes seguian con otro. Ahora la mezcla nueva manda desde su primera cancion.
+        assertEquals(modo.listaReproduccion().get(0), modo.siguiente(),
+                "tras mezclar, lo primero que suena es la cabeza del orden nuevo");
+    }
+
+    @Test
+    @DisplayName("volver a mezclar conserva el historial de lo ya reproducido")
+    void mezclarNoBorraElHistorial() {
+        for (int i = 0; i < 20; i++) {
+            biblioteca.add(new Cancion("Extra " + i));
+        }
+        modo.cargar(biblioteca);
+        modo.siguiente();
+        modo.siguiente();
+        int yaSonaron = modo.historial().size();
 
         modo.volverAMezclar();
 
-        assertEquals(sonando, modo.actual(), "la cancion en curso no debe cambiar");
-        assertFalse(ordenAnterior.equals(modo.listaReproduccion()), "el orden deberia haber cambiado");
-        assertEquals(ordenAnterior.size(), modo.listaReproduccion().size());
+        // Empezar el orden de cero no es lo mismo que olvidar lo que ya se escucho.
+        assertEquals(yaSonaron, modo.historial().size());
+    }
+
+    @Test
+    @DisplayName("Con una sola canción no hay nada que mezclar")
+    void mezclarConUnaSola() {
+        modo.cargar(List.of(new Cancion("Unica")));
+
+        assertFalse(modo.volverAMezclar(),
+                "avisar que no mezcló evita que la interfaz reinicie la canción sin motivo");
     }
 
     @Test
