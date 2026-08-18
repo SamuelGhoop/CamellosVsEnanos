@@ -152,6 +152,23 @@ public final class IntroDeArranque {
      */
     private static final int UMBRAL_QUIETO = 150;
 
+    /**
+     * Los tres tiempos del encendido del tubo, en milisegundos.
+     *
+     * <p>Fijos, no proporcionales: el chasquido de un televisor encendiendose dura lo que dura, y
+     * estirarlo al ritmo de la cancion lo convertiria en otra cosa.</p>
+     */
+    private static final double MS_PUNTO = 120;
+    private static final double MS_APERTURA = 350;
+    private static final double MS_ASENTAMIENTO = 130;
+    private static final double MS_ENCENDIDO = MS_PUNTO + MS_APERTURA + MS_ASENTAMIENTO;
+
+    /** Grosor de la linea de barrido y del filo que se retira con cada persiana. */
+    private static final double GROSOR_BARRIDO = 2;
+
+    /** Cuanto sube el brillo en el parpadeo de asentamiento. */
+    private static final double BRILLO_ASENTAMIENTO = 0.15;
+
     /** Topes de la duracion, para que ni una pista cortisima ni una larga arruinen la entrada. */
     private static final double MIN_SEGUNDOS = 4;
     private static final double MAX_SEGUNDOS = 10;
@@ -641,6 +658,68 @@ public final class IntroDeArranque {
     }
 
     /**
+     * El tubo encendiendose: punto, linea, apertura y asentamiento.
+     *
+     * <p><b>No se anima una linea que crece.</b> Lo que se abre es el hueco entre dos persianas
+     * negras que arrancan juntas tapandolo todo y se retiran hacia los bordes. Cada una lleva en su
+     * canto interior un filo blanco que se va con ella: ese filo es lo que hace que se lea como un
+     * tubo encendiendose y no como dos persianas separandose.</p>
+     *
+     * <p>Dura {@value #MS_ENCENDIDO} ms fijos, al margen de la cancion.</p>
+     */
+    private SequentialTransition encendidoDelTubo() {
+        // 1. El punto se estira hasta cruzar la pantalla. Frena al llegar: arranca de golpe y se
+        //    va deteniendo, como el barrido de un tubo que se engancha.
+        Timeline punto = new Timeline(
+                new KeyFrame(Duration.millis(MS_PUNTO),
+                        new KeyValue(barrido.widthProperty(), anchoVentana, Interpolator.EASE_OUT)));
+
+        // 2. Las persianas se retiran y el filo de cada una toma el relevo del barrido.
+        Timeline apertura = new Timeline(
+                new KeyFrame(Duration.ONE,
+                        new KeyValue(barrido.opacityProperty(), 0),
+                        new KeyValue(filoArriba.opacityProperty(), 1),
+                        new KeyValue(filoAbajo.opacityProperty(), 1)),
+                new KeyFrame(Duration.millis(MS_APERTURA),
+                        new KeyValue(hojaArriba.translateYProperty(), -altoVentana / 2,
+                                Interpolator.EASE_BOTH),
+                        new KeyValue(hojaAbajo.translateYProperty(), altoVentana / 2,
+                                Interpolator.EASE_BOTH)));
+
+        // 3. El fogonazo hace de subida de brillo: es el mismo rectangulo blanco a pantalla
+        //    completa que usa el golpe del logo, aqui a una fraccion de su intensidad.
+        Timeline asentamiento = new Timeline(
+                new KeyFrame(Duration.millis(MS_ASENTAMIENTO * 0.4),
+                        new KeyValue(fogonazo.opacityProperty(), BRILLO_ASENTAMIENTO)),
+                new KeyFrame(Duration.millis(MS_ASENTAMIENTO),
+                        new KeyValue(fogonazo.opacityProperty(), 0),
+                        new KeyValue(filoArriba.opacityProperty(), 0),
+                        new KeyValue(filoAbajo.opacityProperty(), 0)));
+
+        return new SequentialTransition(punto, apertura, asentamiento);
+    }
+
+    /** Una persiana: el panel negro y, en su canto interior, el filo blanco que se va con el. */
+    private Pane persiana(boolean esLaDeArriba) {
+        Rectangle panel = new Rectangle(anchoVentana, altoVentana / 2);
+        panel.setFill(FONDO);
+        panel.setY(0);
+
+        Rectangle filo = esLaDeArriba ? filoArriba : filoAbajo;
+        filo.setWidth(anchoVentana);
+        filo.setHeight(GROSOR_BARRIDO);
+        filo.setFill(Color.WHITE);
+        filo.setOpacity(0);
+        // El filo va pegado al canto que mira al centro de la pantalla.
+        filo.setY(esLaDeArriba ? altoVentana / 2 - GROSOR_BARRIDO : 0);
+
+        Pane hoja = new Pane(panel, filo);
+        hoja.setMouseTransparent(true);
+        hoja.setLayoutY(esLaDeArriba ? 0 : altoVentana / 2);
+        return hoja;
+    }
+
+    /**
      * Entre el acto 1 y el 2: la senial se desgarra en bandas y se vuelve a componer.
      *
      * <p><b>Como esta hecho.</b> Se congela el contenido en una foto y esa unica foto se reparte
@@ -1063,7 +1142,11 @@ public final class IntroDeArranque {
 
             segundos = Math.max(MIN_SEGUNDOS, Math.min(MAX_SEGUNDOS, segundos));
             this.total = Duration.seconds(segundos);
-            this.factor = segundos * 1000 / BASE_TOTAL;
+            // El encendido del tubo NO se estira con la musica: es un gesto mecanico y a otra
+            // velocidad deja de parecer un televisor. Se le descuenta al reparto en vez de alargar
+            // el total, asi la presentacion sigue acabando cuando toca.
+            double paraLosActos = Math.max(1, segundos * 1000 - MS_ENCENDIDO);
+            this.factor = paraLosActos / BASE_TOTAL;
         }
 
         /**

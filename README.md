@@ -29,12 +29,15 @@ La aplicación arranca **sin internet y sin configuración**. Las carátulas, la
 y Spotify son opcionales.
 
 ```
-mvn test     # 457 pruebas
+mvn test     # 480 pruebas
 ```
 
-Al abrirla suena una presentación de 7 segundos con el tema en 8 bits: la mascota baja colgada de
-su telaraña, el logo entra de golpe y el centinela cruza por abajo mientras se llena la barra.
+Al abrirla suena una presentación con el tema en 8 bits: la mascota baja colgada de su telaraña,
+la señal se desgarra en dos chispazos, el logo entra de golpe y se llena la barra de carga.
 **Un clic o cualquier tecla la salta** y entra directo.
+
+Dura lo que dure la pista, entre 4 y 10 segundos, y los actos se reparten ese total en proporción.
+La ventana se ajusta a la pantalla: si no cabe, se recorta el área de animación, nunca el marco.
 
 > Música: *Spider-Man Theme (8 Bit Tribute to Spider-Man)*, de 8 Bit Universe. Se usa solo con
 > fines académicos dentro de este trabajo de clase.
