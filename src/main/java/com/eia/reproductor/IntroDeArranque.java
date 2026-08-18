@@ -161,7 +161,7 @@ public final class IntroDeArranque {
     private static final double MS_PUNTO = 120;
     private static final double MS_APERTURA = 350;
     private static final double MS_ASENTAMIENTO = 130;
-    private static final double MS_ENCENDIDO = MS_PUNTO + MS_APERTURA + MS_ASENTAMIENTO;
+    static final double MS_ENCENDIDO = MS_PUNTO + MS_APERTURA + MS_ASENTAMIENTO;
 
     /** Grosor de la linea de barrido y del filo que se retira con cada persiana. */
     private static final double GROSOR_BARRIDO = 2;
@@ -228,6 +228,9 @@ public final class IntroDeArranque {
     /** Donde viven las bandas del desgarro; vacia salvo durante el efecto. */
     private final Pane capaGlitch = new Pane();
 
+    /** Las persianas del encendido y del apagado, por encima de todo lo demas. */
+    private final Pane capaEncendido = new Pane();
+
     private final MarcoPixel marco = new MarcoPixel();
     private final Pane capaTelaranias = new Pane();
 
@@ -243,6 +246,22 @@ public final class IntroDeArranque {
     private final Rectangle hiloPrincipal = new Rectangle(GROSOR_HILO, 0);
     private final Rectangle fogonazo = new Rectangle();
     private final Rectangle velo = new Rectangle();
+
+    /** Las dos persianas del encendido, con su filo blanco, y el barrido que las precede. */
+    private final Rectangle filoArriba = new Rectangle();
+    private final Rectangle filoAbajo = new Rectangle();
+    private final Rectangle barrido = new Rectangle();
+    private Pane hojaArriba;
+    private Pane hojaAbajo;
+
+    /**
+     * Donde se juntan las dos persianas, redondeado a pixel entero.
+     *
+     * <p>Con un alto impar —761— la mitad cae en 380,5 y los dos rectangulos quedaban en
+     * coordenadas fraccionarias: por la union se colaba una rendija de un pixel y se veia el marco
+     * a traves de la pantalla supuestamente apagada.</p>
+     */
+    private final double mitadVentana;
 
     private final Label rotulo = new Label("CAMELLOS VS ENANOS");
     private final Label estado = new Label("INICIANDO");
@@ -289,6 +308,7 @@ public final class IntroDeArranque {
         alto = area[1];
         anchoVentana = ancho + MARCO_LADO * 2;
         altoVentana = alto + MARCO_ARRIBA + MARCO_ABAJO;
+        mitadVentana = Math.round(altoVentana / 2);
 
         fogonazo.setWidth(anchoVentana);
         fogonazo.setHeight(altoVentana);
@@ -325,7 +345,29 @@ public final class IntroDeArranque {
         StackPane.setMargin(capaGlitch,
                 new Insets(MARCO_ARRIBA, MARCO_LADO, MARCO_ABAJO, MARCO_LADO));
 
-        raiz.getChildren().addAll(contenido, capaGlitch, marco.nodo(), fogonazo, velo);
+        hojaArriba = persiana(true);
+        hojaAbajo = persiana(false);
+
+        // El barrido va por encima de las persianas: en el primer tiempo la pantalla esta tapada y
+        // lo unico que se ve es esa linea creciendo.
+        barrido.setWidth(4);
+        barrido.setHeight(GROSOR_BARRIDO);
+        barrido.setFill(Color.WHITE);
+        barrido.setMouseTransparent(true);
+        barrido.setY(mitadVentana - GROSOR_BARRIDO / 2);
+        // Crece desde el centro hacia los dos lados: la x tiene que seguir al ancho, o el punto
+        // se estiraria solo hacia la derecha desde el borde izquierdo.
+        barrido.xProperty().bind(
+                barrido.widthProperty().negate().add(anchoVentana).divide(2));
+
+        capaEncendido.getChildren().addAll(hojaArriba, hojaAbajo, barrido);
+        capaEncendido.setMouseTransparent(true);
+        capaEncendido.setMinSize(anchoVentana, altoVentana);
+        capaEncendido.setPrefSize(anchoVentana, altoVentana);
+        capaEncendido.setMaxSize(anchoVentana, altoVentana);
+
+        raiz.getChildren().addAll(
+                contenido, capaGlitch, marco.nodo(), fogonazo, velo, capaEncendido);
 
         Scene escena = new Scene(raiz);
         escena.setFill(Color.TRANSPARENT);
@@ -594,7 +636,7 @@ public final class IntroDeArranque {
 
     private SequentialTransition construirGuion(Compas compas) {
         return new SequentialTransition(
-                actoUno(compas), desgarroDeSenial(compas), actoDos(compas),
+                encendidoDelTubo(), actoUno(compas), desgarroDeSenial(compas), actoDos(compas),
                 actoTres(compas), actoCuatro(compas));
     }
 
@@ -681,9 +723,9 @@ public final class IntroDeArranque {
                         new KeyValue(filoArriba.opacityProperty(), 1),
                         new KeyValue(filoAbajo.opacityProperty(), 1)),
                 new KeyFrame(Duration.millis(MS_APERTURA),
-                        new KeyValue(hojaArriba.translateYProperty(), -altoVentana / 2,
+                        new KeyValue(hojaArriba.translateYProperty(), -mitadVentana,
                                 Interpolator.EASE_BOTH),
-                        new KeyValue(hojaAbajo.translateYProperty(), altoVentana / 2,
+                        new KeyValue(hojaAbajo.translateYProperty(), altoVentana - mitadVentana,
                                 Interpolator.EASE_BOTH)));
 
         // 3. El fogonazo hace de subida de brillo: es el mismo rectangulo blanco a pantalla
@@ -701,7 +743,9 @@ public final class IntroDeArranque {
 
     /** Una persiana: el panel negro y, en su canto interior, el filo blanco que se va con el. */
     private Pane persiana(boolean esLaDeArriba) {
-        Rectangle panel = new Rectangle(anchoVentana, altoVentana / 2);
+        // Las dos alturas se reparten el alto exacto sin solaparse ni dejar hueco.
+        double altoPanel = esLaDeArriba ? mitadVentana : altoVentana - mitadVentana;
+        Rectangle panel = new Rectangle(anchoVentana, altoPanel);
         panel.setFill(FONDO);
         panel.setY(0);
 
@@ -711,11 +755,11 @@ public final class IntroDeArranque {
         filo.setFill(Color.WHITE);
         filo.setOpacity(0);
         // El filo va pegado al canto que mira al centro de la pantalla.
-        filo.setY(esLaDeArriba ? altoVentana / 2 - GROSOR_BARRIDO : 0);
+        filo.setY(esLaDeArriba ? altoPanel - GROSOR_BARRIDO : 0);
 
         Pane hoja = new Pane(panel, filo);
         hoja.setMouseTransparent(true);
-        hoja.setLayoutY(esLaDeArriba ? 0 : altoVentana / 2);
+        hoja.setLayoutY(esLaDeArriba ? 0 : mitadVentana);
         return hoja;
     }
 

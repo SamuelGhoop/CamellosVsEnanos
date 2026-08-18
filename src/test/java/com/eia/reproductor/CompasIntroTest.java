@@ -60,12 +60,16 @@ class CompasIntroTest {
         @Test
         @DisplayName("Los actos conservan su proporción sea cual sea el total")
         void proporcionesIntactas() {
-            // El peso del acto 3 dentro del total no puede cambiar con la duracion.
+            // Se mide contra el tiempo REPARTIDO, no contra el total. Antes se comparaba con el
+            // total y la prueba era incorrecta desde que existe el encendido: como el tubo dura lo
+            // mismo siempre, ocupa un 15 % de una presentación de 4 s y un 6 % de una de 10, así
+            // que el peso de cada acto sobre el total tiene que cambiar. Lo que no puede cambiar
+            // es su peso dentro de lo que se reparte.
             double pesoEsperado = IntroDeArranque.BASE_ACTO_TRES / BASE;
             for (double segundos : new double[] {4, 5.67, 7, 10}) {
                 Compas compas = new Compas(Duration.seconds(segundos));
-                double peso = compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis()
-                        / compas.total().toMillis();
+                double repartido = compas.total().toMillis() - IntroDeArranque.MS_ENCENDIDO;
+                double peso = compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis() / repartido;
                 assertEquals(pesoEsperado, peso, 1e-9, "con " + segundos + " s");
             }
         }
@@ -82,9 +86,36 @@ class CompasIntroTest {
                     + compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis()
                     + compas.de(IntroDeArranque.BASE_ACTO_CUATRO).toMillis();
 
-            // Es lo que hace que el fundido del acto 4 caiga justo al acabar la pista. Si se
-            // agrega un tramo nuevo al guion sin sumarlo al ritmo base, esta prueba lo caza.
-            assertEquals(compas.total().toMillis(), suma, 0.001);
+            // Los cinco tramos mas el encendido dan el total exacto: es lo que hace que el
+            // fundido del acto 4 caiga justo al acabar la pista. Si se agrega un tramo nuevo al
+            // guion sin sumarlo al ritmo base, esta prueba lo caza.
+            assertEquals(compas.total().toMillis(), suma + IntroDeArranque.MS_ENCENDIDO, 0.001);
+        }
+
+        @Test
+        @DisplayName("El encendido se descuenta del reparto, no alarga el total")
+        void elEncendidoSeDescuenta() {
+            // Los 600 ms del tubo son fijos. Lo que se estira o encoge es lo que queda para los
+            // actos, de modo que la presentación siga acabando cuando acaba la pista.
+            Compas compas = new Compas(Duration.seconds(8));
+            assertEquals(8000, compas.total().toMillis(), 0.001, "el total no puede crecer");
+
+            double actos = compas.de(IntroDeArranque.BASE_ACTO_UNO).toMillis()
+                    + compas.de(IntroDeArranque.BASE_GLITCH).toMillis()
+                    + compas.de(IntroDeArranque.BASE_ACTO_DOS).toMillis()
+                    + compas.de(IntroDeArranque.BASE_ACTO_TRES).toMillis()
+                    + compas.de(IntroDeArranque.BASE_ACTO_CUATRO).toMillis();
+
+            assertEquals(8000 - 600, actos, 0.001, "a los actos les toca el total menos el tubo");
+        }
+
+        @Test
+        @DisplayName("Con la pista más corta posible, a los actos les queda tiempo de sobra")
+        void elEncendidoNoSeComeLosActos() {
+            // Con el minimo de 4 s, tras descontar el tubo quedan 3,4 para los cinco tramos.
+            Compas compas = new Compas(Duration.seconds(1));
+            assertTrue(compas.de(IntroDeArranque.BASE_ACTO_UNO).toMillis() > 0,
+                    "el acto 1 se quedó sin tiempo");
         }
 
         @Test
